@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+#!/home/pi/CMM/bin/python3
 
 # CMM Oficial com placa de expansão da BRAVAS Technololgy
 # Desenvolvido por Leandro Leal  rev. 06/06/2019
@@ -9,7 +10,8 @@ from datetime import datetime, timedelta
 import wiringpi # Biblioteca para usar as GPIO da rasp como saidas ou entradas
 ##import os     # Executa comandos do sistema operacional Ex.: os.system('sudo reboot now'))
 import sys
-import serial # Para comunicação serial 
+import serial # Para comunicação serial
+import binascii
 
 ser = serial.Serial("/dev/ttyS0", 115200) # 9600 38400 115200 Configura a serial e a velocidade de transmissao
 
@@ -49,23 +51,47 @@ def LeModbus1(ser):
     GPIO.output(17, 0)  
     GPIO.output(18, 0)
     
-    time.sleep(0.02)
+    time.sleep(0.02)    
     
-    bytesToRead = ser.inWaiting()  
-    in_bin = ser.read(bytesToRead)
-
+    bytesToRead = ser.inWaiting()
+    
+    in_bin = (ser.read(bytesToRead))
+       
     print("\n",in_bin,type(in_bin))
-        
+            
     i = str(in_bin)
-    i = i.split('x')
+    i = str(i.split('\\'))
+    i = i.replace("x","")
+    i = i.replace("'","")
+    i = i.replace("`","")
+    i = i.replace(" ","")
+    i = i.replace("!","")
+    i= i.split(",")
 
-    print("\ndividida",i)
-        
-    i = (i[4])
+    print("\ndividida",i,type(i))
+
     
-    b = (i[1])
-    print("b",b,type(b))
+            
+    i = (i[4])    
 
+    print("i",i,type(i),len(i))            
+    
+    b = (i[-1])
+    
+    if i == "05a":
+        b = "5"
+        
+    if i == "ta":
+        b = "9"
+
+    if i == "n":
+        b = "a"
+
+    if i == "r":
+        b = "d"
+        
+    print("b",b)
+        
     in1 = 0
     in2 = 0
     in3 = 0
