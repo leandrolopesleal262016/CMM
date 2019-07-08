@@ -79,6 +79,8 @@ qr2 = Qrcode("172.18.34.250","5987",5,"eclusa") # IP,Cliente,rele,portao) - "172
 ## Ex. rele_qr = Rele_qr("172.20.9.5",5000) # Conecta com o Qrcode deste endereço para acionamento do rele e leitura da entrada auxiliar
 
 ##print("Conteudo do play1 ",ihm.get_cbox("play1"))
+
+print("Reiniciou o sistema",hs)
  
 ##############################################  Threads dos programas  ##########################################################
 
@@ -961,7 +963,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                         os.system("mpg123 /home/pi/CMM/mp3/abrindo_social.mp3")                   
                     
-                    time.sleep(3)
+                    time.sleep(2) # Tempo minimo para o portão abrir
 
                     entradas = Entradas()
                     pm1 = entradas.pm1
@@ -979,7 +981,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                         evento.enviar("E","133","001") # Envia abriu portão
                         
-                        contador = 150 # Tempo maximo para o social ficar aberto 15 segundos
+                        contador = 300 # Tempo maximo para o social ficar aberto 30 segundos
                         print("Esperando por 15 segundos o portão social fechar...")
 
                         while contador > 0: # enquanto portão está aberto
@@ -1025,7 +1027,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                             if (ctw2 == 0):# and pm1 == 1): # Entrada para abrir o portão da eclusa
                                 print("Agurade o fechamento do social")
                                 os.system("mpg123 /home/pi/CMM/mp3/aguarde_social.mp3") # Necessario manter esse audio sempre ativo
-                                time.sleep(2)
+                                time.sleep(1)
                                 
                             time.sleep(0.1) # 1 segundo
                             contador = contador - 1
@@ -1090,8 +1092,8 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                         evento.enviar("E","133","003") # Envia abertura
                         
-                        contador = 200 # Tempo maximo para o social ficar aberto 20 segundos
-                        print("Esperando por 20 segundos o portão Eclusa fechar...")
+                        contador = 300 # Tempo maximo para eclusa ficar aberta 30 segundos
+                        print("Esperando por 30 segundos o portão Eclusa fechar...")
 
                         while contador > 0: # enquanto portão está aberto
 
