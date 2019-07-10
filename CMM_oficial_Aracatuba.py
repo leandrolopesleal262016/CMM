@@ -101,8 +101,8 @@ saidas = Saidas()
 
 def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a classe Rele
         
-        entradas = Entradas() # Inicia classe para leitura das entradas        
-
+        entradas = Entradas() # Inicia classe para leitura das entradas
+        
         audio = 0 # Deixa ativo ass mensagens de audio de abertura
         cont = 0
 
@@ -160,11 +160,12 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                     if pm1 == 0: # Portão fechado pois não abriu com o comando
 
                         print("Portão Social emperrado")
-                        evento.enviar("E","130","008") # Envia portão emperrado
-                        
-                        rele.desliga(2) # Fecha o contato e libera a eclusa para ser acionada
 
                         os.system("mpg123 /home/pi/CMM/mp3/social_emperrado.mp3")
+                                                
+                        rele.desliga(2) # Fecha o contato e libera a eclusa para ser acionada
+
+                        evento.enviar("E","130","008") # Envia portão emperrado                        
 
                     if pm1 == 1: # Portão abriu
 
@@ -265,11 +266,12 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                     if pm2 == 0: # Portão fechado não abriu após o comando
 
                        print("Portão eclusa emperrado")
-                       evento.enviar("E","130","009") # Envia portão emperrado
-
+                       
                        os.system("mpg123 /home/pi/CMM/mp3/eclusa_emperrado.mp3")
                            
-                       rele.desliga(1) # Libera o social para abrir mesmo com a eclusa aberta 
+                       rele.desliga(1) # Libera o social para abrir mesmo com a eclusa aberta
+
+                       evento.enviar("E","130","009") # Envia portão emperrado
 
                     if pm2 == 1: # Portão aberto
 
@@ -976,7 +978,7 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
 def Servidor(Rele,Abre): # Inicia a thread do portão da garagem importando a classe Rele
     
     sys.stdout.write("\nPrograma Servidor em execução\n")
-    socket.setdefaulttimeout(9999) # limite de 2 segundos para enviar o socket
+    socket.setdefaulttimeout(9999) # limite tempo socket
     
     host = '0.0.0.0'
     port = 5510
@@ -993,6 +995,8 @@ def Servidor(Rele,Abre): # Inicia a thread do portão da garagem importando a cl
         ############################################### Thread servidor p/ PHP e MONI #################################################################
 
         while(1):
+
+            socket.setdefaulttimeout(9999)
 
 
             def setupServer():
@@ -1516,6 +1520,8 @@ def Buffer():
     enviado = 0
 
     while(1):
+
+        socket.setdefaulttimeout(3)
 
         b = open("/home/pi/CMM/buffer_eventos.txt","r")
         
