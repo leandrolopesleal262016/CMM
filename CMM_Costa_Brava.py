@@ -1,7 +1,7 @@
 #!/home/pi/CMM/bin/python3
 # -*- coding:utf-8 -*-
 
-# CMM Oficial com placa de expansão da BRAVAS Technololgy
+# CMM Oficial com placa de expansão da BRAVAS Technololgy  Simplificar o programa, criar classes para os outros modulos expansores.
 # Desenvolvido por Leandro Leal  rev. 06/06/2019
 
 import RPi.GPIO as GPIO
@@ -26,6 +26,8 @@ import socket
 import serial # Parhome/pi/CMM/mp3a comunicação serial com arduino
 
 os.system("mpg123 /home/pi/CMM/mp3/reiniciando_sistema.mp3")
+time.sleep(1)
+os.system("mpg123 /home/pi/CMM/mp3/bemvindo_cam.mp3")
 
 socket.setdefaulttimeout(2) # limite de 2 segundos para enviar o socket
 
@@ -73,7 +75,7 @@ narrador = Narrador()
 temperatura = Temperatura()
 email = Email()
 clima = Clima()
-evento = Evento("0054") # Inicia a classe evento com o codigo do cliente
+evento = Evento("5667") # Inicia a classe evento com o codigo do cliente
 
 
 ##qrcode = Qrcode() # Instancia a classe do leitor de qrcode
@@ -125,7 +127,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
             entradas = Entradas()
             pm1 = entradas.pm1
-                        
+                                
             if pm1 == 1: # O portão social já esta aberto
 
                 print("O portão social já esta aberto")
@@ -137,7 +139,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                 entradas = Entradas()
                 pm2 = entradas.pm2
-                
+                                
                 if pm2 == 0: # Se Ponto magnético Eclusa fechado
                     
                     s = open("status_social.cmm","w")
@@ -147,6 +149,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                     rele.liga(2) # Aqui abrimos o contato da eclusa para impedir que ela seja aberta enquanto o social esta aberto
                     
                     print("Abrindo portão Social")
+                    abre.social()
 
                     if audio == 1: # Ativa as mensagens de abertura e fechamento
 
@@ -156,7 +159,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                     entradas = Entradas()
                     pm1 = entradas.pm1
-                                
+                                        
                     if pm1 == 0: # Portão fechado pois não abriu com o comando
 
                         print("Portão Social emperrado")
@@ -165,11 +168,11 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                                                 
                         rele.desliga(2) # Fecha o contato e libera a eclusa para ser acionada
 
-                        evento.enviar("E","130","008") # Envia portão emperrado                        
+                        evento.enviar("E","132","008") # Envia portão emperrado                        
 
                     if pm1 == 1: # Portão abriu
 
-                        evento.enviar("E","133","001") # Envia abriu portão
+##                        evento.enviar("E","133","001") # Envia abriu portão
                         
                         contador = 300 # Tempo maximo para o social ficar aberto 30 segundos
                         print("Esperando por 15 segundos o portão social fechar...")
@@ -184,7 +187,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                             if pm1 == 0: # portão fechou
 
                                 print("Portão social fechou")
-                                evento.enviar("R","133","001") # Envia fechamento
+##                                evento.enviar("R","133","001") # Envia fechamento
                                 contador = 1
                                                             
                                 s = open("status_social.cmm","w")
@@ -199,7 +202,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                                 print("Portão social aberto por muito tempo")
                                 
-                                evento.enviar("E","130","013") # Envia falha no fechamento social
+                                evento.enviar("E","132","010") # Envia falha no fechamento social
 
                                 os.system("mpg123 /home/pi/CMM/mp3/obstrucao.mp3")
                                 
@@ -213,10 +216,11 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                                 
                             entradas = Entradas()    
                             ctw2 = entradas.ctw2
+                            btn2 = entradas.qde
                             
-                            if (ctw2 == 0):# and pm1 == 1): # Entrada para abrir o portão da eclusa
+                            if (ctw2 == 0 or btn2 == 0):# and pm1 == 1): # Entrada para abrir o portão da eclusa
                                 print("Agurade o fechamento do social")
-                                os.system("mpg123 /home/pi/CMM/mp3/aguarde_social.mp3") # Necessario manter esse audio sempre ativo
+                                os.system("mpg123 /home/pi/CMM/mp3/aguarde_fechamento.mp3") # Necessario manter esse audio sempre ativo
                                 time.sleep(1)
                                 
                             time.sleep(0.1) # 1 segundo
@@ -252,8 +256,10 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                     s.write("1")
                     s.close()
 
-                    rele.liga(1) # Impede o social de abrir enquanto a eclusa esta aberta 
+                    rele.liga(1) # Impede o social de abrir enquanto a eclusa esta aberta
+                    
                     print("Abrindo portão Eclusa")
+                    abre.eclusa()
 
                     if audio == 1:
                         os.system("mpg123 /home/pi/CMM/mp3/abrindo_eclusa.mp3")
@@ -271,11 +277,11 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                            
                        rele.desliga(1) # Libera o social para abrir mesmo com a eclusa aberta
 
-                       evento.enviar("E","130","009") # Envia portão emperrado
+                       evento.enviar("E","132","009") # Envia portão emperrado
 
                     if pm2 == 1: # Portão aberto
 
-                        evento.enviar("E","133","003") # Envia abertura
+##                        evento.enviar("E","133","003") # Envia abertura
                         
                         contador = 300 # Tempo maximo para eclusa ficar aberta 30 segundos
                         print("Esperando por 30 segundos o portão Eclusa fechar...")
@@ -290,7 +296,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                             if pm2 == 0: # portão fechou
 
                                 print("Portão Eclusa fechou")
-                                evento.enviar("R","133","003") # Envia fechamento
+##                                evento.enviar("R","133","003") # Envia fechamento
                                 contador = 1
                                 
                                 s = open("status_social.cmm","w")
@@ -305,7 +311,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                                 print("Portão Eclusa aberto por muito tempo")
                                 
-                                evento.enviar("E","130","014") # Envia falha no fechamento
+                                evento.enviar("E","132","011") # Envia falha no fechamento
                                 
                                 os.system("mpg123 /home/pi/CMM/mp3/obstrucao.mp3")
                                 
@@ -319,11 +325,12 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                             entradas = Entradas()
                             ctw1 = entradas.ctw1
+                            btn1 = entradas.qbv 
 
-                            if ctw1 == 0: # Alguem esta tentando abrir o social com a eclusa aberta
+                            if ctw1 == 0 or btn1 == 0: # Alguem esta tentando abrir o social com a eclusa aberta
 
                                 print("Aguarde o fechamento do portão")
-                                os.system("mpg123 /home/pi/CMM/mp3/aguarde_eclusa.mp3") # Manter esse audio sempre ativo
+                                os.system("mpg123 /home/pi/CMM/mp3/aguarde_fechamento.mp3") # Manter esse audio sempre ativo
                                 time.sleep(1)
                                 
 
@@ -333,7 +340,9 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
 def Portoes_sociais(Rele): # Programa
     
-    sys.stdout.write("\nPrograma Sociais em execução\n")   
+    sys.stdout.write("\nPrograma Sociais em execução na thread\n")
+
+    saida = 0
         
     while(1):
 
@@ -342,12 +351,11 @@ def Portoes_sociais(Rele): # Programa
         pm1 = entradas.pm1
         pm2 = entradas.pm2
 
-        qbv = entradas.qbv
-        mud = entradas.mud
-        qde = entradas.qde
+        btn1 = entradas.qbv        
+        btn2 = entradas.qde
         ctw1 = entradas.ctw1
         ctw2 = entradas.ctw2
-
+       
         if ctw1 == 0:
 
             status = open("status_social.cmm","w")
@@ -360,7 +368,8 @@ def Portoes_sociais(Rele): # Programa
             status.write("0")
             status.close()
 
-        if ctw2 == 0:
+            
+        if ctw2 == 0 or btn2 == 0:
 
             status = open("status_eclusa.cmm","w")
             status.write("1")
@@ -371,6 +380,25 @@ def Portoes_sociais(Rele): # Programa
             status = open("status_eclusa.cmm","w")
             status.write("0")
             status.close()
+
+            saida = 1
+
+        if btn1 == 0:
+
+            if saida == 1:
+
+                print ("Abrindo pelo botão de saida")
+                os.system("mpg123 /home/pi/CMM/mp3/ate_logo.mp3")
+                Intertravamento("abre_social")
+                saida = 0
+
+            else:
+
+                print("Uso incorreto do sistema")
+                os.system("mpg123 /home/pi/CMM/mp3/uso_incorreto.mp3")
+                evento.enviar("E","132","023")
+                time.sleep(1)
+            
                 
         time.sleep(0.1)                             
                                 
@@ -386,7 +414,7 @@ class Abre(Rele): # classe abertura dos portoes registrando no arquivo de contro
         rele.pulso(4,2) # Pulso para abrir direto o portão sem intertravamento (Social)
         
         print("Abrindo portão social")
-        evento.enviar("E","133","001") # Envia abertura
+        #evento.enviar("E","133","001") # Envia abertura
         
     def eclusa(self):
 
@@ -397,7 +425,7 @@ class Abre(Rele): # classe abertura dos portoes registrando no arquivo de contro
         rele.pulso(5,2) # Pulso para abrir direto o portão sem intertravamento (Eclusa)
 
         print("Abrindo portão eclusa")      
-        evento.enviar("E","133","003") # Envia abertura
+        #evento.enviar("E","133","003") # Envia abertura
         
                 
 
@@ -434,7 +462,7 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
 
             if mud1 == 1:
 
-                os.system("mpg123 /home/pi/CMM/mp3/chave_mudanca.mp3")
+##                os.system("mpg123 /home/pi/CMM/mp3/chave_mudanca.mp3")
 
                 s.liga_rele1_exp1() # Aciona o rele 1 do modulo 1 (Abre)
                 s.liga_rele1_exp1() # Aciona o rele 1 do modulo 1 (Abre)
@@ -457,13 +485,13 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
                 s.desliga_rele1_exp1() # Desliga o rele 1 do modulo 1 (Abre) Novamente para garantir
                 s.desliga_rele2_exp1() # Desliga o rele 2 do modulo 1 (Foto)
 
-                os.system("mpg123 /home/pi/CMM/mp3/restaurada_mudanca.mp3")
+##                os.system("mpg123 /home/pi/CMM/mp3/restaurada_mudanca.mp3")
 
                 pmg1 = l.leitor1_in1()
 
                 cont = 30 # Tempo maximo de espera
 
-                print("Aguardando portão fechar")
+                print("Aguardando portão fechar depois da mudanca")
 
                 while cont > 0:
 
@@ -482,19 +510,20 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
                         time.sleep(1)
                         break
             
-        if pmg1 == 0 and mudanca1 == 0: # Violação do portão da garagem
+        if pmg1 == 0 and mudanca1 == 0 and tx1 == 0: # Violação do portão da garagem
 
             time.sleep(0.2)
-            pmg1 = l.leitor1_in1() 
+            pmg1 = l.leitor1_in1()
+            tx1 =  l.leitor1_in3()
 
-            if pmg1 == 0: # Verifica novamente para evitar ruidos            
+            if pmg1 == 0 and tx1 == 0: # Verifica novamente para evitar ruidos            
 
-                print("violação do portão garagem")
-                os.system("mpg123 /home/pi/CMM/mp3/violacao_garagem.mp3")
+                print("violação do portão garagem 001")
+##                os.system("mpg123 /home/pi/CMM/mp3/violacao_garagem.mp3")
 
                 s.liga_rele4_exp1() # Sirene
                             
-                evento.enviar("E","120","014")
+                evento.enviar("E","132","014")
 
                 cont = 30 # Tempo maximo de espera
 
@@ -542,14 +571,14 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
                 if pmg1 == 1: # Portão não abriu apos o comando
 
                     print("Portão garagem não abriu")
-                    os.system("mpg123 /home/pi/CMM/mp3/garagem_emperrado.mp3")
-                    evento.enviar("E","120","015")                
+##                    os.system("mpg123 /home/pi/CMM/mp3/garagem_emperrado.mp3")
+                    evento.enviar("E","132","015")                
                                         
                     cont = 0
 
                 if pmg1 == 0: # Portão abriu
 
-                    evento.enviar("E","133","013")
+##                    evento.enviar("E","133","013")
 
                     while cont > 0:   # Enquanto o portão esta aberto verifica
 
@@ -563,7 +592,7 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                             print("Portão fechou")
 
-                            evento.enviar("R","133","013")
+##                            evento.enviar("R","133","013")
 
                             # Envia o evento de fechamento para a central
                             cont = 0
@@ -604,9 +633,9 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
                                         if bar1 == 1: # Dupla passagem
 
                                             print("Dupla passagem")
-                                            os.system("mpg123 /home/pi/CMM/mp3/dupla_passagem.mp3")
+##                                            os.system("mpg123 /home/pi/CMM/mp3/dupla_passagem.mp3")
 
-                                            evento.enviar("E","120","019")
+                                            evento.enviar("E","132","019")
 
                                             s.liga_rele4_exp1() # Sirene
                                             s.liga_rele4_exp1() # Sirene
@@ -621,7 +650,7 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
                                             cont = 0                                       
                                             break # Sai da função e inicia novamente a verificação
                                         
-                                    evento.enviar("R","133","013") # Fechamento de portão
+##                                    evento.enviar("R","133","013") # Fechamento de portão
                                     
                                 print("Fim do cilo")
 
@@ -671,7 +700,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
 
             if mud2 == 1:
 
-                os.system("mpg123 /home/pi/CMM/mp3/chave_mudanca.mp3")
+##                os.system("mpg123 /home/pi/CMM/mp3/chave_mudanca.mp3")
                 
                 s2.liga_rele1_exp7() # Aciona o rele 1 do modulo 2 (Abre)
                 s2.liga_rele1_exp7() # Aciona o rele 1 do modulo 2 (Abre)
@@ -694,7 +723,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
                 s2.desliga_rele2_exp7() # Desliga o rele 2 do modulo 1 (Foto)
                 s2.desliga_rele2_exp7() # Desliga o rele 2 do modulo 1 (Foto)
 
-                os.system("mpg123 /home/pi/CMM/mp3/restaurada_mudanca.mp3")
+##                os.system("mpg123 /home/pi/CMM/mp3/restaurada_mudanca.mp3")
 
                 pmg2 = l2.leitor7_in1()
 
@@ -719,24 +748,25 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
                         time.sleep(1)
                         break
             
-        if pmg2 == 0 and mudanca2 == 0: # Violação do portão da garagem
+        if pmg2 == 0 and mudanca2 == 0 and tx2 == 0: # Violação do portão da garagem
 
             time.sleep(0.2) # Filtro
             pmg2 = l2.leitor7_in1()
+            tx2 =  l2.leitor7_in3()
 
-            if pmg2 == 0:
+            if pmg2 == 0 and tx2 == 0:
 
                 print("violação do portão garagem subsolo1")
-                os.system("mpg123 /home/pi/CMM/mp3/violacao_garagem.mp3")
+##                os.system("mpg123 /home/pi/CMM/mp3/violacao_garagem.mp3")
 
                 s2.liga_rele4_exp7() # Sirene
                 s2.liga_rele4_exp7() # Sirene
                             
-                evento.enviar("E","120","016")
+                evento.enviar("E","132","016")
 
                 cont = 30 # Tempo maximo de espera
 
-                print("Aguardando portão subsolo1 fechar")
+                print("Aguardando portão subsolo1 fechar apos violação")
 
                 while cont > 0:
 
@@ -780,14 +810,14 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
                 if pmg2 == 1: # Portão não abriu apos o comando
 
                     print("Portão subsolo1 não abriu")
-                    os.system("mpg123 /home/pi/CMM/mp3/garagem_emperrado.mp3")
-                    evento.enviar("E","120","018")                
+##                    os.system("mpg123 /home/pi/CMM/mp3/garagem_emperrado.mp3")
+                    evento.enviar("E","132","018")                
                                     
                     cont = 0
 
                 if pmg2 == 0: # Portão abriu
 
-                    evento.enviar("E","133","016")
+##                    evento.enviar("E","133","016")
 
                     while cont > 0:   # Enquanto o portão esta aberto verifica
 
@@ -801,7 +831,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                             print("Portão subsolo1 fechou")
 
-                            evento.enviar("R","133","016")
+##                            evento.enviar("R","133","016")
 
                             # Envia o evento de fechamento para a central
                             cont = 0
@@ -831,7 +861,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                                     pmg2 = l2.leitor7_in1() # Faz a leitura do ponto magnetico
 
-                                    print("Aguardando portão subsolo1 fechar")
+                                    print("Aguardando portão subsolo1 fechar apos entrada ou saida")
 
                                     while pmg2 == 0:  # Enquanto o portão ainda não fechou                                
 
@@ -842,9 +872,9 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
                                         if bar2 == 1: # Dupla passagem
 
                                             print("Dupla passagem subsolo1")
-                                            os.system("mpg123 /home/pi/CMM/mp3/dupla_passagem.mp3")
+##                                            os.system("mpg123 /home/pi/CMM/mp3/dupla_passagem.mp3")
 
-                                            evento.enviar("E","120","019")
+                                            evento.enviar("E","132","019")
 
                                             s2.liga_rele4_exp7() # Sirene
                                             time.sleep(10)
@@ -857,7 +887,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
                                             cont = 0                                       
                                             break # Sai da função e inicia novamente a verificação
                                         
-                                    evento.enviar("R","133","016") # Fechamento de portão
+##                                    evento.enviar("R","133","016") # Fechamento de portão
                                     
                                 print("Fim do cilo subsolo1")
 
@@ -923,7 +953,7 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
                 print("Arrombamento do portão social")
                 os.system("mpg123 /home/pi/CMM/mp3/violacao_social.mp3")
                 rele.liga(8)
-                evento.enviar("E","120","002")
+                evento.enviar("E","132","002")
                 
                 ar1 = 1
                 reset_ar1 = 1
@@ -935,7 +965,7 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
 
             if cont1 <= 0:
 
-                evento.enviar("R","120","002")
+                evento.enviar("R","132","002")
 
                 cont1 = 60 # Se apos o reset o portão continuar aberto envia o evento novamente  espera 60 segundos
                 ar1 = 0
@@ -953,7 +983,7 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
                 print("Arrombamento do portão Eclusa")
                 os.system("mpg123 /home/pi/CMM/mp3/violacao_eclusa.mp3")
                 rele.liga(8)
-                evento.enviar("E","120","004")
+                evento.enviar("E","132","004")
                 
                 ar2 = 1
                 reset_ar2 = 1
@@ -965,7 +995,7 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
 
             if cont2 <= 0:
 
-                evento.enviar("R","120","004")
+                evento.enviar("R","132","004")
 
                 cont2 = 60 # Se apos o reset o portão continuar aberto envia o evento novamente  espera 60 segundos
                 ar2 = 0
@@ -992,9 +1022,7 @@ def Servidor(Rele,Abre): # Inicia a thread do portão da garagem importando a cl
     while(1):
 
         
-        ############################################### Thread servidor p/ PHP e MONI #################################################################
-
-        while(1):
+    ############################################### Thread servidor p/ PHP e MONI #################################################################
 
             socket.setdefaulttimeout(9999)
 
@@ -1018,22 +1046,31 @@ def Servidor(Rele,Abre): # Inicia a thread do portão da garagem importando a cl
 
             def dataTransfer(conn):  # Loop de transferencia e recepção de dados
 
-                while True:
+                print("Entrou no data transfer")
 
-                    abre = Abre()
-                    rele = Rele()
+                while True:
                     
-                                      
+                    rele = Rele()
+                                                          
                     data = conn.recv(1024)  # Recebe o dado
                     data = data.decode('utf-8')
+                    print("data",data)
                     dataMessage = data.split(' ',1)# Separa o comando do resto dos dados
                     command = dataMessage[0]
 
+                    print("command",command)
+
                     (comando,resto) = data.split("\r") # Divide os dados da variavel data e guarda uma parte em comando e eoutra em resto
+
+                    print("comando e resto",comando,resto)
                    
                     if(comando == "SET1"):
 
                         print("Abrindo portão Social pelo Moni")
+
+                        status = open("/home/pi/CMM/status_social.cmm","w") 
+                        status.write("1")
+                        status.close()
                         
                         rele.liga(4)
 
@@ -1041,18 +1078,34 @@ def Servidor(Rele,Abre): # Inicia a thread do portão da garagem importando a cl
 
                         rele.desliga(4)
 
+                        time.sleep(15)
+
+                        status = open("/home/pi/CMM/status_social.cmm","w") # Volta o arquivo para zero para ativar a verificação de arrombamento
+                        status.write("0")
+                        status.close()
+
                         conn.close()                        
                                             
 
                     elif(comando == "SET2"):
                         
                         print("Abrindo portão Eclusa pelo Moni")
+
+                        status = open("/home/pi/CMM/status_eclusa.cmm","w") 
+                        status.write("1")
+                        status.close()
                         
                         rele.liga(5)
 
                         time.sleep(2)
 
                         rele.desliga(5)
+
+                        time.sleep(15)
+
+                        status = open("/home/pi/CMM/status_eclusa.cmm","w") # Volta o arquivo para zero para ativar a verificação de arrombamento
+                        status.write("0")
+                        status.close()
                         
                         conn.close()
                         
@@ -1147,64 +1200,63 @@ def Servidor(Rele,Abre): # Inicia a thread do portão da garagem importando a cl
 
                   print("Encerrou conexão")
 
-        
-        time.sleep(0.1)
-
-def Portoes_sociais(Rele): # Programa
-
-##    entradas = Entradas() # Inicia classe para leitura das entradas
-    
-    sys.stdout.write("\nPrograma Sociais em execução\n")   
-        
-    while(1):
-
-        entradas = Entradas() # Inicia classe para leitura das entradas
-        
-        pm1 = entradas.pm1
-        pm2 = entradas.pm2
-        
-        qbv = entradas.qbv
-        mud = entradas.mud
-        qde = entradas.qde
-        ctw1 = entradas.ctw1
-        ctw2 = entradas.ctw2
-        
-
-##        a = open("status_social.cmm","r") # Verifica se alguem registrou abrir para o portão social
-##        abre_social = a.read()
-##        a.close()
+                
 ##
-##        b = open("status_eclusa.cmm","r") # Verifica se alguem registrou abrir para o portão eclusa
-##        abre_eclusa = b.read()
-##        b.close()
-        
-        
-        if ctw1 == 0:
-
-            status = open("/home/pi/CMM/status_social.cmm","w")
-            status.write("1")
-            status.close()
-     
-            Intertravamento("abre_social")
-
-            status = open("/home/pi/CMM/status_social.cmm","w")
-            status.write("0")
-            status.close()
-
-        if ctw2 == 0:
-
-            status = open("/home/pi/CMM/status_eclusa.cmm","w")
-            status.write("1")
-            status.close()
-
-            Intertravamento("abre_eclusa")
-
-            status = open("/home/pi/CMM/status_eclusa.cmm","w")
-            status.write("0")
-            status.close()
-        
-        
-        time.sleep(0.1)
+##def Portoes_sociais(Rele): # Programa
+##
+####    entradas = Entradas() # Inicia classe para leitura das entradas
+##    
+##    sys.stdout.write("\nPrograma Sociais em execução\n")   
+##        
+##    while(1):
+##
+##        entradas = Entradas() # Inicia classe para leitura das entradas
+##        
+##        pm1 = entradas.pm1
+##        pm2 = entradas.pm2
+##        
+##        qbv = entradas.qbv
+##        mud = entradas.mud
+##        qde = entradas.qde
+##        ctw1 = entradas.ctw1
+##        ctw2 = entradas.ctw2
+##        
+##
+####        a = open("status_social.cmm","r") # Verifica se alguem registrou abrir para o portão social
+####        abre_social = a.read()
+####        a.close()
+####
+####        b = open("status_eclusa.cmm","r") # Verifica se alguem registrou abrir para o portão eclusa
+####        abre_eclusa = b.read()
+####        b.close()
+##        
+##        
+##        if ctw1 == 0:
+##
+##            status = open("/home/pi/CMM/status_social.cmm","w")
+##            status.write("1")
+##            status.close()
+##     
+##            Intertravamento("abre_social")
+##
+##            status = open("/home/pi/CMM/status_social.cmm","w")
+##            status.write("0")
+##            status.close()
+##
+##        if ctw2 == 0:
+##
+##            status = open("/home/pi/CMM/status_eclusa.cmm","w")
+##            status.write("1")
+##            status.close()
+##
+##            Intertravamento("abre_eclusa")
+##
+##            status = open("/home/pi/CMM/status_eclusa.cmm","w")
+##            status.write("0")
+##            status.close()
+##        
+##        
+##        time.sleep(0.1)
 
         
 def Alarmes(Rele):
@@ -1275,7 +1327,7 @@ def Alarmes(Rele):
 
                 quebra_vidro = 1
 
-                evento.enviar("E","130","007") # Envia violação quebra de vidro           
+                evento.enviar("E","132","007") # Envia violação quebra de vidro           
 
                 time.sleep(10)
 
@@ -1308,7 +1360,7 @@ def Alarmes(Rele):
                 
                 rele.desliga(3) # Desliga fotocelula
 
-                evento.enviar("R","130","007") # Envia violação quebra de vidro
+                evento.enviar("R","132","007") # Envia violação quebra de vidro
 
                 time.sleep(15) # Aguarda os portoes fecharem
 
@@ -1367,7 +1419,7 @@ def Alarmes(Rele):
 
                 rele.liga(3) # Foto dos 2 poortões (mantem os dois portões abertos)  
                 
-                evento.enviar("E","130","008") # Envia chave de mudança acionada
+                evento.enviar("E","132","008") # Envia chave de mudança acionada
 
                 time.sleep(3)
 
@@ -1404,7 +1456,7 @@ def Alarmes(Rele):
                 
                 os.system("mpg123 /home/pi/CMM/mp3/restaurou_mudanca.mp3")
 
-                evento.enviar("R","130","008") # Envia violação quebra de vidro
+                evento.enviar("R","132","008") # Envia violação quebra de vidro
 
                 time.sleep(15) # Aguarda os portoes fecharem
 
@@ -1418,7 +1470,7 @@ def Alarmes(Rele):
                 status.write("0")
                 status.close()                
 
-                evento.enviar("R","130","008") # Envia restauração chave de mudanca
+                evento.enviar("R","132","008") # Envia restauração chave de mudanca
 
                 time.sleep(3)
 
@@ -1628,10 +1680,10 @@ sociais.start() # Inicia o programa dos portões sociais
 garagem1.start() # Inicia o programa do portão de garagem
 garagem2.start() # Inicia o programa do portão de garagem
 arrombamento.start() # Inicia o programa de automação
-servidor.start() 
+#servidor.start() 
 buffer.start() # Inicia o programa Buffer
 
-alarmes.start() # In icia a leitura de interrupções (chave de mudança sociais, queda de energia e quebra de vidro)
+##alarmes.start() # In icia a leitura de interrupções (chave de mudança sociais, queda de energia e quebra de vidro)
 interface.start()
 ##qrcode.start()
 ##wiegand.start()
@@ -1660,7 +1712,7 @@ time.sleep(0.2) # Tempo para colocar as linhas impressas após as linhas de inic
 ##tempo = clima.clima_atual()
 ##print(tempo)
 
-##evento.enviar_contact_id('E','130','001') # Evento ou Restauração / Evento / Setor
+##evento.enviar_contact_id('E','132','001') # Evento ou Restauração / Evento / Setor
 
 ###################################################################################################
 
