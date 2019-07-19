@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/pi/CMM/bin/python3.5
 # -*- coding:utf-8 -*-
 
 from gtts import gTTS  # importamos o modúlo gTTS
@@ -99,8 +99,10 @@ class Evento:
     
     def __init__(self,cliente):
 
-        self.host = '172.20.1.5'  # Host servidor  Moni
-        self.port = 4010          # Porta máquina receptora
+        socket.setdefaulttimeout(2)
+
+        self.host = '172.56.50.3'  # Host servidor  Moni
+        self.port = 4011          # Porta máquina receptora
 
         self.protocolo = "7000 18"  # Protocolo
         self.cliente = cliente  # Cliete
@@ -133,10 +135,6 @@ class Evento:
         
         evento =''.join(t) # Junta as partes dixando nulo os espaços
         
-        arquivo = open("buffer_eventos.txt", "a+") # Escreve o evento no registro de log
-        arquivo.write( evento + "\n")
-        arquivo.close()
-
         try:
             
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -156,33 +154,11 @@ class Evento:
                 
         except Exception as err:  # Caso o evento que chegou for igual ao ultimo recebido ignora                
 
-            lista = []
-
-            txt = open("buffer_eventos.txt","r")
-            for line in txt:
-                line = line.replace("\n","")
-                lista.append(line)
-                
-##            print (lista)
-
-            ultimo = len(lista) - 1
- 
-            ultimo_evento = lista[ultimo]
-##            print("Ulltimo evento da lista",ultimo_evento)
-
-            if ultimo_evento == evento:
-                return
-
-            else:                    
+            arquivo = open("/home/pi/CMM/buffer_eventos.txt", "a+") # Escreve o evento no registro de log
+            arquivo.write( evento + "\n")
+            arquivo.close()
             
-                arquivo = open("buffer_eventos.txt", "a+") # Caso o vento seja diferente do ultimo registra no log
-                arquivo.write( evento + "\n")
-                arquivo.close()
-
-                print("Evento não enviado, colocado no buffer")
-                return
-            
-        return
+            return
             
 
 ############################################### Classe para Acionamento de rele  #############################################
@@ -1157,11 +1133,11 @@ class Narrador:
             print ("Gravando texto...")
       
             voz = gTTS(mensagem, lang="pt")  # guardamos o nosso texto na variavel voz
-            voz.save("/home/pi/MP3/" + nome + ".mp3")  # salva o texto narrado com o nome informado
+            voz.save("/home/pi/CMM/mp3/" + nome + ".mp3")  # salva o texto narrado com o nome informado
 
             print("Salvou o texto em " + nome + ".mp3")
 
-            os.system("mpg123 /home/pi/MP3/" + nome + ".mp3")
+            os.system("mpg123 /home/pi/CMM/mp3/" + nome + ".mp3")
 
         except Exception as err:
 

@@ -10,7 +10,7 @@ import wiringpi # Biblioteca para usar as GPIO da rasp como saidas ou entradas
 import os     # Executa comandos do sistema operacional Ex.: os.system('sudo reboot now'))
 import sys
 import serial # Para comunicação serial
-import libscrc # biblioteca para calculo do CRC (Controle de Redundancia) - usado no protocolo modbus
+##import libscrc # biblioteca para calculo do CRC (Controle de Redundancia) - usado no protocolo modbus
 
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
@@ -27,7 +27,7 @@ class Expansor:
         self.ser = serial.Serial("/dev/ttyS0", 115200) # 9600 38400 115200 Configura a serial e a velocidade de transmissao
 
     
-    def liga_rele1_exp1(self):
+    def liga_rele1_exp7(self):
         
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -58,7 +58,7 @@ class Expansor:
         GPIO.output(18, 0)    
 
 
-    def desliga_rele1_exp1(self):
+    def desliga_rele1_exp7(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -89,7 +89,7 @@ class Expansor:
         GPIO.output(18, 0)
 
 
-    def liga_rele2_exp1(self):
+    def liga_rele2_exp7(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -120,7 +120,7 @@ class Expansor:
         GPIO.output(18, 0)    
 
 
-    def desliga_rele2_exp1(self):
+    def desliga_rele2_exp7(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -151,7 +151,7 @@ class Expansor:
         GPIO.output(18, 0)
 
 
-    def liga_rele3_exp1(self):
+    def liga_rele3_exp7(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -182,7 +182,7 @@ class Expansor:
         GPIO.output(18, 0)    
 
 
-    def desliga_rele3_exp1(self):
+    def desliga_rele3_exp7(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -213,7 +213,7 @@ class Expansor:
         GPIO.output(18, 0)
 
 
-    def liga_rele4_exp1(self):
+    def liga_rele4_exp7(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -243,7 +243,7 @@ class Expansor:
         GPIO.output(17, 0)  
         GPIO.output(18, 0)
 
-    def desliga_rele4_exp1(self):
+    def desliga_rele4_exp7(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -274,7 +274,7 @@ class Expansor:
         GPIO.output(18, 0)    
 
 
-    def liga_rele1_exp2(self):
+    def liga_rele1_exp1(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -305,7 +305,7 @@ class Expansor:
         GPIO.output(18, 0)    
 
 
-    def desliga_rele1_exp2(self):
+    def desliga_rele1_exp1(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -335,7 +335,7 @@ class Expansor:
         GPIO.output(17, 0)  
         GPIO.output(18, 0)
 
-    def liga_rele2_exp2(self):
+    def liga_rele2_exp1(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -366,7 +366,7 @@ class Expansor:
         GPIO.output(18, 0)    
 
 
-    def desliga_rele2_exp2(self):
+    def desliga_rele2_exp1(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -396,7 +396,7 @@ class Expansor:
         GPIO.output(17, 0)  
         GPIO.output(18, 0)
 
-    def liga_rele3_exp2(self):
+    def liga_rele3_exp1(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -427,7 +427,7 @@ class Expansor:
         GPIO.output(18, 0)    
 
 
-    def desliga_rele3_exp2(self):
+    def desliga_rele3_exp1(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -458,7 +458,7 @@ class Expansor:
         GPIO.output(18, 0)
 
 
-    def liga_rele4_exp2(self):
+    def liga_rele4_exp1(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -489,7 +489,7 @@ class Expansor:
         GPIO.output(18, 0)    
 
 
-    def desliga_rele4_exp2(self):
+    def desliga_rele4_exp1(self):
 
         buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
         time.sleep(0.02)
@@ -518,50 +518,3 @@ class Expansor:
         
         GPIO.output(17, 0)  
         GPIO.output(18, 0)
-
-
-##liga_rele1(self)
-##time.sleep(1)
-##desliga_rele1(self)
-##
-##time.sleep(1)
-##
-##liga_rele2(self)
-##time.sleep(1)
-##desliga_rele2(self)
-##
-##time.sleep(1)
-##
-##liga_rele3(self)
-##time.sleep(1)
-##desliga_rele3(self)
-##
-##time.sleep(1)
-##
-##liga_rele4(self)
-##time.sleep(1)
-##desliga_rele4(self)
-##
-##time.sleep(1)
-##
-##i = liga_rele1_exp2(self)
-##time.sleep(1)
-##i = desliga_rele1_exp2(self)
-##
-##time.sleep(1)
-##
-##i = liga_rele2_exp2(self)
-##time.sleep(1)
-##i = desliga_rele2_exp2(self)
-##
-##time.sleep(1)
-##
-##i = liga_rele3_exp2(self)
-##time.sleep(1)
-##i = desliga_rele3_exp2(self)
-##
-##time.sleep(1)
-##
-##i = liga_rele4_exp2(self)
-##time.sleep(1)
-##i = desliga_rele4_exp2(self)
