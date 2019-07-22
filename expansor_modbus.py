@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 # CMM Oficial com placa de expansão da BRAVAS Technololgy
-# Desenvolvido por Leandro Leal  rev. 22/07/2019
+# Desenvolvido por Leandro Leal  rev. 19/07/2019
 
 import RPi.GPIO as GPIO
 import time
@@ -111,12 +111,21 @@ class monta_pacote():
 
         if packet_editado == in_bin_editado:
 
-            if funcao ==  0:
+            if funcao ==  255:
                 funcao = "ON"
-            if funcao == 255:
+            if funcao == 0:
                 funcao = "OFF"
+
+            if rele == 0:
+                rele = "1"
+            if rele == 1:
+                rele = "2"
+            if rele == 2:
+                rele = "3"
+            if rele == 3:
+                rele = "4"  
                 
-            print("modulo",modulo,"rele",rele,funcao)
+            print("mod",modulo,"rele",rele,funcao)
 
         if packet_editado != in_bin_editado:
 
