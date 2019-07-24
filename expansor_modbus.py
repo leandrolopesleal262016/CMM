@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 # CMM Oficial com placa de expansão da BRAVAS Technololgy
-# Desenvolvido por Leandro Leal  rev. 19/07/2019
+# Desenvolvido por Leandro Leal  rev. 24/07/2019
 
 import RPi.GPIO as GPIO
 import time

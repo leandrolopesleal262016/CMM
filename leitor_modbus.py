@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 
 # Leitor de entradas do Modulo expansorda BRAVAS Technololgy
-# Desenvolvido por Leandro Leal  rev. 02/07/2019
+# Desenvolvido por Leandro Leal  rev. 24/07/2019
 
 import RPi.GPIO as GPIO
 import time
