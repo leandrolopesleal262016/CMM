@@ -1,7 +1,7 @@
 #!/home/pi/CMM/bin/python3
 # -*- coding:utf-8 -*-
 
-# CMM Oficial com placa de expansão da BRAVAS Technololgy  Simplificar o programa, criar classes para os outros modulos expansores.
+# CMM Oficial com placa de expansão da BRAVAS Technololgy
 # Desenvolvido por Leandro Leal  rev. 06/06/2019
 
 import RPi.GPIO as GPIO
@@ -10,7 +10,7 @@ import time
 from biblioteca_CMM_oficial import Rele,Narrador,Temperatura,Email,Clima,Evento
 from cmm_io import Entradas, Saidas # Classes para leituras das entradas e acionamento das saidas definidas no arq. config.txt
 from expansor_modbus import Expansor # Acionamento de saidas dos expansores
-from leitor_modbus2 import Leitor  # Leitura das entradas dos expansores
+from leitor_modbus import Leitor  # Leitura das entradas dos expansores
 from IHM_Sociais import IHM
 
 from datetime import datetime, timedelta
@@ -220,7 +220,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                             
                             if (ctw2 == 0 or btn2 == 0):# and pm1 == 1): # Entrada para abrir o portão da eclusa
                                 print("Agurade o fechamento do social")
-                                os.system("mpg123 /home/pi/CMM/mp3/aguarde_fechamento.mp3") # Necessario manter esse audio sempre ativo
+                                os.system("mpg123 /home/pi/CMM/mp3/aguarde_para_acionar.mp3") # Necessario manter esse audio sempre ativo
                                 time.sleep(1)
                                 
                             time.sleep(0.1) # 1 segundo
@@ -330,7 +330,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                             if ctw1 == 0 or btn1 == 0: # Alguem esta tentando abrir o social com a eclusa aberta
 
                                 print("Aguarde o fechamento do portão")
-                                os.system("mpg123 /home/pi/CMM/mp3/aguarde_fechamento.mp3") # Manter esse audio sempre ativo
+                                os.system("mpg123 /home/pi/CMM/mp3/aguarde_para_acionar.mp3") # Manter esse audio sempre ativo
                                 time.sleep(1)
                                 
 
@@ -388,8 +388,9 @@ def Portoes_sociais(Rele): # Programa
             if saida == 1:
 
                 print ("Abrindo pelo botão de saida")
-                os.system("mpg123 /home/pi/CMM/mp3/ate_logo.mp3")
                 Intertravamento("abre_social")
+                os.system("mpg123 /home/pi/CMM/mp3/ate_logo.mp3")
+                
                 saida = 0
 
             else:
@@ -465,9 +466,7 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
 ##                os.system("mpg123 /home/pi/CMM/mp3/chave_mudanca.mp3")
 
                 s.liga_rele1_exp1() # Aciona o rele 1 do modulo 1 (Abre)
-                s.liga_rele1_exp1() # Aciona o rele 1 do modulo 1 (Abre)
                 time.sleep(2)
-                s.liga_rele2_exp1() # Aciona o rele 2 do modulo 1 (Foto)
                 s.liga_rele2_exp1() # Aciona o rele 2 do modulo 1 (Foto)
 
                 mudanca1 = 1
@@ -480,11 +479,8 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
             if mud1 == 0:
                                 
                 s.desliga_rele1_exp1() # Desliga o rele 1 do modulo 1 (Abre)
-                s.desliga_rele2_exp1() # Desliga o rele 2 do modulo 1 (Foto)
+                s.desliga_rele2_exp1() # Desliga o rele 2 do modulo 1 (Foto)                
                 
-                s.desliga_rele1_exp1() # Desliga o rele 1 do modulo 1 (Abre) Novamente para garantir
-                s.desliga_rele2_exp1() # Desliga o rele 2 do modulo 1 (Foto)
-
 ##                os.system("mpg123 /home/pi/CMM/mp3/restaurada_mudanca.mp3")
 
                 pmg1 = l.leitor1_in1()
@@ -549,8 +545,7 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
                         break
                     
                 s.desliga_rele4_exp1() # Desliga sirene
-                s.desliga_rele4_exp1() # Desliga sirene
-
+                
                 time.sleep(5)
         
         if (tx1 == 1):    # Se o tx mandou abrir o portão
@@ -560,9 +555,9 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
 
             if (tx1 == 1): # Verifica novamente para evitar ruido
 
-                print("reconheceu tx")
+                print("reconheceu tx Garagem")
 
-                time.sleep(3) # Tempo para começar a abrir o portão
+                time.sleep(4) # Tempo para começar a abrir o portão
 
                 pmg1 = l.leitor1_in1()
 
@@ -584,13 +579,13 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                         if cont == 60:
 
-                            print("Portão abriu")
+                            print("Portão Garagem abriu")
                         
                         pmg1 = l.leitor1_in1()
                         
                         if pmg1 == 1: # Se o portão ja fechou
 
-                            print("Portão fechou")
+                            print("Portão Garagem fechou")
 
 ##                            evento.enviar("R","133","013")
 
@@ -622,7 +617,7 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                                     pmg1 = l.leitor1_in1() # Faz a leitura do ponto magnetico
 
-                                    print("Aguardando portão fechar")
+                                    print("Aguardando portão Garagem fechar")
 
                                     while pmg1 == 0:  # Enquanto o portão ainda não fechou                                
 
@@ -632,16 +627,15 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                                         if bar1 == 1: # Dupla passagem
 
-                                            print("Dupla passagem")
+                                            print("Dupla passagem Garagem")
 ##                                            os.system("mpg123 /home/pi/CMM/mp3/dupla_passagem.mp3")
 
                                             evento.enviar("E","132","019")
 
-                                            s.liga_rele4_exp1() # Sirene
-                                            s.liga_rele4_exp1() # Sirene
+                                            s.liga_rele4_exp1() # Sirene                                            
                                             time.sleep(10)
                                             s.desliga_rele4_exp1()
-                                            s.desliga_rele4_exp1()
+                                            
 
                                             break
 
@@ -659,7 +653,7 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                     if cont == 1: # Passaram se 29 segundos e o portão não fechou
 
-                        print("Portão aberto muito tempo")
+                        print("Portão Garagem aberto muito tempo")
 
                         # Envia evento de portão aberto
                         cont = 0
@@ -668,17 +662,12 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
         
 def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe Rele
 
-    sys.stdout.write("\nPrograma Garagem 2 em execução na thread\n")
+    sys.stdout.write("\nPrograma Garagem Subsolo em execução na thread\n")
 
     s2 = Expansor()
 
-    s2.desliga_rele4_exp7() # Garante que a sirene esteja desligada
-    s2.desliga_rele4_exp7() # Garante que a sirene esteja desligada
-    
+    s2.desliga_rele4_exp7() # Garante que a sirene esteja desligada        
     s2.desliga_rele1_exp7() # Garante que o Abre esteja desligado
-    s2.desliga_rele1_exp7() # Garante que o Abre esteja desligado
-    
-    s2.desliga_rele2_exp7() # Garante que o Foto esteja desligado
     s2.desliga_rele2_exp7() # Garante que o Foto esteja desligado    
 
     mudanca2 = 0
@@ -703,9 +692,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
 ##                os.system("mpg123 /home/pi/CMM/mp3/chave_mudanca.mp3")
                 
                 s2.liga_rele1_exp7() # Aciona o rele 1 do modulo 2 (Abre)
-                s2.liga_rele1_exp7() # Aciona o rele 1 do modulo 2 (Abre)
-                time.sleep(2)
-                s2.liga_rele2_exp7() # Aciona o rele 2 do modulo 2 (Foto)
+                time.sleep(2)                
                 s2.liga_rele2_exp7() # Aciona o rele 2 do modulo 2 (Foto)
 
                 mudanca2 = 1
@@ -717,11 +704,8 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
 
             if mud2 == 0:
                 
-                s2.desliga_rele1_exp7() # Desliga o rele 1 do modulo 1 (Abre)
-                s2.desliga_rele1_exp7() # Desliga o rele 1 do modulo 1 (Abre)
-                
-                s2.desliga_rele2_exp7() # Desliga o rele 2 do modulo 1 (Foto)
-                s2.desliga_rele2_exp7() # Desliga o rele 2 do modulo 1 (Foto)
+                s2.desliga_rele1_exp7() # Desliga o rele 1 do modulo 1 (Abre)                             
+                s2.desliga_rele2_exp7() # Desliga o rele 2 do modulo 1 (Foto)                
 
 ##                os.system("mpg123 /home/pi/CMM/mp3/restaurada_mudanca.mp3")
 
@@ -729,7 +713,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                 cont = 30 # Tempo maximo de espera
 
-                print("Aguardando portão fechar")
+                print("Aguardando portão Subsolo fechar")
 
                 while cont > 0:
 
@@ -742,7 +726,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
                             
                     if (pmg2 == 1): # Portão ja fechou
 
-                        print("Portão fechou")
+                        print("Portão Subsolo fechou")
                         cont = 0
                         mudanca2 = 0
                         time.sleep(1)
@@ -756,12 +740,11 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
 
             if pmg2 == 0 and tx2 == 0:
 
-                print("violação do portão garagem subsolo1")
+                print("violação do portão Subsolo")
 ##                os.system("mpg123 /home/pi/CMM/mp3/violacao_garagem.mp3")
 
                 s2.liga_rele4_exp7() # Sirene
-                s2.liga_rele4_exp7() # Sirene
-                            
+                                            
                 evento.enviar("E","132","016")
 
                 cont = 30 # Tempo maximo de espera
@@ -779,7 +762,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
                             
                     if (pmg2 == 1): # Portão ja fechou
 
-                        print("Portão subsolo1 fechou")
+                        print("Portão Subsolo fechou")
                         cont = 0
                         time.sleep(1)
                         
@@ -788,8 +771,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
                         break
                     
                 s2.desliga_rele4_exp7() # Desliga sirene
-                s2.desliga_rele4_exp7() # Desliga sirene
-
+                
                 time.sleep(5)
         
         if (tx2 == 1):    # Se o tx mandou abrir o portão
@@ -799,9 +781,9 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
 
             if (tx2 == 1):
 
-                print("reconheceu tx subsolo1")
+                print("reconheceu tx Subsolo")
 
-                time.sleep(3) # Tempo para começar a abrir o portão
+                time.sleep(4) # Tempo para começar a abrir o portão
 
                 pmg2 = l2.leitor7_in1()
 
@@ -809,7 +791,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
                 
                 if pmg2 == 1: # Portão não abriu apos o comando
 
-                    print("Portão subsolo1 não abriu")
+                    print("Portão Subsolo não abriu")
 ##                    os.system("mpg123 /home/pi/CMM/mp3/garagem_emperrado.mp3")
                     evento.enviar("E","132","018")                
                                     
@@ -823,13 +805,13 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                         if cont == 60:
 
-                            print("Portão subsolo1 abriu")
+                            print("Portão Subsolo abriu")
                         
                         pmg2 = l2.leitor7_in1()
                         
                         if pmg2 == 1: # Se o portão ja fechou
 
-                            print("Portão subsolo1 fechou")
+                            print("Portão Subsolo fechou")
 
 ##                            evento.enviar("R","133","016")
 
@@ -843,7 +825,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                             if bar2 == 1: # Se acionou a barreira de entrada
 
-                                print("Acionou a barreira 1 subsolo1")
+                                print("Acionou a barreira 1 Subsolo")
 
                                 while bar2 == 1: # Enquanto a barreira esta acionada
 
@@ -853,7 +835,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                                     time.sleep(1)
                                     
-                                print("Passou alguem subsolo1, verificando dupla passagem...")
+                                print("Passou alguem Subsolo, verificando dupla passagem...")
 
                                 pmg2 = l2.leitor7_in1() # Faz a leitura do ponto magnetico
                                 
@@ -861,7 +843,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                                     pmg2 = l2.leitor7_in1() # Faz a leitura do ponto magnetico
 
-                                    print("Aguardando portão subsolo1 fechar apos entrada ou saida")
+                                    print("Aguardando portão Subsolo fechar apos entrada ou saida")
 
                                     while pmg2 == 0:  # Enquanto o portão ainda não fechou                                
 
@@ -871,7 +853,7 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                                         if bar2 == 1: # Dupla passagem
 
-                                            print("Dupla passagem subsolo1")
+                                            print("Dupla passagem Subsolo")
 ##                                            os.system("mpg123 /home/pi/CMM/mp3/dupla_passagem.mp3")
 
                                             evento.enviar("E","132","019")
@@ -889,14 +871,14 @@ def Garagem2(Rele): # Inicia a thread do portão da garagem importando a classe 
                                         
 ##                                    evento.enviar("R","133","016") # Fechamento de portão
                                     
-                                print("Fim do cilo subsolo1")
+                                print("Fim do cilo Subsolo")
 
                         cont = cont - 1
                         time.sleep(0.5)
 
                     if cont == 1: # Passaram se 29 segundos e o portão não fechou
 
-                        print("Portão subsolo1 aberto muito tempo")
+                        print("Portão Subsolo aberto muito tempo")
 
                         # Envia evento de portão aberto
                         cont = 0
