@@ -20,6 +20,8 @@ from tkinter import messagebox
 import socket
 import serial # Para comunicação serial com arduino
 
+socket.setdefaulttimeout(2) # limite de 2 segundos para enviar o socket
+
 #ser = serial.Serial("/dev/ttyS0", 9600) #Configura a serial e a velocidade de transmissao
 
 GPIO.setwarnings(False)
@@ -37,6 +39,11 @@ B = GPIO.input(27)
 C = GPIO.input(22)
 D = GPIO.input(10)
 
+buzzer = GPIO.output(11,1) # Sinal De buzzer informando ligou
+time.sleep(0.2)
+buzzer = GPIO.output(11,0)
+
+
 hs = time.strftime("%H:%M:%S") # Hora completa para registro de Log
 h = int(time.strftime('%H'))
 data = time.strftime('%d/%m/%y')
@@ -44,6 +51,11 @@ data = time.strftime('%d/%m/%y')
 global entradas
 entradas = ["A", "B", "C", "D", "IN1", "IN2", "IN3", "ctw1", "ctw2", "qbv", "qde", "IN8"]
 global mp3
+
+nome = os.popen('hostname').readline()
+ip = os.popen('hostname -I').readline()
+
+print("Nome desta maquina",nome,"com IP",ip)
 
 ############################ INICIA AS CLASSES DA Biblioteca_CMM_Bravas  ########################################
 
@@ -64,15 +76,6 @@ evento = Evento("0054") # Inicia a classe evento com o codigo do cliente
 ##print("Conteudo do play1 ",ihm.get_cbox("play1"))
  
 ##############################################  Threads dos programas  ##########################################################
-   
-
-def thread_wiegand(Rele,wiegand): # Leitor Wiegand IP 
-
-    sys.stdout.write("\nLeitor Wiegand IP em execução\n")
-
-##    wiegand.leitor_ip("172.20.9.128",4000) # Conecta com o leitor deste endereço e inicia o programa leitor
-        
-
 
 def thread_qrcode(qrcode): # Programa do QR Code
 
@@ -80,754 +83,1052 @@ def thread_qrcode(qrcode): # Programa do QR Code
 
 ##    qrcode.leitor("172.20.9.5",5001) # Conecta com o Qrcode deste endereço e inicia o programa do leitor
 
-class Entradas(): # Inicia a thread leitura das entradas para controle de todos os programas
-    
-##    sys.stdout.write("\nClasse leitura das entradas em execução\n")
-
-##    entradas = []    # Cria uma lista  para inserir os dados de config.txt
-##    txt = open("config.txt",'r')    
-##    for line in txt: # Coloca cada linha do arquivo de texto config.txt na lista[]
-##        entradas.append(line)
-
-
-##    IN1 = wiringpi.digitalRead(300)  # Configuraçoes pinos de entrada necessarios para atualizar as entradas
-##    IN2 = wiringpi.digitalRead(301)  # entradas constantes
-##    IN3 = wiringpi.digitalRead(302)
-##    IN4 = wiringpi.digitalRead(303)
-##    IN5 = wiringpi.digitalRead(304)
-##    IN6 = wiringpi.digitalRead(305)
-##    IN7 = wiringpi.digitalRead(306)
-##    IN8 = wiringpi.digitalRead(307)
-##
-##    A = GPIO.input(4) # Entrada A  # entradas constantes
-##    B = GPIO.input(27) # Entrada B 
-##    C = GPIO.input(22) # Entrada C 
-##    D = GPIO.input(10) # Entrada D
-
-
-    # Associa os dados salvos no config.txt as entradas correspondentes
-
-##    line1 = (entradas[0])         # Coloca na variavel line1 o texto encontrado na linha 1
-##    line1 = line1.replace("\n","")  # Retira o \n do texto
-##
-##    if line1 == 'IN1': # Caso encintre IN1 na primeira linha atribui IN1 ao pm1 (ponto magnetico 1)
-##        i1 = IN1
-##    if line1 == 'IN2':
-##        i1 = IN2
-##    if line1 == 'IN3':
-##        i1 = IN3
-##    if line1 == 'IN4':
-##        i1 = IN4
-##    if line1 == 'IN5':
-##        i1 = IN5
-##    if line1 == 'IN6':
-##        i1 = IN6
-##    if line1 == 'IN7':
-##        i1 = IN7
-##    if line1 == 'IN8':
-##        i1 = IN8
-##    if line1 == 'A':
-##        i1 = A
-##    if line1 == 'B':
-##        i1 = B
-##    if line1 == 'C':
-##        i1 = C
-##    if line1 == 'D':
-##        i1 = D
-##    if line1 == " --- ":
-##        i1 = "0"
-##    
-##
-##    line2 = (entradas[1])         
-##    line2 = line2.replace("\n","")
-##
-##    if line2 == 'IN1':
-##        i2 = IN1
-##    if line2 == 'IN2':
-##        i2 = IN2
-##    if line2 == 'IN3':
-##        i2 = IN3
-##    if line2 == 'IN4':
-##        i2 = IN4
-##    if line2 == 'IN5':
-##        i2 = IN5
-##    if line2 == 'IN6':
-##        i2 = IN6
-##    if line2 == 'IN7':
-##        i2 = IN7
-##    if line2 == 'IN8':
-##        i2 = IN8
-##    if line2 == 'A':
-##        i2 = A
-##    if line2 == 'B':
-##        i2 = B
-##    if line2 == 'C':
-##        i2 = C
-##    if line2 == 'D':
-##        i2 = D
-##    if line2 == ' --- ':
-##        i2 = "0"
-##
-##    line3 = (entradas[2])
-##    line3 = line3.replace("\n","")
-##
-##    if line3 == 'IN1':
-##        i3 = IN1
-##    if line3 == 'IN2':
-##        i3 = IN2
-##    if line3 == 'IN3':
-##        i3 = IN3
-##    if line3 == 'IN4':
-##        i3 = IN4
-##    if line3 == 'IN5':
-##        i3 = IN5
-##    if line3 == 'IN6':
-##        i3 = IN6
-##    if line3 == 'IN7':
-##        i3 = IN7
-##    if line3 == 'IN8':
-##        i3 = IN8
-##    if line3 == 'A':
-##        i3 = A
-##    if line3 == 'B':
-##        i3 = B
-##    if line3 == 'C':
-##        i3 = C
-##    if line3 == 'D':
-##        i3 = D
-##    if line3 == ' --- ':
-##        i3 = "0"
-##
-##
-##    line4 = (entradas[3])
-##    line4 = line4.replace("\n","")
-##
-##    if line4 == 'IN1':
-##        i4 = IN1
-##    if line4 == 'IN2':
-##        i4 = IN2
-##    if line4 == 'IN3':
-##        i4 = IN3
-##    if line4 == 'IN4':
-##        i4 = IN4
-##    if line4 == 'IN5':
-##        i4 = IN5
-##    if line4 == 'IN6':
-##        i4 = IN6
-##    if line4 == 'IN7':
-##        i4 = IN7
-##    if line4 == 'IN8':
-##        i4 = IN8
-##    if line4 == 'A':
-##        i4 = A
-##    if line4 == 'B':
-##        i4 = B
-##    if line4 == 'C':
-##        i4 = C
-##    if line4 == 'D':
-##        i4 = D
-##    if line4 == ' --- ':
-##        i4 = "0"
-##
-##    
-##    line5 = (entradas[4])
-##    line5 = line5.replace("\n","")
-##
-##    if line5 == 'IN1':
-##        i5 = IN1
-##    if line5 == 'IN2':
-##        i5 = IN2
-##    if line5 == 'IN3':
-##        i5 = IN3
-##    if line5 == 'IN4':
-##        i5 = IN4
-##    if line5 == 'IN5':
-##        i5 = IN5
-##    if line5 == 'IN6':
-##        i5 = IN6
-##    if line5 == 'IN7':
-##        i5 = IN7
-##    if line5 == 'IN8':
-##        i5 = IN8
-##    if line5 == 'A':
-##        i5 = A
-##    if line5 == 'B':
-##        i5 = B
-##    if line5 == 'C':
-##        i5 = C
-##    if line5 == 'D':
-##        i5 = D
-##    if line5 == ' --- ':
-##        i5 = "0"
-##
-##    line6 = (entradas[5])
-##    line6 = line6.replace("\n","")
-##
-##    if line6 == 'IN1':
-##        i6 = IN1
-##    if line6 == 'IN2':
-##        i6 = IN2
-##    if line6 == 'IN3':
-##        i6 = IN3
-##    if line6 == 'IN4':
-##        i6 = IN4
-##    if line6 == 'IN5':
-##        i6 = IN5
-##    if line6 == 'IN6':
-##        i6 = IN6
-##    if line6 == 'IN7':
-##        i6 = IN7
-##    if line6 == 'IN8':
-##        i6 = IN8
-##    if line6 == 'A':
-##        i6 = A
-##    if line6 == 'B':
-##        i6 = B
-##    if line6 == 'C':
-##        i6 = C
-##    if line6 == 'D':
-##        i6 = D
-##    if line6 == ' --- ':
-##        i6 = "0"            
-##
-##    line7 = (entradas[6])
-##    line7 = line7.replace("\n","")
-##
-##    if line7 == 'IN1':
-##        i7 = IN1
-##    if line7 == 'IN2':
-##        i7 = IN2
-##    if line7 == 'IN3':
-##        i7 = IN3
-##    if line7 == 'IN4':
-##        i7 = IN4
-##    if line7 == 'IN5':
-##        i7 = IN5
-##    if line7 == 'IN6':
-##        i7 = IN6
-##    if line7 == 'IN7':
-##        i7 = IN7
-##    if line7 == 'IN8':
-##        i7 = IN8
-##    if line7 == 'A':
-##        i7 = A
-##    if line7 == 'B':
-##        i7 = B
-##    if line7 == 'C':
-##        i7 = C
-##    if line7 == 'D':
-##        i7 = D
-##    if line7 == ' --- ':
-##        i7 = "0"
-##
-##    line8 = (entradas[7])
-##    line8 = line8.replace("\n","")
-##
-##    if line8 == 'IN1':
-##        i8 = IN1
-##    if line8 == 'IN2':
-##        i8 = IN2
-##    if line8 == 'IN3':
-##        i8 = IN3
-##    if line8 == 'IN4':
-##        i8 = IN4
-##    if line8 == 'IN5':
-##        i8 = IN5
-##    if line8 == 'IN6':
-##        i8 = IN6
-##    if line8 == 'IN7':
-##        i8 = IN7
-##    if line8 == 'IN8':
-##        i8 = IN8
-##    if line8 == 'A':
-##        i8 = A
-##    if line8 == 'B':
-##        i8 = B
-##    if line8 == 'C':
-##        i8 = C
-##    if line8 == ' --- ':
-##        i8 = "0"
-##
-##    line9 = (entradas[8])
-##    line9 = (line9.replace("\n",""))
-##
-##    if line9 == 'IN1':
-##        iA = IN1
-##    if line9 == 'IN2':
-##        iA = IN2
-##    if line9 == 'IN3':
-##        iA = IN3
-##    if line9 == 'IN4':
-##        iA = IN4
-##    if line9 == 'IN5':
-##        iA = IN5
-##    if line9 == 'IN6':
-##        iA = IN6
-##    if line9 == 'IN7':
-##        iA = IN7
-##    if line9 == 'IN8':
-##        iA = IN8
-##    if line9 == 'A':
-##        iA = A
-##    if line9 == 'B':
-##        iA = B
-##    if line9 == 'C':
-##        iA = C
-##    if line9 == 'D':
-##        iA = D
-##    if line9 == ' --- ':
-##        iA = "0"
-##
-##    line10 = (entradas[9])
-##    line10 = (line10.replace("\n",""))
-##
-##    if line10 == 'IN1':
-##        iB = IN1
-##    if line10 == 'IN2':
-##        iB = IN2
-##    if line10 == 'IN3':
-##        iB = IN3
-##    if line10 == 'IN4':
-##        iB = IN4
-##    if line10 == 'IN5':
-##        iB = IN5
-##    if line10 == 'IN6':
-##        iB = IN6
-##    if line10 == 'IN7':
-##        iB = IN7
-##    if line10 == 'IN8':
-##        iB = IN8
-##    if line10 == 'A':
-##        iB = A
-##    if line10 == 'B':
-##        iB = B
-##    if line10 == 'C':
-##        iB = C
-##    if line10 == 'D':
-##        iB = D
-##    if line10 == ' --- ':
-##        iB = "0"
-##
-##    line11 = (entradas[10])
-##    line11 = (line11.replace("\n",""))
-##
-##    if line11 == 'IN1':
-##        iC = IN1
-##    if line11 == 'IN2':
-##        iC = IN2
-##    if line11 == 'IN3':
-##        iC = IN3
-##    if line11 == 'IN4':
-##        iC = IN4
-##    if line11 == 'IN5':
-##        iC = IN5
-##    if line11 == 'IN6':
-##        iC = IN6
-##    if line11 == 'IN7':
-##        iC = IN7
-##    if line11 == 'IN8':
-##        iC = IN8
-##    if line11 == 'A':
-##        iC = A
-##    if line11 == 'B':
-##        iC = B
-##    if line11 == 'C':
-##        iC = C
-##    if line11 == 'D':
-##        iC = D
-##    if line11 == ' --- ':
-##        iC = "0"
-##
-##    line12 = (entradas[11])
-##    line12 = (line12.replace("\n",""))
-##
-##    if line12 == 'IN1':
-##        iD = IN1
-##    if line12 == 'IN2':
-##        iD = IN2
-##    if line12 == 'IN3':
-##        iD = IN3
-##    if line12 == 'IN4':
-##        iD = IN4
-##    if line12 == 'IN5':
-##        iD = IN5
-##    if line12 == 'IN6':
-##        iD = IN6
-##    if line12 == 'IN7':
-##        iD = IN7
-##    if line12 == 'IN8':
-##        iD = IN8
-##    if line12 == 'A':
-##        iD = A
-##    if line12 == 'B':
-##        iD = B
-##    if line12 == 'C':
-##        iD = C
-##    if line12 == 'D':
-##        iD = D
-##    if line12 == ' --- ':
-##        iD = "0"
-    
-    while(1):    
-
-        global IN1
-        global IN2
-        global IN3
-        global IN4
-        global IN5
-        global IN6
-        global IN7
-        global IN8
-        global A
-        global B
-        global C
-        global D
-
-        IN1 = wiringpi.digitalRead(300)  # Configuraçoes pinos de entrada necessarios para atualizar as entradas
-        IN2 = wiringpi.digitalRead(301)  # entradas constantes
-        IN3 = wiringpi.digitalRead(302)
-        IN4 = wiringpi.digitalRead(303)
-        IN5 = wiringpi.digitalRead(304)
-        IN6 = wiringpi.digitalRead(305)
-        IN7 = wiringpi.digitalRead(306)
-        IN8 = wiringpi.digitalRead(307)
-
-        A = GPIO.input(4) # Entrada A  # entradas constantes
-        B = GPIO.input(27) # Entrada B 
-        C = GPIO.input(22) # Entrada C 
-        D = GPIO.input(10) # Entrada D
-
-        time.sleep(0.2)
-
-  
-
-##        for i in ("IN1","IN2","IN3","IN4","IN5","IN6","IN7","IN8","A","B","C","D"):
-##   
-##            if i1 == (i):
-##
-##                i = i.replace('"',"")
-##                pm1 = i
-##                
-##        for i in ("IN1","IN2","IN3","IN4","IN5","IN6","IN7","IN8","A","B","C","D"):
-##   
-##            if i2 == (i):
-##
-##                i = i.replace('"',"")
-##                pm2 = i
-
-        
-
-##        pm1 = IN1
-##        pm2 = IN2
-##        pm3 = IN3
-##        pm4 = IN4
-##        pm5 = IN5
-##        qbv = IN6
-##        mud = IN7
-##        qde = IN8
-##        ctw1 = A
-##        ctw2 = B
-##        ctw3 = C
-##        ctw4 = D
-
-##        print(pm1,pm2,pm3,pm4,pm5,qbv,mud,qde,ctw1,ctw2,ctw3,ctw4,"\n")
-            
-        
-
-        
-        
-
-        
-##            if cont == 0: # Só executa uma vez
-##
-##                print("pm1",pm1,"pm2",pm2,"qbv",qbv,"mud",mud,"qde",qde,"ctw1",ctw1,"ctw2",ctw2)
-##                cont = 1
-##
-##           
-##            if pm1 == 0 and cont1 == 0:            
-##                print("pm1 0")
-##                cont1 = 1
-##            if pm1 == 1 and cont1 == 1:            
-##                print("pm1 1")
-##                cont1 = 0
-##            
-##            if pm2 == 0 and cont2 == 0:           
-##                print("pm2 0")
-##                cont2 = 1
-##            if pm2 == 1 and cont2 == 1:            
-##                print("pm2 1")
-##                cont2 = 0
-##
-##            if pm3 == 0 and cont3 == 0:            
-##                print("pm3 0")
-##                cont3 = 1
-##            if pm3 == 1 and cont3 == 1:            
-##                print("pm3 1")
-##                cont3 = 0
-##                
-##            if pm4 == 0 and cont4 == 0:        
-##                print("pm4 0")
-##                cont4 = 1
-##            if pm4 == 1 and cont4 == 1:            
-##                print("pm4 1")
-##                cont4 = 0
-##
-##            if pm5 == 0 and cont5 == 0:        
-##                print("pm5 0")
-##                cont5 = 1
-##            if pm5 == 1 and cont5 == 1:            
-##                print("pm5 1")
-##                cont5 = 0
-##
-##            if qbv == 0 and cont6 == 0:        
-##                print("qbv 0")
-##                cont6 = 1
-##            if qbv == 1 and cont6 == 1:            
-##                print("qbv 1")
-##                cont6 = 0
-##
-##            if mud == 0 and cont7 == 0:        
-##                print("mud 0")
-##                cont7 = 1
-##            if mud == 1 and cont7 == 1:            
-##                print("mud 1")
-##                cont7 = 0
-##
-##            if qde == 0 and cont8 == 0:        
-##                print("qde 0")
-##                cont8 = 1
-##            if qde == 1 and cont8 == 1:            
-##                print("qde 1")
-##                cont8 = 0
-##
-##            byte = (pm1,pm2,pm3,pm4,pm5,qbv,mud,qde)
-##            byte = str(byte)
-##            byte = byte.replace("'","")
-##            byte = byte.replace("(","")
-##            byte = byte.replace(")","")
-##            
-##            
-##            o = open("in_out.cmm","w")
-##            o.write(byte)
-##            o.close()
-
-##        result = (pm1,pm2,pm3,pm4,pm5,qbv,mud,qde,ctw1,ctw2,ctw3,ctw4)
-##        result = str(result)
-##        result = result.replace("'","")
-##        print(result)
-##        return(result)
-        
   
 ######################################  CLASSES  ###########################################
 
-class Intertravamento(Rele): # Inicia a thread dos portoes sociais importando a classe Rele
+class Entradas(object): # Inicia a thread leitura das entradas para controle de todos os programas
+    
+    def __init__(self):            
+    
+        self.IN1 = wiringpi.digitalRead(300)  # Configuraçoes pinos de entrada necessarios para atualizar as entradas
+        self.IN2 = wiringpi.digitalRead(301)  # entradas constantes
+        self.IN3 = wiringpi.digitalRead(302)
+        self.IN4 = wiringpi.digitalRead(303)
+        self.IN5 = wiringpi.digitalRead(304)
+        self.IN6 = wiringpi.digitalRead(305)
+        self.IN7 = wiringpi.digitalRead(306)
+        self.IN8 = wiringpi.digitalRead(307)
+
+        self.A = GPIO.input(4) # Entrada A  # entradas constantes
+        self.B = GPIO.input(27) # Entrada B 
+        self.C = GPIO.input(22) # Entrada C 
+        self.D = GPIO.input(10) # Entrada D
+
+        entradas = []    
+        txt = open("config.txt",'r')    
+        for line in txt: 
+            entradas.append(line)
+        txt.close()
+        
+        line1 = (entradas[0])         # Coloca na variavel line1 o texto encontrado na linha 1
+        line1 = line1.replace("\n","")  # Retira o \n do texto
+        line2 = (entradas[1])         
+        line2 = line2.replace("\n","")
+        line3 = (entradas[2])
+        line3 = line3.replace("\n","")
+        line4 = (entradas[3])
+        line4 = line4.replace("\n","")
+        line5 = (entradas[4])
+        line5 = line5.replace("\n","")  
+        line6 = (entradas[5])
+        line6 = line6.replace("\n","")  
+        line7 = (entradas[6])
+        line7 = line7.replace("\n","")
+        line8 = (entradas[7])
+        line8 = line8.replace("\n","")
+        line9 = (entradas[8])
+        line9 = (line9.replace("\n",""))
+        line10 = (entradas[9])
+        line10 = (line10.replace("\n",""))
+        line11 = (entradas[10])
+        line11 = (line11.replace("\n",""))
+        line12 = (entradas[11])
+        line12 = (line12.replace("\n",""))
 
             
-    def __init__(self,Rele):
+        if line1 == "IN1":            
+            self.pm1 = self.IN1
+        if line1 == "IN2":
+            self.pm1 = self.IN2
+        if line1 == "IN3":
+            self.pm1 = self.IN3
+        if line1 == "IN4":
+            self.pm1 = self.IN4
+        if line1 == "IN5":
+            self.pm1 = self.IN5
+        if line1 == "IN6":
+            self.pm1 = self.IN6
+        if line1 == "IN7":
+            self.pm1 = self.IN7
+        if line1 == "IN8":
+            self.pm1 = self.IN8
+        if line1 == "A":
+            self.pm1 = self.A
+        if line1 == "B":
+            self.pm1 = self.B
+        if line1 == "C":
+            self.pm1 = self.C
+        if line1 == "D":
+            self.pm1 = self.D
+        if line1 == " --- ":
+            self.pm1 == None
 
-        global ctw1
-        global ctw2        
-        global pm1
-        global pm2        
-        global audio
+        if line2 == "IN1":            
+            self.pm2 = self.IN1
+        if line2 == "IN2":
+            self.pm2 = self.IN2
+        if line2 == "IN3":
+            self.pm2 = self.IN3
+        if line2 == "IN4":
+            self.pm2 = self.IN4
+        if line2 == "IN5":
+            self.pm2 = self.IN5
+        if line2 == "IN6":
+            self.pm2 = self.IN6
+        if line2 == "IN7":
+            self.pm2 = self.IN7
+        if line2 == "IN8":
+            self.pm2 = self.IN8
+        if line2 == "A":
+            self.pm2 = self.A
+        if line2 == "B":
+            self.pm2 = self.B
+        if line2 == "C":
+            self.pm2 = self.C
+        if line2 == "D":
+            self.pm2 = self.D
+        if line2 == " --- ":
+            self.pm2 = None
+
+        if line3 == "IN1":            
+            self.pm3 = self.IN1
+        if line3 == "IN2":
+            self.pm3 = self.IN2
+        if line3 == "IN3":
+            self.pm3 = self.IN3
+        if line3 == "IN4":
+            self.pm3 = self.IN4
+        if line3 == "IN5":
+            self.pm3 = self.IN5
+        if line3 == "IN6":
+            self.pm3 = self.IN6
+        if line3 == "IN7":
+            self.pm3 = self.IN7
+        if line3 == "IN8":
+            self.pm3 = self.IN8
+        if line3 == "A":
+            self.pm3 = self.A
+        if line3 == "B":
+            self.pm3 = self.B
+        if line3 == "C":
+            self.pm3 = self.C
+        if line3 == "D":
+            self.pm3 = self.D
+        if line3 == " --- ":
+            self.pm3 = None
+
+            
+        if line4 == "IN1":            
+            self.pm4 = self.IN1
+        if line4 == "IN2":
+            self.pm4 = self.IN2
+        if line4 == "IN3":
+            self.pm4 = self.IN3
+        if line4 == "IN4":
+            self.pm4 = self.IN4
+        if line4 == "IN5":
+            self.pm4 = self.IN5
+        if line4 == "IN6":
+            self.pm4 = self.IN6
+        if line4 == "IN7":
+            self.pm4 = self.IN7
+        if line4 == "IN8":
+            self.pm4 = self.IN8
+        if line4 == "A":
+            self.pm4 = self.A
+        if line4 == "B":
+            self.pm4 = self.B
+        if line4 == "C":
+            self.pm4 = self.C
+        if line4 == "D":
+            self.pm4 = self.D
+        if line4 == " --- ":
+            self.pm4 = None
+            
+        if line5 == "IN1":            
+            self.pm5 = self.IN1
+        if line5 == "IN2":
+            self.pm5 = self.IN2
+        if line5 == "IN3":
+            self.pm5 = self.IN3
+        if line5 == "IN4":
+            self.pm5 = self.IN4
+        if line5 == "IN5":
+            self.pm5 = self.IN5
+        if line5 == "IN6":
+            self.pm5 = self.IN6
+        if line5 == "IN7":
+            self.pm5 = self.IN7
+        if line5 == "IN8":
+            self.pm5 = self.IN8
+        if line5 == "A":
+            self.pm5 = self.A
+        if line5 == "B":
+            self.pm5 = self.B
+        if line5 == "C":
+            self.pm5 = self.C
+        if line5 == "D":
+            self.pm5 = self.D
+        if line5 == " --- ":
+            self.pm5 = None
+
+        if line6 == "IN1":            
+            self.qbv = self.IN1
+        if line6 == "IN2":
+            self.qbv = self.IN2
+        if line6 == "IN3":
+            self.qbv = self.IN3
+        if line6 == "IN4":
+            self.qbv = self.IN4
+        if line6 == "IN5":
+            self.qbv = self.IN5
+        if line6 == "IN6":
+            self.qbv = self.IN6
+        if line6 == "IN7":
+            self.qbv = self.IN7
+        if line6 == "IN8":
+            self.qbv = self.IN8
+        if line6 == "A":
+            self.qbv = self.A
+        if line6 == "B":
+            self.qbv = self.B
+        if line6 == "C":
+            self.qbv = self.C
+        if line6 == "D":
+            self.qbv = self.D
+        if line6 == " --- ":
+            self.qbv = None
+
+        if line7 == "IN1":            
+            self.mud = self.IN1
+        if line7 == "IN2":
+            self.mud = self.IN2
+        if line7 == "IN3":
+            self.mud = self.IN3
+        if line7 == "IN4":
+            self.mud = self.IN4
+        if line7 == "IN5":
+            self.mud = self.IN5
+        if line7 == "IN6":
+            self.mud = self.IN6
+        if line7 == "IN7":
+            self.mud = self.IN7
+        if line7 == "IN8":
+            self.mud = self.IN8
+        if line7 == "A":
+            self.mud = self.A
+        if line7 == "B":
+            self.mud = self.B
+        if line7 == "C":
+            self.mud = self.C
+        if line7 == "D":
+            self.mud = self.D
+        if line7 == " --- ":
+            self.mud = None
+
+        if line8 == "IN1":            
+            self.qde = self.IN1
+        if line8 == "IN2":
+            self.qde = self.IN2
+        if line8 == "IN3":
+            self.qde = self.IN3
+        if line8 == "IN4":
+            self.qde = self.IN4
+        if line8 == "IN5":
+            self.qde = self.IN5
+        if line8 == "IN6":
+            self.qde = self.IN6
+        if line8 == "IN7":
+            self.qde = self.IN7
+        if line8 == "IN8":
+            self.qde = self.IN8
+        if line8 == "A":
+            self.qde = self.A
+        if line8 == "B":
+            self.qde = self.B
+        if line8 == "C":
+            self.qde = self.C
+        if line8 == "D":
+            self.qde = self.D
+        if line8 == " --- ":
+            self.qde = None
+
+        if line9 == "IN1":            
+            self.ctw4 = self.IN1
+        if line9 == "IN2":
+            self.ctw4 = self.IN2
+        if line9 == "IN3":
+            self.ctw4 = self.IN3
+        if line9 == "IN4":
+            self.ctw4 = self.IN4
+        if line9 == "IN5":
+            self.ctw4 = self.IN5
+        if line9 == "IN6":
+            self.ctw4 = self.IN6
+        if line9 == "IN7":
+            self.ctw4 = self.IN7
+        if line9 == "IN8":
+            self.ctw4 = self.IN8
+        if line9 == "A":
+            self.ctw4 = self.A
+        if line9 == "B":
+            self.ctw4 = self.B
+        if line9 == "C":
+            self.ctw4 = self.C
+        if line9 == "D":
+            self.ctw4 = self.D
+        if line9 == " --- ":
+            self.ctw4 = None
+
+        if line10 == "IN1":            
+            self.ctw3 = self.IN1
+        if line10 == "IN2":
+            self.ctw3 = self.IN2
+        if line10 == "IN3":
+            self.ctw3 = self.IN3
+        if line10 == "IN4":
+            self.ctw3 = self.IN4
+        if line10 == "IN5":
+            self.ctw3 = self.IN5
+        if line10 == "IN6":
+            self.ctw3 = self.IN6
+        if line10 == "IN7":
+            self.ctw3 = self.IN7
+        if line10 == "IN8":
+            self.ctw3 = self.IN8
+        if line10 == "A":
+            self.ctw3 = self.A
+        if line10 == "B":
+            self.ctw3 = self.B
+        if line10 == "C":
+            self.ctw3 = self.C
+        if line10 == "D":
+            self.ctw3 = self.D
+        if line10 == " --- ":
+            self.ctw3 = None
+
+        if line11 == "IN1":            
+            self.ctw2 = self.IN1
+        if line11 == "IN2":
+            self.ctw2 = self.IN2
+        if line11 == "IN3":
+            self.ctw2 = self.IN3
+        if line11 == "IN4":
+            self.ctw2 = self.IN4
+        if line11 == "IN5":
+            self.ctw2 = self.IN5
+        if line11 == "IN6":
+            self.ctw2 = self.IN6
+        if line11 == "IN7":
+            self.ctw2 = self.IN7
+        if line11 == "IN8":
+            self.ctw2 = self.IN8
+        if line11 == "A":
+            self.ctw2 = self.A
+        if line11 == "B":
+            self.ctw2 = self.B
+        if line11 == "C":
+            self.ctw2 = self.C
+        if line11 == "D":
+            self.ctw2 = self.D
+        if line11 == " --- ":
+            self.ctw2 = None
+
+        if line12 == "IN1":            
+            self.ctw1 = self.IN1
+        if line12 == "IN2":
+            self.ctw1 = self.IN2
+        if line12 == "IN3":
+            self.ctw1 = self.IN3
+        if line12 == "IN4":
+            self.ctw1 = self.IN4
+        if line12 == "IN5":
+            self.ctw1 = self.IN5
+        if line12 == "IN6":
+            self.ctw1 = self.IN6
+        if line12 == "IN7":
+            self.ctw1 = self.IN7
+        if line12 == "IN8":
+            self.ctw1 = self.IN8
+        if line12 == "A":
+            self.ctw1 = self.A
+        if line12 == "B":
+            self.ctw1 = self.B
+        if line12 == "C":
+            self.ctw1 = self.C
+        if line12 == "D":
+            self.ctw1 = self.D
+        if line12 == " --- ":
+            self.ctw1 = None  
+
+    def pm1(self):
+        return self.pm1
+
+    def pm2(self):
+        return self.pm2    
+
+    def pm3(self):
+        return self.pm3
+
+    def pm4(self):
+        return self.pm4
+
+    def pm5(self):
+        return self.pm5
+
+    def qbv(self):
+        return self.qbv
+
+    def mud(self):
+        return self.mud
+
+    def qde(self):
+        return self.qde
+
+    def ctw1(self):
+        return self.ctw1
+
+    def ctw2(self):
+        return self.ctw2
+
+    def ctw3(self):
+        return self.ctw3
+
+    def ctw4(self):
+        return self.ctw4
+
+##entradas = Entradas()
+
+class Saidas(object): # Inicia a thread leitura das entradas para controle de todos os programas
+    
+    def __init__(self):            
+    
+        saidas = []    
+        txt = open("config.txt",'r')    
+        for line in txt: 
+            entradas.append(line)
+        txt.close()        
+        
+        line12 = (saidas[12])
+        line12 = (line12.replace("\n",""))
+        line13 = (saidas[13])
+        line13 = (line13.replace("\n",""))
+        line14 = (saidas[14])
+        line14 = (line14.replace("\n",""))        
+        line15 = (saidas[15])
+        line15 = (line15.replace("\n",""))
+        line16 = (saidas[16])
+        line16 = (line16.replace("\n",""))
+        line17 = (saidas[16])
+        line17 = (line17.replace("\n",""))
+        line18 = (saidas[17])
+        line18 = (line18.replace("\n",""))
+        line19 = (saidas[17])
+        line19 = (line19.replace("\n",""))
+        line20 = (saidas[18])
+        line20 = (line20.replace("\n",""))
+        line21 = (saidas[18])
+        line21 = (line21.replace("\n",""))
+        line22 = (saidas[19])
+        line22 = (line22.replace("\n",""))
+        line23 = (saidas[19])
+        line23 = (line123.replace("\n",""))
+
+            
+        if line12 == "IN1":            
+            self.rua = self.IN1
+        if line12 == "IN2":
+            self.rua = self.IN2
+        if line12 == "IN3":
+            self.rua = self.IN3
+        if line12 == "IN4":
+            self.rua = self.IN4
+        if line12 == "IN5":
+            self.rua = self.IN5
+        if line12 == "IN6":
+            self.rua = self.IN6
+        if line12 == "IN7":
+            self.rua = self.IN7
+        if line12 == "IN8":
+            self.rua = self.IN8
+        if line12 == "A":
+            self.rua = self.A
+        if line12 == "B":
+            self.rua = self.B
+        if line12 == "C":
+            self.rua = self.C
+        if line12 == "D":
+            self.rua = self.D
+        if line12 == " --- ":
+            self.rua == None
+
+        if line13 == "IN1":            
+            self.eclusa = self.IN1
+        if line13 == "IN2":
+            self.eclusa = self.IN2
+        if line13 == "IN3":
+            self.eclusa = self.IN3
+        if line13 == "IN4":
+            self.eclusa = self.IN4
+        if line13 == "IN5":
+            self.eclusa = self.IN5
+        if line13 == "IN6":
+            self.eclusa = self.IN6
+        if line13 == "IN7":
+            self.eclusa = self.IN7
+        if line13 == "IN8":
+            self.eclusa = self.IN8
+        if line13 == "A":
+            self.eclusa = self.A
+        if line13 == "B":
+            self.eclusa = self.B
+        if line13 == "C":
+            self.eclusa = self.C
+        if line13 == "D":
+            self.eclusa = self.D
+        if line13 == " --- ":
+            self.eclusa = None
+
+        if line14 == "IN1":            
+            self.pm3 = self.IN1
+        if line14 == "IN2":
+            self.pm3 = self.IN2
+        if line14 == "IN3":
+            self.pm3 = self.IN3
+        if line14 == "IN4":
+            self.pm3 = self.IN4
+        if line14 == "IN5":
+            self.pm3 = self.IN5
+        if line14 == "IN6":
+            self.pm3 = self.IN6
+        if line14 == "IN7":
+            self.pm3 = self.IN7
+        if line14 == "IN8":
+            self.pm3 = self.IN8
+        if line14 == "A":
+            self.pm3 = self.A
+        if line14 == "B":
+            self.pm3 = self.B
+        if line14 == "C":
+            self.pm3 = self.C
+        if line14 == "D":
+            self.pm3 = self.D
+        if line14 == " --- ":
+            self.pm3 = None
+
+            
+        if line15 == "IN1":            
+            self.pm4 = self.IN1
+        if line15 == "IN2":
+            self.pm4 = self.IN2
+        if line15 == "IN3":
+            self.pm4 = self.IN3
+        if line15 == "IN4":
+            self.pm4 = self.IN4
+        if line15 == "IN5":
+            self.pm4 = self.IN5
+        if line15 == "IN6":
+            self.pm4 = self.IN6
+        if line15 == "IN7":
+            self.pm4 = self.IN7
+        if line15 == "IN8":
+            self.pm4 = self.IN8
+        if line15 == "A":
+            self.pm4 = self.A
+        if line15 == "B":
+            self.pm4 = self.B
+        if line15 == "C":
+            self.pm4 = self.C
+        if line15 == "D":
+            self.pm4 = self.D
+        if line15 == " --- ":
+            self.pm4 = None
+            
+        if line16 == "IN1":            
+            self.pm5 = self.IN1
+        if line16 == "IN2":
+            self.pm5 = self.IN2
+        if line16 == "IN3":
+            self.pm5 = self.IN3
+        if line16 == "IN4":
+            self.pm5 = self.IN4
+        if line16 == "IN5":
+            self.pm5 = self.IN5
+        if line16 == "IN6":
+            self.pm5 = self.IN6
+        if line16 == "IN7":
+            self.pm5 = self.IN7
+        if line16 == "IN8":
+            self.pm5 = self.IN8
+        if line16 == "A":
+            self.pm5 = self.A
+        if line16 == "B":
+            self.pm5 = self.B
+        if line16 == "C":
+            self.pm5 = self.C
+        if line16 == "D":
+            self.pm5 = self.D
+        if line16 == " --- ":
+            self.pm5 = None
+
+        if line17 == "IN1":            
+            self.qbv = self.IN1
+        if line17 == "IN2":
+            self.qbv = self.IN2
+        if line17 == "IN3":
+            self.qbv = self.IN3
+        if line17 == "IN4":
+            self.qbv = self.IN4
+        if line17 == "IN5":
+            self.qbv = self.IN5
+        if line17 == "IN6":
+            self.qbv = self.IN6
+        if line17 == "IN7":
+            self.qbv = self.IN7
+        if line17 == "IN8":
+            self.qbv = self.IN8
+        if line17 == "A":
+            self.qbv = self.A
+        if line17 == "B":
+            self.qbv = self.B
+        if line17 == "C":
+            self.qbv = self.C
+        if line17 == "D":
+            self.qbv = self.D
+        if line17 == " --- ":
+            self.qbv = None
+
+        if line18 == "IN1":            
+            self.mud = self.IN1
+        if line18 == "IN2":
+            self.mud = self.IN2
+        if line18 == "IN3":
+            self.mud = self.IN3
+        if line18 == "IN4":
+            self.mud = self.IN4
+        if line18 == "IN5":
+            self.mud = self.IN5
+        if line18 == "IN6":
+            self.mud = self.IN6
+        if line18 == "IN7":
+            self.mud = self.IN7
+        if line18 == "IN8":
+            self.mud = self.IN8
+        if line18 == "A":
+            self.mud = self.A
+        if line18 == "B":
+            self.mud = self.B
+        if line18 == "C":
+            self.mud = self.C
+        if line18 == "D":
+            self.mud = self.D
+        if line18 == " --- ":
+            self.mud = None
+
+        if line19 == "IN1":            
+            self.qde = self.IN1
+        if line19 == "IN2":
+            self.qde = self.IN2
+        if line19 == "IN3":
+            self.qde = self.IN3
+        if line19 == "IN4":
+            self.qde = self.IN4
+        if line19 == "IN5":
+            self.qde = self.IN5
+        if line19 == "IN6":
+            self.qde = self.IN6
+        if line19 == "IN7":
+            self.qde = self.IN7
+        if line19 == "IN8":
+            self.qde = self.IN8
+        if line19 == "A":
+            self.qde = self.A
+        if line19 == "B":
+            self.qde = self.B
+        if line19 == "C":
+            self.qde = self.C
+        if line19 == "D":
+            self.qde = self.D
+        if line19 == " --- ":
+            self.qde = None
+
+        if line20 == "IN1":            
+            self.ctw4 = self.IN1
+        if line20 == "IN2":
+            self.ctw4 = self.IN2
+        if line20 == "IN3":
+            self.ctw4 = self.IN3
+        if line20 == "IN4":
+            self.ctw4 = self.IN4
+        if line20 == "IN5":
+            self.ctw4 = self.IN5
+        if line20 == "IN6":
+            self.ctw4 = self.IN6
+        if line20 == "IN7":
+            self.ctw4 = self.IN7
+        if line20 == "IN8":
+            self.ctw4 = self.IN8
+        if line20 == "A":
+            self.ctw4 = self.A
+        if line20 == "B":
+            self.ctw4 = self.B
+        if line20 == "C":
+            self.ctw4 = self.C
+        if line20 == "D":
+            self.ctw4 = self.D
+        if line20 == " --- ":
+            self.ctw4 = None
+
+        if line21 == "IN1":            
+            self.ctw3 = self.IN1
+        if line21 == "IN2":
+            self.ctw3 = self.IN2
+        if line21 == "IN3":
+            self.ctw3 = self.IN3
+        if line21 == "IN4":
+            self.ctw3 = self.IN4
+        if line21 == "IN5":
+            self.ctw3 = self.IN5
+        if line21 == "IN6":
+            self.ctw3 = self.IN6
+        if line21 == "IN7":
+            self.ctw3 = self.IN7
+        if line21 == "IN8":
+            self.ctw3 = self.IN8
+        if line21 == "A":
+            self.ctw3 = self.A
+        if line21 == "B":
+            self.ctw3 = self.B
+        if line21 == "C":
+            self.ctw3 = self.C
+        if line21 == "D":
+            self.ctw3 = self.D
+        if line21 == " --- ":
+            self.ctw3 = None
+
+        if line22 == "IN1":            
+            self.ctw2 = self.IN1
+        if line22 == "IN2":
+            self.ctw2 = self.IN2
+        if line22 == "IN3":
+            self.ctw2 = self.IN3
+        if line22 == "IN4":
+            self.ctw2 = self.IN4
+        if line22 == "IN5":
+            self.ctw2 = self.IN5
+        if line22 == "IN6":
+            self.ctw2 = self.IN6
+        if line22 == "IN7":
+            self.ctw2 = self.IN7
+        if line22 == "IN8":
+            self.ctw2 = self.IN8
+        if line22 == "A":
+            self.ctw2 = self.A
+        if line22 == "B":
+            self.ctw2 = self.B
+        if line22 == "C":
+            self.ctw2 = self.C
+        if line22 == "D":
+            self.ctw2 = self.D
+        if line22 == " --- ":
+            self.ctw2 = None
+
+        if line23 == "IN1":            
+            self.ctw1 = self.IN1
+        if line23 == "IN2":
+            self.ctw1 = self.IN2
+        if line23 == "IN3":
+            self.ctw1 = self.IN3
+        if line23 == "IN4":
+            self.ctw1 = self.IN4
+        if line23 == "IN5":
+            self.ctw1 = self.IN5
+        if line23 == "IN6":
+            self.ctw1 = self.IN6
+        if line23 == "IN7":
+            self.ctw1 = self.IN7
+        if line23 == "IN8":
+            self.ctw1 = self.IN8
+        if line23 == "A":
+            self.ctw1 = self.A
+        if line23 == "B":
+            self.ctw1 = self.B
+        if line23 == "C":
+            self.ctw1 = self.C
+        if line23 == "D":
+            self.ctw1 = self.D
+        if line23 == " --- ":
+            self.ctw1 = None  
+
+    def rua(self):
+        return self.rua
+
+    def eclusa(self):
+        return self.eclusa    
+
+    def pm3(self):
+        return self.pm3
+
+    def pm4(self):
+        return self.pm4
+
+    def pm5(self):
+        return self.pm5
+
+    def qbv(self):
+        return self.qbv
+
+    def mud(self):
+        return self.mud
+
+    def qde(self):
+        return self.qde
+
+    def ctw1(self):
+        return self.ctw1
+
+    def ctw2(self):
+        return self.ctw2
+
+    def ctw3(self):
+        return self.ctw3
+
+    def ctw4(self):
+        return self.ctw4
+
+def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a classe Rele
+        
+        entradas = Entradas() # Inicia classe para leitura das entradas
+
+        
 
         audio = 1 # Deixa ativo ass mensagens de audio de abertura
         cont = 0
 
-        a = open("status_social.cmm","r")
-        abre_social = a.read()
-        a.close()
-
-        b = open("status_eclusa.cmm","r")
-        abre_eclusa = b.read()
-        b.close()
+##        a = open("status_social.cmm","r")
+##        abre_social = a.read()
+##        a.close()
+##
+##        b = open("status_eclusa.cmm","r")
+##        abre_eclusa = b.read()
+##        b.close()
         
         if cont == 0: # Executa uma unica vez
 
             print("Estado das enradas A B C D ",A,B,C,D," ligado (0)")
             cont = 1
-
-    def abre_social(self):                          
     
-        
-        if pm1 == 1: # O portão social já esta aberto
+        if comando == "abre_social":
 
-            print("O portão social já esta aberto")
-                        
-            os.system("mpg123 /home/pi/CMM/mp3/social_aberto.mp3")
-            time.sleep(1)
-
-        else: # Se o portão Social esta fechado então pode abrir
+            pm1 = entradas.pm1
+            print("pm1",pm1)
             
-            if pm2 == 0: # Se Ponto magnético Eclusa fechado
-                
-                s = open("status_social.cmm","w")
-                s.write("1")
-                s.close()
+            if pm1 == 1: # O portão social já esta aberto
 
-                rele.liga(2) # Aqui abrimos o contato da eclusa para impedir que ela seja aberta enquanto o social esta aberto
-                
-                print("Abrindo portão Social")
-
-                if audio == 1: # Ativa as mensagens de abertura e fechamento
-
-                    os.system("mpg123 /home/pi/CMM/mp3/abrindo_social.mp3")                   
-                
-                time.sleep(2) # Tempo de espera para o portão começar a abrir
-
-                if pm1 == 0: # Portão fechado pois não abriu com o comando
-
-                    print("Portão Social emperrado")
-                    evento.enviar("E","130","011") # Envia portão emperrado
-                    
-                    rele.desliga(2) # Fecha o contato e libera a eclusa para ser acionada
-
-                    os.system("mpg123 /home/pi/CMM/mp3/social_emperrado.mp3")
-
-                if pm1 == 1: # Portão abriu
-
-                    evento.enviar("E","133","001") # Envia abriu portão
-                    
-                    contador = 200 # Tempo maximo para o social ficar aberto 20 segundos
-                    print("Esperando por 20 segundos o portão social fechar...")
-
-                    while contador > 0: # enquanto portão está aberto
-                        
-                        # Esperando o portão social fechar...
-
-                        if pm1 == 0: # portão fechou
-
-                            print("Portão social fechou")
-                            evento.enviar("R","133","001") # Envia fechamento
-                            contador = 1
-                                                        
-                            s = open("status_social.cmm","w")
-                            s.write("0")
-                            s.close()
-
-                            rele.desliga(2) # Fecha o contato e libera a eclusa para ser acionada
-
-                        if (pm1 == 1 and contador == 1): # Portão ainda aberto após 15 segundos de espera
-
-                            print("Portão social aberto por muito tempo")
+                print("O portão social já esta aberto")
                             
-                            evento.enviar("E","905","001") # Envia falha no fechamento
-
-                            os.system("mpg123 /home/pi/CMM/mp3/obstrucao.mp3")
-                            
-                            status = open("status_social.cmm","w") # Para não disparar o arrombamento
-                            status.write("1")
-                            status.close()
-
-                            contador = 1
-
-                            rele.desliga(2) # Fecha o contato e libera a eclusa para ser acionada
-                            
-                        if ctw2 == 0: # Entrada para abrir o portão da eclusa
-                            print("Agurade o fechamento do social")
-                            os.system("mpg123 /home/pi/CMM/mp3/aguarde_social.mp3") # Necessario manter esse audio sempre ativo
-                            time.sleep(1)
-                            
-                        time.sleep(0.1) # 1 segundo
-                        contador = contador - 1
-                        print(contador)
-                        
-            if pm2 == 1:
-
-                os.system("mpg123 /home/pi/CMM/mp3/aguarde_social.mp3")
+                os.system("mpg123 /home/pi/CMM/mp3/social_aberto.mp3")
                 time.sleep(1)
-                    
-    def abre_eclusa(self):
-        
 
-        if pm2 == 1: # O portão Eclusa já esta aberto
+            else: # Se o portão Social esta fechado então pode abrir
 
-            print("O portão Eclusa já esta aberto")
-
-            os.system("mpg123 /home/pi/CMM/mp3/eclusa_aberto.mp3")
-            time.sleep(1)
-
-        else: # Se o portão Eclusa esta fechado então pode abrir
-
-
-            if pm1 == 0: # Ponto magnético Social fechado, pode abrir a eclusa
+                entradas = Entradas()
+                pm2 = entradas.pm2
                 
-                s = open("status_eclusa.cmm","w")
-                s.write("1")
-                s.close()
-
-                rele.liga(1) # Impede o social de abrir enquanto a eclusa esta aberta 
-                print("Abrindo portão Eclusa")
-
-                if audio == 1:
-                    os.system("mpg123 /home/pi/CMM/mp3/abrindo_eclusa.mp3")
-                
-                time.sleep(2) # Tempo de espera para o portão abrir
-
-                if pm2 == 0: # Portão fechado não abriu após o comando
-
-                   print("Portão emperrado")
-                   evento.enviar("E","130","012") # Envia portão emperrado
-                   if audio == 1:
-                       os.system("mpg123 /home/pi/CMM/mp3/eclusa_emperrado.mp3")
-                       
-                   rele.desliga(1) # Libera o social para abrir mesmo com a eclusa aberta 
-
-                if pm2 == 1: # Portão aberto
-
-                    evento.enviar("E","133","003") # Envia abertura
+                if pm2 == 0: # Se Ponto magnético Eclusa fechado
                     
-                    contador = 200 # Tempo maximo para o social ficar aberto 20 segundos
-                    print("Esperando por 20 segundos o portão Eclusa fechar...")
+                    s = open("status_social.cmm","w")
+                    s.write("1")
+                    s.close()
 
-                    while contador > 0: # enquanto portão está aberto
-                        
-                        # Esperando o portão social fechar...
+                    rele.liga(2) # Aqui abrimos o contato da eclusa para impedir que ela seja aberta enquanto o social esta aberto
+                    
+                    print("Abrindo portão Social")
 
-                        if pm2 == 0: # portão fechou
+                    if audio == 1: # Ativa as mensagens de abertura e fechamento
 
-                            print("Portão Eclusa fechou")
-                            evento.enviar("R","133","003") # Envia fechamento
-                            contador = 1
-                            
-                            s = open("status_social.cmm","w")
-                            s.write("0")
-                            s.close()
+                        os.system("mpg123 /home/pi/CMM/mp3/abrindo_social.mp3")                   
+                    
+                    time.sleep(2)
 
-                            rele.desliga(1) # Libera o social para abrir 
-
-                        if (pm2 == 1 and contador == 1): # Portão ainda aberto após 15 segundos de espera
-
-                            print("Portão Eclusa aberto por muito tempo")
-                            
-                            evento.enviar("E","905","003") # Envia falha no fechamento
-                            
-                            os.system("mpg123 /home/pi/CMM/mp3/obstrucao.mp3")
-                            
-                            status = open("status_eclusa.cmm","w") # Para não disparar o arrombamento
-                            status.write("1")
-                            status.close()
-
-                            contador = 1
-
-                            rele.desliga(1) # Libera o social para abrir mesmo com a eclusa aberta
-
-                        if ctw1 == 0: # Alguem esta tentando abrir o social com a eclusa aberta
-
-                            print("Agurde o fechamento da eclusa")
-                            os.system("mpg123 /home/pi/CMM/mp3/aguarde_eclusa.mp3") # Manter esse audio sempre ativo
-                            time.sleep(1)
-                            
-
-                        time.sleep(0.1) # 1 segundo
-                        contador = contador - 1
-                        print(contador)
-                        
-            if pm1 == 1:
-
-                os.system("mpg123 /home/pi/CMM/mp3/aguarde_eclusa.mp3")
-                time.sleep(1)
+                    entradas = Entradas()
+                    pm1 = entradas.pm1
                                 
+                    if pm1 == 0: # Portão fechado pois não abriu com o comando
+
+                        print("Portão Social emperrado")
+                        evento.enviar("E","130","011") # Envia portão emperrado
+                        
+                        rele.desliga(2) # Fecha o contato e libera a eclusa para ser acionada
+
+                        os.system("mpg123 /home/pi/CMM/mp3/social_emperrado.mp3")
+
+                    if pm1 == 1: # Portão abriu
+
+                        evento.enviar("E","133","001") # Envia abriu portão
+                        
+                        contador = 200 # Tempo maximo para o social ficar aberto 20 segundos
+                        print("Esperando por 20 segundos o portão social fechar...")
+
+                        while contador > 0: # enquanto portão está aberto
+
+                            entradas = Entradas()
+                            pm1 = entradas.pm1
+                            
+                            # Esperando o portão social fechar...
+                            
+                            if pm1 == 0: # portão fechou
+
+                                print("Portão social fechou")
+                                evento.enviar("R","133","001") # Envia fechamento
+                                contador = 1
+                                                            
+                                s = open("status_social.cmm","w")
+                                s.write("0")
+                                s.close()
+
+                                rele.desliga(2) # Fecha o contato e libera a eclusa para ser acionada
+
+                                contador = 0
+
+                            if (pm1 == 1 and contador == 1): # Portão ainda aberto após 15 segundos de espera
+
+                                print("Portão social aberto por muito tempo")
+                                
+                                evento.enviar("E","905","001") # Envia falha no fechamento
+
+                                os.system("mpg123 /home/pi/CMM/mp3/obstrucao.mp3")
+                                
+                                status = open("status_social.cmm","w") # Para não disparar o arrombamento
+                                status.write("1")
+                                status.close()
+
+                                contador = 0
+
+                                rele.desliga(2) # Fecha o contato e libera a eclusa para ser acionada
+                                
+                            entradas = Entradas()    
+                            ctw2 = entradas.ctw2
+                            
+                            if ctw2 == 0: # Entrada para abrir o portão da eclusa
+                                print("Agurade o fechamento do social")
+                                os.system("mpg123 /home/pi/CMM/mp3/aguarde_social.mp3") # Necessario manter esse audio sempre ativo
+                                time.sleep(1)
+                                
+                            time.sleep(0.1) # 1 segundo
+                            contador = contador - 1
+                            print(contador)
+                            
+                if pm2 == 1:
+
+                    os.system("mpg123 /home/pi/CMM/mp3/aguarde_social.mp3")
+                    time.sleep(1)
+                        
+        if comando == "abre_eclusa":
+
+            entradas = Entradas()
+            pm2 = entradas.pm2            
+
+            if pm2 == 1: # O portão Eclusa já esta aberto
+
+                print("O portão Eclusa já esta aberto")
+
+                os.system("mpg123 /home/pi/CMM/mp3/eclusa_aberto.mp3")
+                time.sleep(1)
+
+            else: # Se o portão Eclusa esta fechado então pode abrir
+
+                entradas = Entradas()
+                pm2 = entradas.pm2
+                pm1 = entradas.pm1
+
+                if pm1 == 0: # Ponto magnético Social fechado, pode abrir a eclusa
+                    
+                    s = open("status_eclusa.cmm","w")
+                    s.write("1")
+                    s.close()
+
+                    rele.liga(1) # Impede o social de abrir enquanto a eclusa esta aberta 
+                    print("Abrindo portão Eclusa")
+
+                    if audio == 1:
+                        os.system("mpg123 /home/pi/CMM/mp3/abrindo_eclusa.mp3")
+                    
+                    time.sleep(2) # Tempo de espera para o portão abrir
+
+                    entradas = Entradas()
+                    pm2 = entradas.pm2
+                    
+                    if pm2 == 0: # Portão fechado não abriu após o comando
+
+                       print("Portão emperrado")
+                       evento.enviar("E","130","012") # Envia portão emperrado
+                       if audio == 1:
+                           os.system("mpg123 /home/pi/CMM/mp3/eclusa_emperrado.mp3")
+                           
+                       rele.desliga(1) # Libera o social para abrir mesmo com a eclusa aberta 
+
+                    if pm2 == 1: # Portão aberto
+
+                        evento.enviar("E","133","003") # Envia abertura
+                        
+                        contador = 200 # Tempo maximo para o social ficar aberto 20 segundos
+                        print("Esperando por 20 segundos o portão Eclusa fechar...")
+
+                        while contador > 0: # enquanto portão está aberto
+
+                            entradas = Entradas()
+                            pm2 = entradas.pm2
+                            
+                            # Esperando o portão eclusa fechar...
+
+                            if pm2 == 0: # portão fechou
+
+                                print("Portão Eclusa fechou")
+                                evento.enviar("R","133","003") # Envia fechamento
+                                contador = 1
+                                
+                                s = open("status_social.cmm","w")
+                                s.write("0")
+                                s.close()
+
+                                rele.desliga(1) # Libera o social para abrir 
+
+                            if (pm2 == 1 and contador == 1): # Portão ainda aberto após 15 segundos de espera
+
+                                print("Portão Eclusa aberto por muito tempo")
+                                
+                                evento.enviar("E","905","003") # Envia falha no fechamento
+                                
+                                os.system("mpg123 /home/pi/CMM/mp3/obstrucao.mp3")
+                                
+                                status = open("status_eclusa.cmm","w") # Para não disparar o arrombamento
+                                status.write("1")
+                                status.close()
+
+                                contador = 1
+
+                                rele.desliga(1) # Libera o social para abrir mesmo com a eclusa aberta
+
+                            entradas = Entradas()
+                            ctw1 = entradas.ctw1
+
+                            if ctw1 == 0: # Alguem esta tentando abrir o social com a eclusa aberta
+
+                                print("Aguarde o fechamento da eclusa")
+                                os.system("mpg123 /home/pi/CMM/mp3/aguarde_eclusa.mp3") # Manter esse audio sempre ativo
+                                time.sleep(1)
+                                
+
+                            time.sleep(0.1) # 1 segundo
+                            contador = contador - 1
+                            print(contador)
+                            
+                if pm1 == 1:
+
+                    os.system("mpg123 /home/pi/CMM/mp3/aguarde_eclusa.mp3")
+                    time.sleep(1)
+                                    
 
 class Abre(Rele): # Inicia a thread dos portoes sociais importando a classe Rele
 
@@ -842,7 +1143,7 @@ class Abre(Rele): # Inicia a thread dos portoes sociais importando a classe Rele
         
         print("Abrindo portão social")
         evento.enviar("E","133","001") # Envia abertura
-
+        
     def eclusa(self):
 
         status = open("status_eclusa.cmm","w") # Para não dispara o arrombamento
@@ -881,12 +1182,9 @@ def Garagem(Rele): # Inicia a thread do portão da garagem importando a classe R
         ctw2 = i5
         qbv = i6
         qde = i7
-        in8 = i8
-
-        
+        in8 = i8        
                
         time.sleep(1)    
-
 
 
 def Arrombamento(Rele): # Inicia a thread arrombamento de portões
@@ -917,6 +1215,11 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
     
     while(1):
 
+        entradas = Entradas()
+
+        pm1 = entradas.pm1
+        pm2 = entradas.pm2
+
         a = open("status_social.cmm","r")
         abre_social = a.read()
         a.close()
@@ -924,10 +1227,7 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
         b = open("status_eclusa.cmm","r")
         abre_eclusa = b.read()
         b.close()  
-        
-        global pm1
-        global pm2
-
+                
         if abre_social == "0" and pm1 == 1 and ar1 == 0:
 
             time.sleep(0.5) # Filtra algum possivel ruido de até 500 milissegundos
@@ -987,16 +1287,19 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
                 rele.desliga(8)
 
         
-        time.sleep(1)
+        time.sleep(1)   
 
 def Servidor(Rele): # Inicia a thread do portão da garagem importando a classe Rele
     
-    sys.stdout.write("\nPrograma de automação em execução\n")
+    sys.stdout.write("\nPrograma Servidor em execução\n")
+    socket.setdefaulttimeout(9999) # limite de 2 segundos para enviar o socket
     
     host = '0.0.0.0'
     port = 5510
 
     time.sleep(0.1)
+
+    print("iniciou o servidor")
     
     print("Servidor: ",host, " porta: ", port)
 
@@ -1028,15 +1331,7 @@ def Servidor(Rele): # Inicia a thread do portão da garagem importando a classe 
             def dataTransfer(conn):  # Loop de transferencia e recepção de dados
 
                 while True:
-
-                    global pm1
-                    global pm2
-                    global pm5
-                    global qbv
-                    global mud
-                    global qde
-                    global ctw1
-                    global ctw2
+                    
                                       
                     data = conn.recv(1024)  # Recebe o dado
                     data = data.decode('utf-8')
@@ -1046,112 +1341,115 @@ def Servidor(Rele): # Inicia a thread do portão da garagem importando a classe 
                     (comando,resto) = data.split("\r") # Divide os dados da variavel data e guarda uma parte em comando e eoutra em resto
 
 
-                    if(comando == "SET 1"):
+                    if(comando == "SET1"):
 
                         print("Abrindo portão Social pelo Moni")
                         
                         abre.social() # Abre sem intertravamento porem fica aguardando o portão fechar
 
                         time.sleep(2)
-                        cont = 20
-                                            
-                        while (cont > 0):
-
-                            if pm1 == 1: # Se o portão esta aberto
-
-                                print("Aguardando portão social fechar",cont)
-
-                            if pm1 == 0: # Portão fechou
-
-                                print("Portão social fechou")
-
-                                status = open("status_social.cmm","w") # Para não dispara o arrombamento
-                                status.write("0")
-                                status.close()
-
-                                cont = 1
-
-                            cont = cont - 1
-                            time.sleep(1)
+##                        cont = 20
+##                                            
+##                        while (cont > 0):
+##
+##                            if pm1 == 1: # Se o portão esta aberto
+##
+##                                print("Aguardando portão social fechar",cont)
+##
+##                            if pm1 == 0: # Portão fechou
+##
+##                                print("Portão social fechou")
+##
+##                                status = open("status_social.cmm","w") # Para não dispara o arrombamento
+##                                status.write("0")
+##                                status.close()
+##
+##                                cont = 1
+##
+##                            cont = cont - 1
+##                            time.sleep(1)
                             
                         conn.close()                        
                                             
 
-                    elif(comando == "SET 2"):
+                    elif(comando == "SET2"):
                         
                         print("Abrindo portão Eclusa pelo Moni")
                         
                         abre.eclusa() # Abre sem intertravamento
 
                         time.sleep(2)
-                        cont = 20
-                                            
-                        while (cont > 0):
-
-                            if pm2 == 1: # Se o portão esta aberto
-
-                                print("Aguardando portão eclusa fechar",cont)
-
-                            if pm2 == 0: # Portão fechou
-
-                                print("Portão eclusa fechou")
-
-                                status = open("status_eclusa.cmm","w") # Para não dispara o arrombamento
-                                status.write("0")
-                                status.close()
-
-                                cont = 1
-
-                            cont = cont - 1
-                            time.sleep(1)
+##                        cont = 20
+##                                            
+##                        while (cont > 0):
+##
+##                            if pm2 == 1: # Se o portão esta aberto
+##
+##                                print("Aguardando portão eclusa fechar",cont)
+##
+##                            if pm2 == 0: # Portão fechou
+##
+##                                print("Portão eclusa fechou")
+##
+##                                status = open("status_eclusa.cmm","w") # Para não dispara o arrombamento
+##                                status.write("0")
+##                                status.close()
+##
+##                                cont = 1
+##
+##                            cont = cont - 1
+##                            time.sleep(1)
                         
                         conn.close()
                         
                        
                     elif(comando == "SET 3"):
                         print("reconheceu SET 3")
+                        conn.close()
                         
 
                     elif(comando == "SET 4"):
                         print("reconheceu SET 4")
+                        conn.close()
                         
 
                     elif(comando == "SET 5"):
                         print("reconheceu SET 5")
-                        
+                        conn.close()
 
                     elif(comando == "SET 6"):
                         print("SET 6, RESET SOCIAL")
-                        
+                        conn.close()
 
                     elif(comando == "SET 8"):
                         
                         print("SET 8, RESET ECLUSA")
-                        
+                        conn.close()
 
                     elif(comando == "SET 9"):
                         
                         print("SET 9, RESET INTERFONES")
-                        
+                        conn.close()
 
                     elif(comando == "SET 10"):
                         
                         print("SET 10, AUXILIAR 1 (ON/OFF)")
-                        
+                        conn.close()
 
                     elif(comando == "SET 11"):
                         
                         print("SET 11, AUXILIAR 2 (ON/OFF)")
-                        
+                        conn.close()
 
                     elif(comando == "SET 12"):
                         
                         print("APRESENTAÇÃO")
-                        
+                        conn.close()
+                                            
 
                     else:
 
-                        print(comando) 
+                        print("Recebido pelo servidor:",comando) 
 
                         reply = 'ok'
                         conn.sendall(str.encode(reply))  # Envia o reply de volta para o cliente
@@ -1180,115 +1478,26 @@ def Servidor(Rele): # Inicia a thread do portão da garagem importando a classe 
         time.sleep(0.1)
 
 def Portoes_sociais(Rele): # Programa
+
+##    entradas = Entradas() # Inicia classe para leitura das entradas
     
-    sys.stdout.write("\nPrograma Sociais em execução\n")
-    
-    intertravamento = Intertravamento(Rele) # Inicia a classe para usar o intertravamento
-    quebra_vidro = 0
-
-    entradas = []    # Cria uma lista  para inserir os dados de config.txt
-    txt = open("config.txt",'r')    
-    for line in txt: # Coloca cada linha do arquivo de texto config.txt na lista[]
-        entradas.append(line)
-
-    global IN1
-    global IN2
-    global IN3
-    global IN4
-    global IN5
-    global IN6
-    global IN7
-    global IN8
-    global A
-    global B
-    global C
-    global D
-    
-    # Associa os dados salvos no config.txt as entradas correspondentes
-
-    line1 = (entradas[0])         # Coloca na variavel line1 o texto encontrado na linha 1
-    line1 = line1.replace("\n","")  # Retira o \n do texto
-    line2 = (entradas[1])         
-    line2 = line2.replace("\n","")
-    line3 = (entradas[2])
-    line3 = line3.replace("\n","")
-    line4 = (entradas[3])
-    line4 = line4.replace("\n","")
-    line5 = (entradas[4])
-    line5 = line5.replace("\n","")  
-    line6 = (entradas[5])
-    line6 = line6.replace("\n","")  
-    line7 = (entradas[6])
-    line7 = line7.replace("\n","")
-    line8 = (entradas[7])
-    line8 = line8.replace("\n","")
-    line9 = (entradas[8])
-    line9 = (line9.replace("\n",""))
-    line10 = (entradas[9])
-    line10 = (line10.replace("\n",""))
-    line11 = (entradas[10])
-    line11 = (line11.replace("\n",""))
-    line12 = (entradas[11])
-    line12 = (line12.replace("\n",""))
-
-    if line1 == "IN1":
-        pm1 = IN1
-    if line1 == "IN2":
-        pm1 == IN2
-    if line1 == "IN3":
-        pm1 == IN3
-    if line1 == "IN4":
-        pm1 == IN4
-    if line1 == "IN5":
-        pm1 == IN5
-    if line1 == "IN6":
-        pm1 == IN6
-    if line1 == "IN7":
-        pm1 == IN7
-    if line1 == "IN8":
-        pm1 == IN8
-    if line1 == "A":
-        pm1 == A
-    if line1 == "B":
-        pm1 == B
-    if line1 == "C":
-        pm1 == C
-    if line1 == "D":
-        pm1 == D
-    if line1 == " --- ":
-        pm1 == None
-
+    sys.stdout.write("\nPrograma Sociais em execução\n")   
+        
     while(1):
 
+        entradas = Entradas() # Inicia classe para leitura das entradas
         
-       
-
-
-        pm1
-        pm2
-        qbv
-        mud
-        qde
-        ctw1
-        ctw2
-        
-##        i1 = wiringpi.digitalRead(300)  # Configuraçoes pinos de entrada necessarios para atualizar as entradas
-##        i2 = wiringpi.digitalRead(301)
-##        i3 = wiringpi.digitalRead(302)
-##        i4 = wiringpi.digitalRead(303)
-##        i5 = wiringpi.digitalRead(304)
-##        i6 = wiringpi.digitalRead(305)
-##        i7 = wiringpi.digitalRead(306)
-##        i8 = wiringpi.digitalRead(307)
-##
-##        pm1 = i1
-##        pm2 = i2
-##        in3 = i3
-##        ctw1 = i4
-##        ctw2 = i5
-##        qbv = i6
-##        qde = i7
-##        in8 = i8
+        pm1 = entradas.pm1
+        pm2 = entradas.pm2
+        pm3 = entradas.pm3
+        pm4 = entradas.pm4
+        qbv = entradas.qbv
+        mud = entradas.mud
+        qde = entradas.qde
+        ctw1 = entradas.ctw1
+        ctw2 = entradas.ctw2
+        ctw3 = entradas.ctw3
+        ctw4 = entradas.ctw4  
 
 ##        a = open("status_social.cmm","r") # Verifica se alguem registrou abrir para o portão social
 ##        abre_social = a.read()
@@ -1299,188 +1508,321 @@ def Portoes_sociais(Rele): # Programa
 ##        b.close()
         
         
-        if ctw1 == "1":
+        if ctw1 == 0:
 
             status = open("status_social.cmm","w")
             status.write("1")
             status.close()
      
-            intertravamento.abre_social()
+            Intertravamento("abre_social")
 
             status = open("status_social.cmm","w")
             status.write("0")
             status.close()
 
-        if ctw2 == "1":
+        if ctw2 == 0:
 
             status = open("status_eclusa.cmm","w")
             status.write("1")
             status.close()
 
-            intertravamento.abre_eclusa()
+            Intertravamento("abre_eclusa")
 
             status = open("status_eclusa.cmm","w")
             status.write("0")
             status.close()
+        
+        
+        time.sleep(0.1)
 
+        
+def Alarmes(Rele):
+    
+    sys.stdout.write("\nPrograma Alarmes em execução\n")
 
+    cont1 = 0
+    cint2 = 0
+    cont3 = 0
+
+    queda_energia = 0
+    queda_de_energia = 0
+    encerra_queda_de_energia = 0
+
+    quebra_vidro = 0            # variavel de controle    
+    quebra_de_vidro = 0         # Variavel para filtro
+    encerra_quebra_de_vidro = 0 # Variavel para filtro
+
+    chave_mudanca = 0
+    chave_de_mudanca = 0
+    encerra_chave_de_mudanca = 0
+
+    while(1):
+
+        entradas = Entradas() # Inicia classe para leitura das entradas
+        qbv = entradas.qbv
+        mud = entradas.mud
+        qde = entradas.qde
+
+        
         if qbv == 0 and quebra_vidro == 0: # Se o quebra de vidro foi acionado
 
-            print("Quebra de vidro acionado")
+            # Filtro para ruidos
 
-            rele.liga(8) # Liga sirene
+            cont1 = 20
 
-            abre.social() # Ao invocar esta função ela ja coloca o arquivo de texto em 1 para não gerear arrombamento
-            abre.eclusa()
+            while cont1 > 0:
 
-            os.system("mpg123 /home/pi/CMM/mp3/emergencia.mp3")
+                entradas = Entradas() 
+                qbv = entradas.qbv
 
-            time.sleep(1)
+                if qbv == 0: # Ainda esta acionado
 
-            rele.liga(3) # Foto dos 2 poortões (mantem os doid portões abertos)            
+                    quebra_de_vidro = 1
 
-            quebra_vidro = 1
+                else:
 
-            evento.enviar("E","130","007") # Envia violação quebra de vidro           
+                    quebra_de_vidro = 0
+                    cont1 = 0
+                    
+                time.sleep(0.1)
+                cont1 = cont1 - 1
 
-            time.sleep(10)
+            if quebra_de_vidro == 1:            
+
+                print("Quebra de vidro acionado")
+
+                rele.liga(8) # Liga sirene
+
+                abre.social() # Ao invocar esta função ela ja coloca o arquivo de texto em 1 para não gerear arrombamento
+                abre.eclusa()
+
+                os.system("mpg123 /home/pi/CMM/mp3/emergencia.mp3")
+
+                time.sleep(1)
+
+                rele.liga(3) # Foto dos 2 poortões (mantem os doid portões abertos)            
+
+                quebra_vidro = 1
+
+                evento.enviar("E","130","007") # Envia violação quebra de vidro           
+
+                time.sleep(10)
 
         if qbv == 1 and quebra_vidro == 1:
 
-            print("Quebra de vidro restaurado")
-            
-            rele.desliga(3) # Desliga fotocelula
+            # Filtro para ruidos
 
-            evento.enviar("R","130","007") # Envia violação quebra de vidro
+            cont1 = 20
 
-            time.sleep(15) # Aguarda os portoes fecharem
+            while cont1 > 0:
 
-            rele.desliga(8) # Desliga sirene
+                entradas = Entradas() 
+                qbv = entradas.qbv
 
-            status = open("status_social.cmm","w") # Volta o arquivo para zero para ativar a verificação de arrombamento
-            status.write("0")
-            status.close()
+                if qbv == 1: # Ainda esta acionado
 
-            status = open("status_eclusa.cmm","w")
-            status.write("0")
-            status.close()
+                    encerra_quebra_de_vidro = 1
 
-            quebra_vidro = 0
+                else:
 
-            print("Sistema em modo automatico")
-            os.system("mpg123 /home/pi/CMM/mp3/automatico.mp3")
+                    encerra_quebra_de_vidro = 0
+                    cont = 0
+
+                time.sleep(0.1)
+                cont1 = cont1 - 1
+
+            if encerra_quebra_de_vidro == 1:
+
+                print("Quebra de vidro restaurado")
+                
+                rele.desliga(3) # Desliga fotocelula
+
+                evento.enviar("R","130","007") # Envia violação quebra de vidro
+
+                time.sleep(15) # Aguarda os portoes fecharem
+
+                rele.desliga(8) # Desliga sirene
+
+                status = open("status_social.cmm","w") # Volta o arquivo para zero para ativar a verificação de arrombamento
+                status.write("0")
+                status.close()
+
+                status = open("status_eclusa.cmm","w")
+                status.write("0")
+                status.close()
+
+                quebra_vidro = 0
+
+                print("Sistema em modo automatico")
+                os.system("mpg123 /home/pi/CMM/mp3/automatico.mp3")
                               
-        
-        time.sleep(0.1)
 
-def Queda_energia(Rele): # Inicia a thread do portão da garagem importando a classe Rele
-    
-    sys.stdout.write("\nPrograma de automação em execução\n")
 
-    queda_energia = 0
+        if mud == 0 and chave_mudanca == 0: # Queda de energia
 
-    while(1):
-        
-        i7 = wiringpi.digitalRead(306)        
-        
-        qde = i7        
+            # Filtro para ruidos
 
-        if qde == 0 and queda_energia == 0: # Queda de energia 
+            cont2 = 20
 
-            print("Queda de energia")
+            while cont2 > 0:
 
-            os.system("mpg123 /home/pi/CMM/mp3/queda_energia.mp3")
-            
-            evento.enviar("E","301","000") # Envia queda de energia elétrica
+                entradas = Entradas() 
+                mud = entradas.mud
 
-            time.sleep(3)
+                if mud == 0: # Ainda esta acionado
 
-            queda_energia = 1
+                    chave_de_mudanca = 1
 
-        if qde == 1 and queda_energia == 1: # Restaurou energia eletrica
+                else:
 
-            print("Restaurou energia eletrica")
+                    chave_de_mudanca = 0
+                    cont2 = 0
+                    
+                time.sleep(0.1)
+                cont2 = cont2 - 1
 
-            os.system("mpg123 /home/pi/CMM/mp3/restaurou_energia.mp3")
+            if chave_de_mudanca == 1:
 
-            evento.enviar("R","301","000") # Envia restauração de energia elétrica
+                print("Chave de mudança acionada")
 
-            time.sleep(3)
+                rele.liga(8) # Liga sirene
 
-            queda_energia = 0
-        
-        time.sleep(0.1)
-        
-        
-def Mudanca(Rele):
-    
-    sys.stdout.write("\nPrograma chave de mudança em execução\n")
+                abre.social() # Ao invocar esta função ela ja coloca o arquivo de texto em 1 para não gerear arrombamento
+                abre.eclusa()
 
-    chave_mudanca = 0    
+                os.system("mpg123 /home/pi/CMM/mp3/mudanca.mp3")
 
-    while(1):
+                time.sleep(1)
 
-        global mud
-        
-##        i8 = wiringpi.digitalRead(307)
-##        
-##        mud = i8 
+                rele.liga(3) # Foto dos 2 poortões (mantem os dois portões abertos)  
+                
+                evento.enviar("E","130","008") # Envia chave de mudança acionada
 
-        if mud == 0 and chave_mudanca == 0: # Queda de energia 
+                time.sleep(3)
 
-            print("Chave de mudança acionada")
-
-            rele.liga(8) # Liga sirene
-
-            abre.social() # Ao invocar esta função ela ja coloca o arquivo de texto em 1 para não gerear arrombamento
-            abre.eclusa()
-
-            os.system("mpg123 /home/pi/CMM/mp3/mudanca.mp3")
-
-            time.sleep(1)
-
-            rele.liga(3) # Foto dos 2 poortões (mantem os doid portões abertos)  
-            
-            evento.enviar("E","130","008") # Envia chave de mudança acionada
-
-            time.sleep(3)
-
-            chave_mudanca = 1
+                chave_mudanca = 1
 
         if mud == 1 and chave_mudanca == 1: # Restaurou energia eletrica
 
-            print("Chave de mudança restaurada")
+            # Filtro para ruidos
 
-            rele.desliga(3) # Desliga fotocelula
-            
-            os.system("mpg123 /home/pi/CMM/mp3/restaurou_mudanca.mp3")
+            cont2 = 20
 
-            evento.enviar("R","130","008") # Envia violação quebra de vidro
+            while cont2 > 0:
 
-            time.sleep(15) # Aguarda os portoes fecharem
+                entradas = Entradas() 
+                mud = entradas.mud
 
-            rele.desliga(8) # Desliga sirene
+                if mud == 1: # Ainda esta acionado
 
-            status = open("status_social.cmm","w") # Volta o arquivo para zero para ativar a verificação de arrombamento
-            status.write("0")
-            status.close()
+                    encerra_chave_de_mudanca = 1
 
-            status = open("status_eclusa.cmm","w")
-            status.write("0")
-            status.close()
+                else:
 
-            
+                    encerra_chave_de_mudanca = 0
+                    cont2 = 0
+                    
+                time.sleep(0.1)
+                cont2 = cont2 - 1
 
-            evento.enviar("R","130","008") # Envia restauração de energia elétrica
+            if encerra_chave_de_mudanca == 1:
 
-            time.sleep(3)
+                print("Chave de mudança restaurada")
 
-            chave_mudanca = 0
+                rele.desliga(3) # Desliga fotocelula
+                
+                os.system("mpg123 /home/pi/CMM/mp3/restaurou_mudanca.mp3")
+
+                evento.enviar("R","130","008") # Envia violação quebra de vidro
+
+                time.sleep(15) # Aguarda os portoes fecharem
+
+                rele.desliga(8) # Desliga sirene
+
+                status = open("status_social.cmm","w") # Volta o arquivo para zero para ativar a verificação de arrombamento
+                status.write("0")
+                status.close()
+
+                status = open("status_eclusa.cmm","w")
+                status.write("0")
+                status.close()                
+
+                evento.enviar("R","130","008") # Envia restauração chave de mudanca
+
+                time.sleep(3)
+
+                chave_mudanca = 0   
         
-        time.sleep(0.1)
-        
+        if qde == 0 and queda_energia == 0: # Queda de energia
 
-        
+            # Filtro para ruidos
+
+            cont3 = 20
+
+            while cont3 > 0:
+
+                entradas = Entradas() 
+                qde = entradas.qde
+
+                if qde == 0: # Ainda esta acionado
+
+                    queda_de_energia = 1
+
+                else:
+
+                    queda_de_energia = 0
+                    cont3 = 0
+                    
+                time.sleep(0.1)
+                cont3 = cont3 - 1
+
+            if queda_de_energia == 1:                
+
+                print("Queda de energia")
+
+                os.system("mpg123 /home/pi/CMM/mp3/queda_energia.mp3")
+                
+                evento.enviar("E","301","000") # Envia queda de energia elétrica
+
+                time.sleep(3)
+
+                queda_energia = 1
+
+        if qde == 1 and queda_energia == 1: # Restaurou energia eletrica
+
+            cont3 = 20
+
+            while cont3 > 0:
+
+                entradas = Entradas() 
+                qde = entradas.qde
+
+                if qde == 1: # Ainda esta acionado
+
+                    encerra_queda_de_energia = 1
+
+                else:
+
+                    encerra_queda_de_energia = 0
+                    cont3 = 0
+                    
+                time.sleep(0.1)
+                cont3 = cont3 - 1
+
+            if encerra_queda_de_energia == 1:
+
+                print("Restaurou energia eletrica")
+
+                os.system("mpg123 /home/pi/CMM/mp3/restaurou_energia.mp3")
+
+                evento.enviar("R","301","000") # Envia restauração de energia elétrica
+
+                time.sleep(3)
+
+                queda_energia = 0
+
+
+
         time.sleep(1)
         
 
@@ -1531,6 +1873,99 @@ def Sistema(Rele,Temperatura):
 
         time.sleep(1)
 
+def Buffer():
+
+    socket.setdefaulttimeout(4) # limite de 2 segundos para enviar o socket
+
+    host = '172.20.1.5'  # '172.20.1.5' Host servidor  Moni
+    port = 4010          # 4010 Porta máquina receptora
+
+    print("Iniciou o programa buffer")
+
+    enviado = 0
+
+    while(1):
+
+        b = open("buffer_eventos.txt","r")
+        
+        for line in b:
+
+            ln = line
+            evento = ln.replace("\n","")
+            
+            if evento != "": # Se houver alguma coisa para enviar
+
+                print("Tentanto enviar o evento",evento)
+
+                try:
+        
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.connect ((host,port))
+
+                    command = (evento + "\r")#("7000 185808E30500008")  # Envia abriu portão da eclusa para a central de monitormento
+                    s.send(str.encode(command))
+                    reply = s.recv(1024)
+                    print(reply.decode('utf-8'))
+                    s.close()
+
+                    enviado = 1                    
+                                
+                except Exception as err:
+                    
+                    print("Não conseguiu enviar o evento, sem conexão no momento")
+                    s.close()
+
+                    time.sleep(10)
+                    break
+                
+                if enviado == 1:
+                                               
+                    print("Evento enviado ",evento)           
+
+                    # Cria uma lista e adiciona todos as linhas encontradas em buffer.txt
+
+                    lista = []
+
+                    try:
+
+                        txt = open("buffer_eventos.txt","r")
+                        for l in txt:                        
+                            l = l.replace("\n","") # Coloca na lista o evento ja editado
+                            lista.append(evento)
+                        
+                        # Exclui o item enviado da lista
+
+                        for i in lista:
+                            if i == evento:
+                                indice = lista.index(i)
+                                print("Excluindo o evento",evento,"posicao",indice)
+                                del(lista[indice])
+                                nova_lista = lista
+                        txt.close()
+
+                        # Zera o arquivo buffer
+
+                        tx = open("buffer_eventos.txt","w") 
+                        tx.close()
+
+                        # Reescreve o texto com a nova lista editada
+
+                        txt = open("buffer_eventos.txt","a")
+                        for i in nova_lista:
+                            txt.write(i + "\n")
+                        txt.close()    
+                            
+                        enviado = 0
+
+                    except Exception as err:
+                        print("Erro",err)
+            
+        b.close() # Fecha o arquivo de texto em modo leitura    
+        time.sleep(1)
+                
+
+            
+    
         
 #################### Instancia as Classes  #############################################
 
@@ -1539,14 +1974,14 @@ abre = Abre()
 
 ####################  Declara as threads dos programas disponiveis  ####################
 
-entradas = threading.Thread(target=Entradas)
+##entradas = threading.Thread(target=Entradas)
 sociais = threading.Thread(target=Portoes_sociais, args=(Rele,)) # deixar virgula depois do arg 1
 garagem = threading.Thread(target=Garagem, args=(Rele,))
 arrombamento = threading.Thread(target=Arrombamento, args=(Rele,))
-servidor = threading.Thread(target=Servidor, args=(Rele,))
-##automacao4 = threading.Thread(target=Automacao4, args=(Rele,))
-Queda_energia = threading.Thread(target=Queda_energia, args=(Rele,))
-mudanca = threading.Thread(target=Mudanca, args=(Rele,))
+##servidor = threading.Thread(target=Servidor, args=(Rele,))
+buffer = threading.Thread(target=Buffer)
+
+alarmes = threading.Thread(target=Alarmes, args=(Rele,))
 sistema = threading.Thread(target=Sistema, args=(Rele,Temperatura,))
 ##qrcode = threading.Thread(target=thread_qrcode, args=(qrcode,))
 ##wiegand = threading.Thread(target=thread_wiegand, args=(Rele,wiegand))
@@ -1554,14 +1989,13 @@ sistema = threading.Thread(target=Sistema, args=(Rele,Temperatura,))
 
 ######################################### Start dos Programas  #############################################################
 
-entradas.start() # Inicia o programa leitura das entradas
 sociais.start() # Inicia o programa dos portões sociais
 ##garagem.start() # Inicia o programa do portão de garagem
-##arrombamento.start() # Inicia o programa de automação
-####servidor.start() # Inicia o programa de automação
-##automacao4.start() # Inicia o programa de automação
-##Queda_energia.start() # Inicia o programa de automação
-##mudanca.start() # In icia a leitura de interrupções
+arrombamento.start() # Inicia o programa de automação
+##servidor.start() # Inicia o programa de automação
+buffer.start() # Inicia o programa Buffer
+
+alarmes.start() # In icia a leitura de interrupções
 sistema.start()
 ##qrcode.start()
 ##wiegand.start()
