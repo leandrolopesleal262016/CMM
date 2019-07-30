@@ -11,6 +11,9 @@ import os     # Executa comandos do sistema operacional Ex.: os.system('sudo reb
 import sys
 import serial # Para comunicação serial
 import libscrc # biblioteca para calculo do CRC (Controle de Redundancia) - usado no protocolo modbus
+import _thread as thread
+
+mutex = thread.allocate_lock() # Trava a thread para que seja executada sozina
 
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
@@ -86,6 +89,8 @@ class monta_pacote():
         packet.append(a) # Controle de redundancia 
         packet.append(b) # Controle de redundancia 
         
+        mutex.acquire() # Trava para acesso exclusivo
+        
         GPIO.output(17, 1)  
         GPIO.output(18, 1)
         
@@ -101,6 +106,8 @@ class monta_pacote():
         time.sleep(0.02)  
         bytesToRead = self.ser.inWaiting()  
         in_bin = self.ser.read(bytesToRead)
+        
+       mutex.release() #Desbloqueia a trava de acesso
 
         packet_editado = str(packet)
         packet_editado = packet_editado.replace("bytearray(","")
