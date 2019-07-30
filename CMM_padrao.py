@@ -13,7 +13,7 @@ import threading # Modulo superior Para executar as threads
 import sys
 import socket
 
-##os.system("mpg123 /home/pi/CMM/mp3/reiniciando_sistema.mp3")
+os.system("mpg123 /home/pi/CMM/mp3/reiniciando_sistema.mp3")
 
 socket.setdefaulttimeout(2) # limite de 2 segundos para enviar o socket
 
