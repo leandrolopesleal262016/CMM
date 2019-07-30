@@ -8,36 +8,47 @@ from datetime import datetime, timedelta
 import os     # Executa comandos do sistema operacional Ex.: os.system('sudo reboot now'))
 import sys
 from biblioteca_CMM_oficial import Rele, Evento
+from banco import Banco # Classe para inserções, consulta e atualização no banco de dados CMM
+
 import socket
 import mysql.connector
 import signal
-
+from condfy import Notifica
 
 ######################################  Leitor QR Code  #############################################
 
-class Qrcode(Rele,Evento):
+class Qrcode(Rele,Evento,Notifica,Banco):
 
     print("Instanciou a classe Qrcode")
 
-    def __init__(self,ip,cliente,rele,portao):
+    def __init__(self,ip,cliente,rele,portao,notifica):
 
         Rele.__init__(self)
         Evento.__init__(self,cliente)
 
+        self.cliente = cliente
+
         self.rele = Rele()
-        self.evento = Evento(cliente) # "5987"
-
-        hs = time.strftime("%H:%M:%S") # Hora completa para registro de Log
-        h = int(time.strftime("%H"))
-        data = time.strftime('%d/%m/%y')        
         
-
-        print("Dia",data,hs,"hs\n")        
+        self.evento = Evento(cliente) # "5987"             
 
         self.ip_qrcode = ip #'172.18.34.249'
+        
         self.out = rele
         
         self.portao = portao
+
+        self.avisa_condfy = Notifica()
+
+        self.banco = Banco()
+
+        if notifica == "1":
+            
+            self.notifica = "1"
+
+        else:
+
+             self.notifica = "0"            
            
             
     def start(self):
@@ -50,11 +61,11 @@ class Qrcode(Rele,Evento):
 
             print("Abrindo portão social")
             
-            self.rele.pulso(4,2) # Pulso para abrir direto o portão sem intertravamento 
+            self.rele.pulso(self.out,2) # Pulso para abrir direto o portão sem intertravamento 
+            
+            os.system("mpg123 /home/pi/CMM/mp3/acesso_qr.mp3")
 
             self.evento.enviar("E","133","015") # Envia abertura
-
-            os.system("mpg123 /home/pi/mp3/188.mp3")
             
             time.sleep(2)
             
@@ -72,13 +83,13 @@ class Qrcode(Rele,Evento):
             status.write("1")
             status.close()        
         
-            self.rele.pulso(5,2) # Pulso para abrir direto o portão sem intertravamento (Eclusa)
+            self.rele.pulso(self.out,2) # Pulso para abrir direto o portão sem intertravamento (Eclusa)
 
             print("Abrindo portão eclusa")
-            
-            self.evento.enviar("E","133","015") # Envia abertura
 
-            os.system("mpg123 /home/pi/mp3/188.mp3")
+            os.system("mpg123 /home/pi/CMM/mp3/acesso_qr.mp3")
+            
+            self.evento.enviar("E","133","015") # Envia esso por QR Code           
 
             time.sleep(2)
             
@@ -88,8 +99,48 @@ class Qrcode(Rele,Evento):
 
             status = open("status_eclusa.cmm","w") # Para não disparar o arrombamento
             status.write("0")
-            status.close()    
+            status.close()
 
+        def garagem_entrada():
+
+            status = open("status_garagem_entrada.cmm","w") # Para não disparar o arrombamento
+            status.write("1")
+            status.close()        
+        
+            self.rele.pulso(self.out,2) # Pulso para abrir direto o portão sem intertravamento (Eclusa)
+
+            print("Abrindo portão Garagem Entrada")
+
+            os.system("mpg123 /home/pi/CMM/mp3/acesso_qr.mp3")
+
+            self.evento.enviar("E","133","030") # Envia abertura entrada por qrcode              
+
+            status = open("status_garagem_entrada.cmm","w") # Para não disparar o arrombamento
+            status.write("0")
+            status.close()
+            
+        def garagem_saida():
+
+            status = open("status_garagem_saida.cmm","w") # Para não disparar o arrombamento
+            status.write("1")
+            status.close()        
+        
+            self.rele.pulso(self.out,2) # Pulso para abrir direto o portão sem intertravamento (Eclusa)
+
+            print("Abrindo portão Garagem Saida")
+
+            os.system("mpg123 /home/pi/CMM/mp3/ate_logo.mp3")
+            
+            self.evento.enviar("E","133","031") # Envia abertura saida por qrcode           
+
+            time.sleep(2)
+            
+            print("Abrindo portão Garagem Saida")            
+
+            status = open("status_garagem_saida.cmm","w") # Para não disparar o arrombamento
+            status.write("0")
+            status.close()
+            
 
         hs = time.strftime("%H:%M:%S") # Hora completa para registro de Log
         h = int(time.strftime("%H"))
@@ -144,7 +195,7 @@ class Qrcode(Rele,Evento):
                         consulta = 0
                         dados = 0
 
-        ##                print ("colocou consulta = 0")
+        ##            print ("colocou consulta = 0")
 
                     if (tamanho >= 8 and tamanho < 16): # Se tiver o tamanho exato, prossegue
                                         
@@ -156,7 +207,7 @@ class Qrcode(Rele,Evento):
                         dados = dados[3:] # elimina os 3 primeiros digitos da string dados
 
                         
-                        print("Dados editados",dados,type(dados))
+                        print("Dados editados",dados)
 
                         dados = int(dados)
 
@@ -171,6 +222,8 @@ class Qrcode(Rele,Evento):
                             for item in tabela:
                                      
                                 id_raiz = int(dados / item)  # divide o valor lido no QR por cada numero da tabela e consulta no banco
+
+                                self.id_raiz = id_raiz
 
                                 # Dividiu o id recebido pelos dados da tabela "item" que resultou no id_raiz
 
@@ -390,7 +443,7 @@ class Qrcode(Rele,Evento):
 
                                         if confere_tabela_minuto == horario_atual_minuto:
 
-                                            print ("Qr Code dentro dos 10 minutos validos")
+##                                            print ("Qr Code dentro dos 10 minutos validos")
 
                                             ja_mudou = 1
 
@@ -488,13 +541,13 @@ class Qrcode(Rele,Evento):
                             if acesso == 1: #Verifica o dia da semana que esta autorizado
 
                                 dia = time.strftime("%A")
-                                print ("Hoje é",dia)
+##                                print ("Hoje é",dia)
 
                                 liberado = "0"
 
                                 b = str(dias_semana)
 
-                                print("b = ",b)
+##                                print("b = ",b)
 
                                 seg = b[0]
                                 ter = b[1]
@@ -574,18 +627,39 @@ class Qrcode(Rele,Evento):
 
                                 if liberado == "1":
 
-                                    #abre = Abre()                                    
+                                    if self.notifica == "1":
+
+                                        print("Notificando Condfy, Cliente:",self.cliente,"ID:",self.id_raiz)
+                                        
+                                        self.avisa_condfy.qr_utilizado(self.cliente,self.id_raiz)
                                     
                                     if (self.portao == "social"):
 
-                                        print ("Acesso por qr code Portão 1")
-                                        social()                                           
+                                        print ("Acesso por qr code Portão Social Externo")
+                                        social()
+
+                                        self.banco.insere("qr_utilizado","id",self.id_raiz) # tabela,coluna,valor
                                         
                                     if (self.portao == "eclusa"):
 
-                                        print ("Acesso por qr code Portão 2")
-                                        eclusa()                                           
-##                                        os.system("mpg123 /home/pi/mp3/188.mp3")
+                                        print ("Acesso por qr code Portão Social Interno")
+                                        eclusa()
+
+                                        self.banco.insere("qr_utilizado","id",self.id_raiz) # tabela,coluna,valor
+##                                       
+
+                                    if (self.portao == "garagem_entrada"):
+
+                                        print ("Acesso por qr code Garagem 1 Entrada")
+                                        
+                                        garagem_entrada()
+                                       
+                                        self.banco.insere("qr_utilizado","id",self.id_raiz) # tabela,coluna,valor
+                                        
+                                    if (self.portao == "garagem_saida"):
+
+                                        print ("Acesso por qr code Garagem 1 Saida")
+                                        garagem_saida()                                    
 
 
 ##

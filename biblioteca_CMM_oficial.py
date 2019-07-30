@@ -7,23 +7,21 @@ import wiringpi
 from datetime import datetime, timedelta
 import RPi.GPIO as GPIO
 import smbus  # para funcionamento dos módulos com interface I2C 
-##import spidev # Para comunicação de portas analógicas
 import os     # Executa comandos do sistema operacional Ex.: os.system('sudo reboot now'))
 import serial # Para comunicação serial com arduino
 import mysql.connector # faz a comunicação com o mysql no python 3.6
 import socket
-##import threading # Modulo superior Para executar as threads
-##import _thread as thread # Modulo basico para executar as threads
 import signal # Bibloteca para uso do time out
 import sys
 import smtplib  # Permite enviar emails
 from urllib import request #para efetuar a requisicao
 import json #para ler o JSON
+from banco import Banco # Classe para Iterações com banco de dados CMM
 
 
 print('''
 
-Iniciando...
+Iniciando bibliotecas...
     _____  ___ __  __ ___    
    / ___/ /  /  / /  /  /   
   / /    / , , / / , , /    
@@ -97,9 +95,7 @@ socket.setdefaulttimeout(2) # limite de 2 segundos para enviar o socket
 class Evento:
     
     
-    def __init__(self,cliente):
-
-        socket.setdefaulttimeout(2)
+    def __init__(self,cliente):        
 
         self.host = '172.56.50.3'  # Host servidor  Moni
         self.port = 4011          # Porta máquina receptora
@@ -110,7 +106,7 @@ class Evento:
         self.finalizador = "" # Finalizador
       
     def enviar(self,cond,evento,setor): # cond = condição, se E (evento) ou R (restauração)
-        
+               
         self.cond = cond
         self.evento = evento
         self.setor = setor
@@ -134,8 +130,10 @@ class Evento:
         t = (a,b,c,d,e,f,g)
         
         evento =''.join(t) # Junta as partes dixando nulo os espaços
-        
+
+                
         try:
+            socket.setdefaulttimeout(2)
             
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.connect ((self.host,self.port))
@@ -152,7 +150,9 @@ class Evento:
 
             return
                 
-        except Exception as err:  # Caso o evento que chegou for igual ao ultimo recebido ignora                
+        except Exception as err:  # Caso o evento que chegou for igual ao ultimo recebido ignora
+
+            print(err)
 
             arquivo = open("/home/pi/CMM/buffer_eventos.txt", "a+") # Escreve o evento no registro de log
             arquivo.write( evento + "\n")
@@ -187,6 +187,26 @@ class Rele:  # Inicia a classe para acionamento dos reles  (liga / desliga / pul
         self.rele15 =  0b10111111
         self.rele16 =  0b01111111
 
+        self.banco = Banco()
+
+        self.banco.atualiza("status","out1","0")
+        self.banco.atualiza("status","out2","0")
+        self.banco.atualiza("status","out3","0")
+        self.banco.atualiza("status","out4","0")
+        self.banco.atualiza("status","out5","0")
+        self.banco.atualiza("status","out6","0")
+        self.banco.atualiza("status","out7","0")
+        self.banco.atualiza("status","out8","0")
+        self.banco.atualiza("status","out9","0")
+        self.banco.atualiza("status","out10","0")
+        self.banco.atualiza("status","out11","0")
+        self.banco.atualiza("status","out12","0")
+        self.banco.atualiza("status","out13","0")
+        self.banco.atualiza("status","out14","0")
+        self.banco.atualiza("status","out15","0")
+        self.banco.atualiza("status","out16","0")
+        
+
  
     def liga(self,out):
 
@@ -216,99 +236,67 @@ class Rele:  # Inicia a classe para acionamento dos reles  (liga / desliga / pul
 
             if out == 1:
 
-                txt = open("/home/pi/CMM/out1.cmm","w") # Registra rele 1 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out1","1")
 
             if out == 2:
 
-                txt = open("/home/pi/CMM/out2.cmm","w") # Registra rele 2 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out2","1")
 
             if out == 3:
 
-                txt = open("/home/pi/CMM/out3.cmm","w") # Registra rele 3 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out3","1")
 
             if out == 4:
 
-                txt = open("/home/pi/CMM/out4.cmm","w") # Registra rele 4 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out4","1")
 
             if out == 5:
 
-                txt = open("/home/pi/CMM/out5.cmm","w") # Registra rele 5 acionado
-                txt.write("1")
-                txt.close()
-
+                self.banco.atualiza("status","out5","1")
+                
             if out == 6:
 
-                txt = open("/home/pi/CMM/out6.cmm","w") # Registra rele 6 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out6","1")
 
             if out == 7:
 
-                txt = open("/home/pi/CMM/out7.cmm","w") # Registra rele 7 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out7","1")
 
             if out == 8:
 
-                txt = open("/home/pi/CMM/out8.cmm","w") # Registra rele 8 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out8","1")
 
             if out == 9:
 
-                txt = open("/home/pi/CMM/out9.cmm","w") # Registra rele 1 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out9","1")
 
             if out == 10:
 
-                txt = open("/home/pi/CMM/out10.cmm","w") # Registra rele 2 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out10","1")
 
             if out == 11:
 
-                txt = open("/home/pi/CMM/out11.cmm","w") # Registra rele 3 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out11","1")
 
             if out == 12:
 
-                txt = open("/home/pi/CMM/out12.cmm","w") # Registra rele 4 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out12","1")
 
             if out == 13:
 
-                txt = open("/home/pi/CMM/out13.cmm","w") # Registra rele 5 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out13","1")
 
             if out == 14:
 
-                txt = open("/home/pi/CMM/out14.cmm","w") # Registra rele 6 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out14","1")
 
             if out == 15:
 
-                txt = open("/home/pi/CMM/out15.cmm","w") # Registra rele 7 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out15","1")
 
             if out == 16:
 
-                txt = open("/home/pi/CMM/out16.cmm","w") # Registra rele 8 acionado
-                txt.write("1")
-                txt.close()
+                self.banco.atualiza("status","out16","1")
             
    
     def desliga(self,out):
@@ -339,99 +327,67 @@ class Rele:  # Inicia a classe para acionamento dos reles  (liga / desliga / pul
 
             if out == 1:
 
-                txt = open("/home/pi/CMM/out1.cmm","w") # Registra rele 1 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out1","0")
 
             if out == 2:
 
-                txt = open("/home/pi/CMM/out2.cmm","w") # Registra rele 2 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out2","0")
 
             if out == 3:
 
-                txt = open("/home/pi/CMM/out3.cmm","w") # Registra rele 3 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out3","0")
 
             if out == 4:
 
-                txt = open("/home/pi/CMM/out4.cmm","w") # Registra rele 4 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out4","0")
 
             if out == 5:
 
-                txt = open("/home/pi/CMM/out5.cmm","w") # Registra rele 5 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out5","0")
 
             if out == 6:
 
-                txt = open("/home/pi/CMM/out6.cmm","w") # Registra rele 6 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out6","0")
 
             if out == 7:
 
-                txt = open("/home/pi/CMM/out7.cmm","w") # Registra rele 7 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out7","0")
 
             if out == 8:
 
-                txt = open("/home/pi/CMM/out8.cmm","w") # Registra rele 8 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out8","0")
 
             if out == 9:
 
-                txt = open("/home/pi/CMM/out9.cmm","w") # Registra rele 1 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out9","0")
 
             if out == 10:
 
-                txt = open("/home/pi/CMM/out10.cmm","w") # Registra rele 2 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out10","0")
 
             if out == 11:
 
-                txt = open("/home/pi/CMM/out11.cmm","w") # Registra rele 3 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out11","0")
 
             if out == 12:
 
-                txt = open("/home/pi/CMM/out12.cmm","w") # Registra rele 4 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out12","0")
 
             if out == 13:
 
-                txt = open("/home/pi/CMM/out13.cmm","w") # Registra rele 5 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out13","0")
 
             if out == 14:
 
-                txt = open("/home/pi/CMM/out14.cmm","w") # Registra rele 6 acionado
-                txt.write("0")
-                txt.close()
-
+                self.banco.atualiza("status","out14","0")
+                
             if out == 15:
 
-                txt = open("/home/pi/CMM/out15.cmm","w") # Registra rele 7 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out15","0")
 
             if out == 16:
 
-                txt = open("/home/pi/CMM/out16.cmm","w") # Registra rele 8 acionado
-                txt.write("0")
-                txt.close()
+                self.banco.atualiza("status","out16","0")
             
      
     def pulso(self,out,tempo):
