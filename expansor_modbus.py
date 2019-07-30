@@ -107,7 +107,7 @@ class monta_pacote():
         bytesToRead = self.ser.inWaiting()  
         in_bin = self.ser.read(bytesToRead)
         
-       mutex.release() #Desbloqueia a trava de acesso
+        mutex.release() #Desbloqueia a trava de acesso
 
         packet_editado = str(packet)
         packet_editado = packet_editado.replace("bytearray(","")
