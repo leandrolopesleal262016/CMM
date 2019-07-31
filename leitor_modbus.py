@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 
 # Leitor de entradas do Modulo expansorda BRAVAS Technololgy
-# Desenvolvido por Leandro Leal  rev. 24/07/2019
+# Desenvolvido por Leandro Leal  rev. 23/07/2019
 
 import RPi.GPIO as GPIO
 import time
@@ -84,9 +84,12 @@ class monta_pacote():
             
         packet.append(a) # Controle de redundancia
         packet.append(b) # Controle de redundancia
+        
 
         mutex.acquire() # Trava para acesso exclusivo
-        
+
+        time.sleep(0.1)
+                
         GPIO.output(17, 1)  
         GPIO.output(18, 1)
         
@@ -105,9 +108,64 @@ class monta_pacote():
 
         mutex.release() # Desbloqueia trava de acesso
 
-        in_bin = str(in_bin)        
+        
+
+        in_bin = str(in_bin)
 
         return(in_bin)
+
+##        packet_editado = str(packet)
+##        packet_editado = packet_editado.replace("bytearray(","")
+##        packet_editado = packet_editado.replace(")","")
+##        in_bin_editado = str (in_bin)
+##
+##        cont = 5 # numero de vezes que tenta reenviar
+##
+##        if in_bin_editado != "b''":
+##
+####            print(in_bin_editado)
+####            print("recebeu retorno do modulo")
+##            
+##            return(in_bin)
+##
+##        if in_bin_editado == "b''":            
+##
+##            while cont > 0:                
+##
+####                print("Lendo novamente")                
+##
+##                GPIO.output(17, 1)  
+##                GPIO.output(18, 1)
+##                
+##                time.sleep(0.1)
+##                
+##                self.ser.write(packet)
+##                
+##                time.sleep(0.002)
+##                
+##                GPIO.output(17, 0)  
+##                GPIO.output(18, 0)
+##
+##                time.sleep(0.02)  
+##                bytesToRead = self.ser.inWaiting()  
+##                in_bin = self.ser.read(bytesToRead)
+##
+##                packet_editado = str(packet)
+##                packet_editado = packet_editado.replace("bytearray(","")
+##                packet_editado = packet_editado.replace(")","")
+##                in_bin_editado = str (in_bin)
+##
+##                if in_bin_editado != "b''":            
+##
+####                    print("Agora recebeu algo do modulo")
+##                    return(in_bin)
+##                    
+##
+##                else:
+##
+####                    print("Opa")
+##                    cont = cont -1
+
 
 class retorna:
 
@@ -160,18 +218,23 @@ class limpa:
 
     def string(self,i):
 
-        i = str(i.split('\\')) 
-        i = i.replace("x","")
-        i = i.replace("'","")
-        i = i.replace("`","")
-        i = i.replace(" ","")
-        i = i.replace("!","")
-        i = i.replace("I","")
-        i = i.replace('"',"")
-        i = i.replace("[","")
-        i = i.replace("]","")
+        try:
+
+            i = str(i.split('\\')) 
+            i = i.replace("x","")
+            i = i.replace("'","")
+            i = i.replace("`","")
+            i = i.replace(" ","")
+            i = i.replace("!","")
+            i = i.replace("I","")
+            i = i.replace('"',"")
+            i = i.replace("[","")
+            i = i.replace("]","")
        
-        return(i)
+            return(i)
+
+        except:
+            pass
 
 class filtro(limpa):
 
@@ -213,7 +276,8 @@ class filtro(limpa):
             
             except:
 
-                print("erro fitro mdl1")
+                #print("erro fitro mdl1")
+                pass
 
 
     def mdl2(self,i):
@@ -249,7 +313,8 @@ class filtro(limpa):
             
             except:
 
-                print("erro fitro mdl2")
+                #print("erro fitro mdl2")
+                pass
 
     def mdl3(self,i):
 
@@ -295,7 +360,8 @@ class filtro(limpa):
         
         except:
             
-            print("erro fitro mdl3")
+            #print("erro fitro mdl3")
+            pass
 
     def mdl4(self,i):       
 
@@ -328,7 +394,8 @@ class filtro(limpa):
 
             pass
             
-            print("erro fitro mdl4")
+            #print("erro fitro mdl4")
+        
 
 
     def mdl5(self,i):       
@@ -363,7 +430,7 @@ class filtro(limpa):
 
             pass
             
-            print("erro fitro mdl5")
+            #print("erro fitro mdl5")
 
     def mdl6(self,i):       
 
@@ -397,7 +464,7 @@ class filtro(limpa):
 
             pass
             
-            print("erro fitro mdl6")
+            #print("erro fitro mdl6")
 
     def mdl7(self,i):
 
@@ -426,7 +493,8 @@ class filtro(limpa):
 
             except:
 
-                print("erro fitro mdl7")
+                #print("erro fitro mdl7")
+                pass
 
     def mdl8(self,i):
 
@@ -460,7 +528,8 @@ class filtro(limpa):
 
             except:
 
-                print("erro fitro mdl9")
+                #print("erro fitro mdl9")
+                pass
 
     def mdl9(self,i):
 
@@ -494,7 +563,8 @@ class filtro(limpa):
 
             except:
 
-                print("erro fitro mdl9")
+                #print("erro fitro mdl9")
+                pass
 
     def mdl10(self,i):
 
@@ -528,7 +598,8 @@ class filtro(limpa):
 
             except:
 
-                print("erro fitro mdl10")
+                #print("erro fitro mdl10")
+                pass
 
     def mdl11(self,i):
 
@@ -564,7 +635,8 @@ class filtro(limpa):
 
             except:
 
-                print("erro fitro mdl11")
+                #print("erro fitro mdl11")
+                pass
 
     def mdl12(self,i):
 
@@ -579,7 +651,7 @@ class filtro(limpa):
                 i = (i[4])  
                 b = (i[-1])
 
-                print("i",i)
+                
 
                 if i == "01b":
                     b = "1"      
@@ -598,7 +670,8 @@ class filtro(limpa):
 
             except:
 
-                print("erro fitro mdl12")
+                #print("erro fitro mdl12")
+                pass
 
     def mdl13(self,i):
 
@@ -632,7 +705,8 @@ class filtro(limpa):
 
             except:
 
-                print("erro fitro mdl13")
+                pass
+##                print("erro fitro mdl13")
 
     def mdl14(self,i):
 
@@ -678,7 +752,8 @@ class filtro(limpa):
 
             except:
 
-                print("erro fitro mdl14")
+                #print("erro fitro mdl14")
+                pass
 
     def mdl15(self,i):
 
@@ -692,9 +767,7 @@ class filtro(limpa):
                     
                 i = (i[4])  
                 b = (i[-1])
-
-                print("i",i)
-
+                
                 if i == "01b":
                     b = "1"               
                 if i == "05cc": 
@@ -712,7 +785,8 @@ class filtro(limpa):
 
             except:
 
-                print("erro fitro mdl15")
+                #print("erro fitro mdl15")
+                pass
 
     def mdl16(self,i):
 
@@ -725,9 +799,7 @@ class filtro(limpa):
                 i= i.split(",")
                     
                 i = (i[4])  
-                b = (i[-1])
-
-                print("i",i)
+                b = (i[-1])                
 
                 if i == "01et":
                     b = "1"               
@@ -750,7 +822,8 @@ class filtro(limpa):
 
             except:
 
-                print("erro fitro mdl16")
+                #print("erro fitro mdl16")
+                pass
 
 
     
@@ -1135,8 +1208,7 @@ class Leitor(monta_pacote,retorna,filtro):
 
     def leitor11_in1(self):
 
-        i = self.mod.ler('0x0b')
-        print(i)
+        i = self.mod.ler('0x0b')        
         b = self.filtro.mdl11(i) 
         in1 = self.retorna.entrada(b,'in1') 
         
@@ -1172,8 +1244,7 @@ class Leitor(monta_pacote,retorna,filtro):
 
     def leitor12_in1(self):
 
-        i = self.mod.ler('0x0c')
-        print(i)
+        i = self.mod.ler('0x0c')        
         b = self.filtro.mdl12(i) 
         in1 = self.retorna.entrada(b,'in1') 
         
@@ -1209,8 +1280,7 @@ class Leitor(monta_pacote,retorna,filtro):
 
     def leitor13_in1(self):
 
-        i = self.mod.ler('0x0d')
-        print(i)
+        i = self.mod.ler('0x0d')       
         b = self.filtro.mdl13(i) 
         in1 = self.retorna.entrada(b,'in1') 
         
@@ -1246,8 +1316,7 @@ class Leitor(monta_pacote,retorna,filtro):
 
     def leitor14_in1(self):
 
-        i = self.mod.ler('0x0e')
-        print(i)
+        i = self.mod.ler('0x0e')        
         b = self.filtro.mdl14(i)        
         in1 = self.retorna.entrada(b,'in1') 
         
