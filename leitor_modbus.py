@@ -85,28 +85,34 @@ class monta_pacote():
         packet.append(a) # Controle de redundancia
         packet.append(b) # Controle de redundancia
         
+        try:
+            
+            mutex.acquire() # Trava para acesso exclusivo
 
-        mutex.acquire() # Trava para acesso exclusivo
+            time.sleep(0.15)
+                    
+            GPIO.output(17, 1)  
+            GPIO.output(18, 1)
+            
+            time.sleep(0.1)
+            
+            self.ser.write(packet)
+            
+            time.sleep(0.002)
+            
+            GPIO.output(17, 0)  
+            GPIO.output(18, 0)
 
-        time.sleep(0.1)
-                
-        GPIO.output(17, 1)  
-        GPIO.output(18, 1)
-        
-        time.sleep(0.1)
-        
-        self.ser.write(packet)
-        
-        time.sleep(0.002)
-        
-        GPIO.output(17, 0)  
-        GPIO.output(18, 0)
+            time.sleep(0.02)  
+            bytesToRead = self.ser.inWaiting()  
+            in_bin = self.ser.read(bytesToRead)
 
-        time.sleep(0.02)  
-        bytesToRead = self.ser.inWaiting()  
-        in_bin = self.ser.read(bytesToRead)
+            mutex.release() # Desbloqueia trava de acesso
 
-        mutex.release() # Desbloqueia trava de acesso
+        except:
+
+            print("\nErro na leitura da serial\n")
+            return("0")
 
         
 
