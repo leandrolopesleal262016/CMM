@@ -53,7 +53,7 @@ pip3 install gTTS-token --upgrade
 
 gtts-cli "Olá, ouça uma música durante a instalação." --lang pt --output hello.mp3
 sudo mpg123 hello.mp3 
-sudo mpg123 /home/pi/musica.mp3 &
+sudo mpg123 /home/pi/CMM/mp3/musica.mp3 &
 
 
 echo '''
@@ -68,7 +68,7 @@ Instalando supervisor...
 
 # Instala Suspervisor
 
-sudo apt-get install supervisor 
+sudo apt-get install supervisor -y 
 
 ##echo "Criando o arquivo IHM.conf"
 ##
@@ -236,17 +236,16 @@ Instalando bibliotecas para o Python 3...
  \____/ v1.4 for Linux (Python 3)
  
   '''; sleep 1;
-
-echo '''
-
+  
 pip3 install RPi.GPIO
 pip3 install smbus
 pip3 install spidev
 pip3 install serial
-pip3 install libscrc 
+pip3 install libscrc
 
+echo '''
 
-Agora vamos abrir a interface de controle...
+Instalando as pastas de arquivos do CMM...
     _____  ___ __  __ ___    
    / ___/ /  /  / /  /  /   
   / /    / , , / / , , /    
@@ -254,11 +253,21 @@ Agora vamos abrir a interface de controle...
  \____/ v1.4 for Linux (Python 3)
  
   ''';
+  
+git clone https://github.com/leandrolopesleal262016/CMM_oficial.git
+
+echo '''
+
+Terminamos tudo por aqui, encerrando...
+    _____  ___ __  __ ___    
+   / ___/ /  /  / /  /  /   
+  / /    / , , / / , , /    
+ / /___ /_/_/_/ /_/_/_/     
+ \____/ v1.4 for Linux (Python 3)
+ 
+  '''; 
 
 sleep 1
-
-nohup python3 /home/pi/IHM_CMM.py 
-
 kill -9 $PPID # Fecha o terminal
 
 
