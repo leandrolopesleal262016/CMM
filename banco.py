@@ -47,6 +47,101 @@ class Banco:
                 return (i)
         cnx.close()
 
+    def encontra(self,tabela,coluna,valor):
+    
+        try:  # Tenta conectar com o banco de dados
+            
+            cnx = mysql.connector.connect(user='leandro',database='CMM', password='5510',host='localhost')
+            cursor = cnx.cursor()
+                  
+        except mysql.connector.Error as err:
+                
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+
+                print("Alguma coisa esta errada com o nome de usuario ou a senha!")
+                
+            elif err.errno == errorcode.ER_BAD_DB_ERROR:
+
+                print("Esta base de dados não existe!")
+
+            elif err.errno == errorcode.ER_DUP_ENTRY:
+
+                print("ID duplicado")
+               
+            else:
+                              
+                print(err)
+
+        else:    
+            
+            query = ("SELECT {} FROM {}").format (coluna,tabela) # SELECT campo FROM tabela
+            cursor.execute(query)
+
+            valor = str(valor)
+
+##            print("Valor a comparar",valor,type(valor))
+                      
+            for (i) in cursor: # Para cada item da coluna nome faz a comparação
+
+                
+                i = str(i)
+                i = i.replace("'","")
+                i = i.replace("(","")
+                i = i.replace(")","")
+                i = i.replace(",","")
+
+##                print("Valor do banco",i,type(i))
+                
+                if i == valor:
+
+                    return ("1")
+
+            return ("0")
+        cnx.close()
+
+    def deleta(self,tabela,coluna,valor):
+
+        
+        try:            
+            
+            cnx = mysql.connector.connect(user='leandro',database='CMM', password='5510',host='localhost')
+            cursor = cnx.cursor()
+            
+        except mysql.connector.Error as err:
+            
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+              
+                print("Alguma coisa esta errada com o nome de usuario ou a senha!")
+            
+            elif err.errno == errorcode.ER_BAD_DB_ERROR:
+              
+                print("Esta base de dados nao existe")
+            
+            else:
+              
+                print(err)
+        try:
+            
+        
+            query = ("DELETE FROM {} WHERE {} = '{}' ").format (tabela,coluna,valor)
+            cursor.execute(query)
+            cnx.commit()
+
+            
+        except mysql.connector.Error as err:
+
+            print("Erro ao tentar deletar os dados",err)
+            
+            return ('erro')
+
+            
+        else:
+
+            cnx.close()
+            print ("Deletado valor",valor,"na coluna",coluna,"da tabela",tabela)
+            return("deletado")
+
+
     def atualiza(self,tabela,coluna,valor):
         
 
