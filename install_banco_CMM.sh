@@ -1,105 +1,8 @@
 #!/bin/bash
 
-cd
-sudo apt-get install espeak -y
-
-espeak -v pt-br "Bem vindo a instalação automática do Cê emi emi"
-
-clear
+# Instalando Apache Mysql e phpmyadmin...
 
 echo '''
-Iniciando...
-    _____  ___ __  __ ___    
-   / ___/ /  /  / /  /  /   
-  / /    / , , / / , , /    
- / /___ /_/_/_/ /_/_/_/     
- \____/ v1.4 for Linux (Python 3)
- 
-  '''
-sleep 1
-
-sudo apt-get update -y
-clear
-
-
-echo '''
-Instalando Reprodutor de audio MPG123...
-    _____  ___ __  __ ___    
-   / ___/ /  /  / /  /  /   
-  / /    / , , / / , , /    
- / /___ /_/_/_/ /_/_/_/     
- \____/ v1.4 for Linux (Python 3)
- 
-  '''; sleep 1;
-
-# Instala o reprodutor de audio MPG123
-
-sudo apt-get install mpg123 -y
-
-
-echo '''
-Instalando gTTS...
-    _____  ___ __  __ ___    
-   / ___/ /  /  / /  /  /   
-  / /    / , , / / , , /    
- / /___ /_/_/_/ /_/_/_/     
- \____/ v1.4 for Linux (Python 3)
- 
-  '''; sleep 1;
-
-pip3 install gTTS 
-pip3 install gTTS --upgrade 
-pip3 install gTTS-token --upgrade
-
-gtts-cli "Olá, ouça uma música durante a instalação." --lang pt --output hello.mp3
-sudo mpg123 hello.mp3 
-sudo mpg123 /home/pi/CMM/mp3/musica.mp3 &
-
-
-echo '''
-Instalando supervisor...
-    _____  ___ __  __ ___    
-   / ___/ /  /  / /  /  /   
-  / /    / , , / / , , /    
- / /___ /_/_/_/ /_/_/_/     
- \____/ v1.4 for Linux (Python 3)
- 
-  '''; sleep 1;
-
-# Instala Suspervisor
-
-sudo apt-get install supervisor -y 
-
-
-echo '''
-
-Instalando Putty...
-    _____  ___ __  __ ___    
-   / ___/ /  /  / /  /  /   
-  / /    / , , / / , , /    
- / /___ /_/_/_/ /_/_/_/     
- \____/ v1.4 for Linux (Python 3)
- 
-  '''; sleep 1;
-
-sudo apt-get install putty -y
-
-echo '''
-
-Instalando VNC...
-    _____  ___ __  __ ___    
-   / ___/ /  /  / /  /  /   
-  / /    / , , / / , , /    
- / /___ /_/_/_/ /_/_/_/     
- \____/ v1.4 for Linux (Python 3)
- 
-  '''; sleep 1;
-
-sudo apt-get install vnc4server -y
-
-echo '''
-
-Instalando Apache Mysql e phpmyadmin...
     _____  ___ __  __ ___    
    / ___/ /  /  / /  /  /   
   / /    / , , / / , , /    
@@ -116,24 +19,6 @@ sudo apt-get install php -y
 sudo apt-get install phpmyadmin -y
 pip3 install mysql-connector
 
-
-echo '''
-
-Instalando Team Viewer..
-    _____  ___ __  __ ___    
-   / ___/ /  /  / /  /  /   
-  / /    / , , / / , , /    
- / /___ /_/_/_/ /_/_/_/     
- \____/ v1.4 for Linux (Python 3)
- 
-  '''; sleep 1;
-
-
-# Instalar teamviewer na rasp
-
-sudo wget http://download.teamviewer.com/download/linux/version_11x/teamviewer-host_armhf.deb
-sudo dpkg -i teamviewer-host_armhf.deb 
-sudo apt-get -f install -y
 
 echo '''
 
@@ -261,53 +146,3 @@ sudo mysql -u root -p5510 -e "CREATE DATABASE CMM"
 
     sudo mysql -u root -p5510 -e "CREATE USER 'leandro' IDENTIFIED BY '5510'"
     sudo mysql -u root -p5510 -e "GRANT ALL PRIVILEGES ON CMM.* TO leandro"
-
-echo '''
-
-Instalando bibliotecas para o Python 3...
-    _____  ___ __  __ ___    
-   / ___/ /  /  / /  /  /   
-  / /    / , , / / , , /    
- / /___ /_/_/_/ /_/_/_/     
- \____/ v1.4 for Linux (Python 3)
- 
-  '''; sleep 1;
-  
-pip3 install RPi.GPIO
-pip3 install smbus
-pip3 install spidev
-pip3 install serial
-pip3 install libscrc
-
-echo '''
-
-Instalando as pastas de arquivos do CMM...
-    _____  ___ __  __ ___    
-   / ___/ /  /  / /  /  /   
-  / /    / , , / / , , /    
- / /___ /_/_/_/ /_/_/_/     
- \____/ v1.4 for Linux (Python 3)
- 
-  ''';
-  
-git clone https://github.com/leandrolopesleal262016/GUI-CMM.git
-sudo chmod 777 -R /var/www
-
-echo '''
-
-Terminamos tudo por aqui!
-    _____  ___ __  __ ___    
-   / ___/ /  /  / /  /  /   
-  / /    / , , / / , , /    
- / /___ /_/_/_/ /_/_/_/     
- \____/ v1.4 for Linux (Python 3)
- 
-  '''; 
-
-#sleep 1
-#kill -9 $PPID # Fecha o terminal
-
-
-
-
-
