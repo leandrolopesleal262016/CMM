@@ -13,23 +13,9 @@ class Banco:
             cnx = mysql.connector.connect(user='leandro',database='CMM', password='5510',host='localhost')
             cursor = cnx.cursor()
                   
-        except mysql.connector.Error as err:
+        except Exception as err:
                 
-            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-
-                print("Alguma coisa esta errada com o nome de usuario ou a senha!")
-                
-            elif err.errno == errorcode.ER_BAD_DB_ERROR:
-
-                print("Esta base de dados não existe!")
-
-            elif err.errno == errorcode.ER_DUP_ENTRY:
-
-                print("ID duplicado")
-               
-            else:
-                              
-                print(err)
+            print(err)
 
         else:    
             
@@ -54,23 +40,9 @@ class Banco:
             cnx = mysql.connector.connect(user='leandro',database='CMM', password='5510',host='localhost')
             cursor = cnx.cursor()
                   
-        except mysql.connector.Error as err:
-                
-            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+        except Exception as err:
 
-                print("Alguma coisa esta errada com o nome de usuario ou a senha!")
-                
-            elif err.errno == errorcode.ER_BAD_DB_ERROR:
-
-                print("Esta base de dados não existe!")
-
-            elif err.errno == errorcode.ER_DUP_ENTRY:
-
-                print("ID duplicado")
-               
-            else:
-                              
-                print(err)
+            print(err)
 
         else:    
             
@@ -107,19 +79,11 @@ class Banco:
             cnx = mysql.connector.connect(user='leandro',database='CMM', password='5510',host='localhost')
             cursor = cnx.cursor()
             
-        except mysql.connector.Error as err:
+        except Exception as err:
             
-            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-              
-                print("Alguma coisa esta errada com o nome de usuario ou a senha!")
+            print(err)
+
             
-            elif err.errno == errorcode.ER_BAD_DB_ERROR:
-              
-                print("Esta base de dados nao existe")
-            
-            else:
-              
-                print(err)
         try:
             
         
@@ -128,7 +92,7 @@ class Banco:
             cnx.commit()
 
             
-        except mysql.connector.Error as err:
+        except Exception as err:
 
             print("Erro ao tentar deletar os dados",err)
             
@@ -150,19 +114,10 @@ class Banco:
             cnx = mysql.connector.connect(user='leandro',database='CMM', password='5510',host='localhost')
             cursor = cnx.cursor()
             
-        except mysql.connector.Error as err:
+        except Exception as err:
             
-            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-              
-                print("Alguma coisa esta errada com o nome de usuario ou a senha!")
+            print(err)
             
-            elif err.errno == errorcode.ER_BAD_DB_ERROR:
-              
-                print("Esta base de dados nao existe")
-            
-            else:
-              
-                print(err)
         try:
             
         
@@ -171,7 +126,7 @@ class Banco:
             cnx.commit()
 
             
-        except mysql.connector.Error as err:
+        except Exception as err:
 
             print("Erro na atualização dos dados",err)
             
@@ -192,19 +147,11 @@ class Banco:
             cnx = mysql.connector.connect(user='leandro',database='CMM', password='5510',host='localhost')
             cursor = cnx.cursor()
             
-        except mysql.connector.Error as err:
+        except Exception as err:
             
-            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-              
-                print("Alguma coisa esta errada com o nome de usuario ou a senha!")
-            
-            elif err.errno == errorcode.ER_BAD_DB_ERROR:
-              
-                print("Esta base de dados nao existe")
-            
-            else:
-              
-                print(err)
+           print(err)
+
+           
         try:
             
         
@@ -213,7 +160,7 @@ class Banco:
             cnx.commit()
 
             
-        except mysql.connector.Error as err:
+        except Exception as err:
 
             print("Erro na atualização dos dados",err)
             
