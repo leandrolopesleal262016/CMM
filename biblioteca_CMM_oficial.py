@@ -1,5 +1,5 @@
-#!/home/pi/CMM/bin/python3.5
-# -*- coding:utf-8 -*-
+##!/usr/bin/env python3
+# coding=UTF-8
 
 from gtts import gTTS  # importamos o modúlo gTTS
 import time
