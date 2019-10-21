@@ -21,6 +21,19 @@ sleep 1
 sudo apt-get update -y
 clear
 
+echo '''
+Instalando NTP para atualizacao automatica de horario...
+    _____  ___ __  __ ___    
+   / ___/ /  /  / /  /  /   
+  / /    / , , / / , , /    
+ / /___ /_/_/_/ /_/_/_/     
+ \____/ v1.4 for Linux (Python 3)
+ 
+  ''';
+  
+sudo apt-get install ntp ntpdate -y
+clear
+
 
 echo '''
 Instalando Reprodutor de audio MPG123...
@@ -117,23 +130,23 @@ sudo apt-get install phpmyadmin -y
 pip3 install mysql-connector
 
 
-echo '''
+#echo '''
 
-Instalando Team Viewer..
-    _____  ___ __  __ ___    
-   / ___/ /  /  / /  /  /   
-  / /    / , , / / , , /    
- / /___ /_/_/_/ /_/_/_/     
- \____/ v1.4 for Linux (Python 3)
+#Instalando Team Viewer..
+#    _____  ___ __  __ ___    
+#   / ___/ /  /  / /  /  /   
+#  / /    / , , / / , , /    
+# / /___ /_/_/_/ /_/_/_/     
+# \____/ v1.4 for Linux (Python 3)
  
-  '''; sleep 1;
+# '''; sleep 1;
 
 
 # Instalar teamviewer na rasp
 
-sudo wget http://download.teamviewer.com/download/linux/version_11x/teamviewer-host_armhf.deb
-sudo dpkg -i teamviewer-host_armhf.deb 
-sudo apt-get -f install -y
+#sudo wget http://download.teamviewer.com/download/linux/version_11x/teamviewer-host_armhf.deb
+#sudo dpkg -i teamviewer-host_armhf.deb 
+#sudo apt-get -f install -y
 
 echo '''
 
@@ -292,6 +305,8 @@ Instalando as pastas de arquivos do CMM...
   
 git clone https://github.com/leandrolopesleal262016/GUI-CMM.git
 sudo chmod 777 -R /var/www
+git clone https://github.com/leandrolopesleal262016/CMM_oficial.git
+sudo chmod 777 -R /home/pi/CMM_oficial/
 
 echo '''
 
