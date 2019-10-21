@@ -34,6 +34,18 @@ Instalando NTP para atualizacao automatica de horario...
 sudo apt-get install ntp ntpdate -y
 clear
 
+echo '''
+Instalando instalador de pacotes pip...
+    _____  ___ __  __ ___    
+   / ___/ /  /  / /  /  /   
+  / /    / , , / / , , /    
+ / /___ /_/_/_/ /_/_/_/     
+ \____/ v1.4 for Linux (Python 3)
+ 
+  ''';
+
+sudo apt install python3-pip -y
+clear
 
 echo '''
 Instalando Reprodutor de audio MPG123...
@@ -49,6 +61,18 @@ Instalando Reprodutor de audio MPG123...
 
 sudo apt-get install mpg123 -y
 
+echo '''
+Instalando pacote CMM_oficial do git...
+    _____  ___ __  __ ___    
+   / ___/ /  /  / /  /  /   
+  / /    / , , / / , , /    
+ / /___ /_/_/_/ /_/_/_/     
+ \____/ v1.4 for Linux (Python 3)
+ 
+  ''';
+  
+git clone https://github.com/leandrolopesleal262016/CMM_oficial.git
+sudo chmod 777 -R /home/pi/CMM_oficial/
 
 echo '''
 Instalando gTTS...
@@ -294,7 +318,7 @@ pip3 install libscrc
 
 echo '''
 
-Instalando as pastas de arquivos do CMM...
+Instalando as pacotes da interface gráfica...
     _____  ___ __  __ ___    
    / ___/ /  /  / /  /  /   
   / /    / , , / / , , /    
@@ -305,8 +329,7 @@ Instalando as pastas de arquivos do CMM...
   
 git clone https://github.com/leandrolopesleal262016/GUI-CMM.git
 sudo chmod 777 -R /var/www
-git clone https://github.com/leandrolopesleal262016/CMM_oficial.git
-sudo chmod 777 -R /home/pi/CMM_oficial/
+
 
 echo '''
 
