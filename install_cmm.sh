@@ -316,6 +316,7 @@ pip3 install smbus
 pip3 install spidev
 pip3 install serial
 pip3 install libscrc
+pip3 install wiringpi
 
 echo '''
 
