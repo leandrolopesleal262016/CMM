@@ -133,7 +133,7 @@ Instalando VNC...
   '''; sleep 1;
 
 sudo apt-get install vnc4server -y
-sudo apt-get install realvnc-vnc-server
+sudo apt-get install realvnc-vnc-server -y
 
 echo '''
 
