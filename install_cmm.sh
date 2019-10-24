@@ -72,6 +72,9 @@ Instalando pacote CMM_oficial do git...
   ''';
   
 git clone https://github.com/leandrolopesleal262016/CMM_oficial.git
+cd /var/www/html
+git clone https://github.com/leandrolopesleal262016/GUI-CMM.git
+cd
 sudo chmod 777 -R /home/pi/CMM_oficial/
 
 echo '''
@@ -335,7 +338,7 @@ sudo chmod 777 -R /var/www
 
 echo '''
 
-Terminamos tudo por aqui!
+Instalando Anydesk para acesso remoto...
     _____  ___ __  __ ___    
    / ___/ /  /  / /  /  /   
   / /    / , , / / , , /    
@@ -343,6 +346,8 @@ Terminamos tudo por aqui!
  \____/ v1.4 for Linux (Python 3)
  
   '''; 
+  
+sudo dpkg -i /home/pi/CMM_oficial/anydesk_5.1.1-1_armhf.deb
 
 #sleep 1
 #kill -9 $PPID # Fecha o terminal
