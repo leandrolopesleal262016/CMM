@@ -24,12 +24,6 @@ def log(texto): # Metodo para registro dos eventos no log.txt (exibido na interf
 
 banco = cmm.Banco() # Oprerações CRUD no banco CMM
 
-
-cliente = banco.consulta("config","cliente")
-nome_cliente = banco.consulta("config","nome_cliente")
-ip_cliente = banco.consulta("config","ip_cliente")
-
-
 portao1 = banco.consulta("leitores_qrcode","portao_1")
 portao2 = banco.consulta("leitores_qrcode","portao_2")
 portao3 = banco.consulta("leitores_qrcode","portao_3")
