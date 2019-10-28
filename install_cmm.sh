@@ -321,6 +321,7 @@ pip3 install spidev
 pip3 install serial
 pip3 install libscrc
 pip3 install wiringpi
+sudo chmod 666 /dev/ttys0
 
 echo '''
 
