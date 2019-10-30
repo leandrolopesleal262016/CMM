@@ -71,9 +71,9 @@ Instalando pacote CMM_oficial do git...
  
   ''';
   
-git clone https://github.com/leandrolopesleal262016/CMM_oficial.git
+git clone https://github.com/leandrolopesleal262016/CMM.git
 cd /var/www/html
-sudo git clone https://github.com/leandrolopesleal262016/GUI-CMM.git
+sudo git clone https://github.com/leandrolopesleal262016/GUI.git
 cd
 sudo chmod 777 -R /home/pi/CMM_oficial/
 sudo chmod 777 -R /var/www/html/
