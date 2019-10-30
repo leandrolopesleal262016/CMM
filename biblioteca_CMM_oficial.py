@@ -36,7 +36,7 @@ hs = time.strftime("%H:%M:%S") # Hora completa para registro de Log
 h = int(time.strftime('%H'))
 data = time.strftime('%d/%m/%y')
 
-os.system("amixer set PCM 90%") # ajusta o volume master
+os.system("amixer set PCM 100%") # ajusta o volume master
 
 bus = smbus.SMBus(1) # esta linha especifica qual dispositivo I2C a ser usado. 1 significa que o dispositivo I2C está localizado em / dev / I2C-1
 
