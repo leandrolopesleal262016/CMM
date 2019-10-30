@@ -31,7 +31,13 @@ class Banco:
                 i = i.replace(",","")
 
                 return (i)
-        cnx.close()
+        try:
+            
+            cnx.close()
+            
+        except:
+            
+            print("Erro ao fechar a conexão, ela não estava aberta")
 
     def encontra(self,tabela,coluna,valor):
     
@@ -69,7 +75,11 @@ class Banco:
                     return ("1")
 
             return ("0")
-        cnx.close()
+        
+        try:
+            cnx.close()
+        except:
+            print("Não conseguiu fechar a conexão pois não estava aberta")
 
     def deleta(self,tabela,coluna,valor):
 
@@ -101,7 +111,11 @@ class Banco:
             
         else:
 
-            cnx.close()
+            try:
+                cnx.close()
+            except:
+                print("Não conseguiu fechar a conexão pois não estava aberta")
+                
             print ("Deletado valor",valor,"na coluna",coluna,"da tabela",tabela)
             return("deletado")
 
@@ -135,7 +149,11 @@ class Banco:
             
         else:
 
-            cnx.close()
+            try:
+                cnx.close()
+            except:
+                print("Não conseguiu fechar a conexão pois não estava aberta")
+                
             return ("Atualizado valor",valor,"na coluna",coluna,"da tabela",tabela)
             
 
@@ -169,7 +187,11 @@ class Banco:
             
         else:
 
-            cnx.close()
+            try:
+                cnx.close()
+            except:
+                print("Não conseguiu fechar a conexão pois não estava aberta")
+                
             print ("Inserido valor",valor,"na coluna",coluna,"da tabela",tabela)
             return("inserido")
       
