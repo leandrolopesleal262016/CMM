@@ -5,7 +5,7 @@ import shutil
 
 # Data atual formatada com"_"
 
-data = time.strftime('%d_%m_%y')
+data = time.strftime('%d_%m_%Y')
 mes = time.strftime('%m')
 dia = time.strftime('%d')
 
@@ -110,7 +110,10 @@ destino = ("/var/www/html/log/{}/{}.txt").format(mes,data)
 
 try:        
 
-    shutil.copyfile(fonte,destino) # Tenta salvar o log.txt como um novo arquivo 
+    shutil.copyfile(fonte,destino) # Tenta salvar o log.txt como um novo arquivo
+    txt = open("/var/www/html/log/log.txt","w")    
+    txt.write("\n")
+    txt.close()
 
 except : # Se for a primeira vez e nao existir pasta, cria uma.
     
@@ -119,6 +122,9 @@ except : # Se for a primeira vez e nao existir pasta, cria uma.
     os.mkdir(diretorio)
     
     shutil.copyfile(fonte,destino)
+    txt = open("/var/www/html/log/log.txt","w")    
+    txt.write("\n")
+    txt.close()
 
 
 print("Salvo o log do dia na pasta correspondente")    
