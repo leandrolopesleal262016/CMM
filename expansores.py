@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import wiringpi # Biblioteca para usar as GPIO da rasp como saidas ou entradas
 import os     # Executa comandos do sistema operacional Ex.: os.system('sudo reboot now'))
 import sys
-import serial # Para comunicação serial
+import serial
 import libscrc # biblioteca para calculo do CRC (Controle de Redundancia) - usado no protocolo modbus
 import binascii
 import _thread as thread
@@ -25,22 +25,46 @@ GPIO.setup(11,GPIO.OUT)  # Sinal De buzzer
 GPIO.setup(17,GPIO.OUT) # HIGH para enviar LOW para ler dados
 GPIO.setup(18,GPIO.OUT) # HIGH para enviar LOW para ler dados
 
-############################################## Escreve na serial ################################################################
 
-ser = serial.Serial("/dev/ttyS0", 115200)
+def log(texto): # Metodo para registro dos eventos no log.txt (exibido na interface grafica)
 
-def escreve_serial(packet):    
+    hs = time.strftime("%H:%M:%S") 
+    data = time.strftime('%d/%m/%y')
 
-    try:
-            
-        mutex.acquire() # Trava para acesso exclusivo        
+    texto = str(texto)
 
-        time.sleep(0.15)
+    if texto == "*":
+
+        l = open("/var/www/html/log/log.txt","a")
+        l.write("\n")
+        l.close()
+
+    else:        
+
+        texto = texto.replace("'","")
+        texto = texto.replace(",","")
+        texto = texto.replace("(","")
+        texto = texto.replace(")","")
+
+        escrita = ("{} - {}  Evento:  {}\n").format(data, hs, texto)
+        escrita = str(escrita)
+
+        l = open("/var/www/html/log/log.txt","a")
+        l.write(escrita)
+        l.close()
+
+def escreve_serial(packet):
+
+    ser = serial.Serial("/dev/ttyS0", 115200)
+
+    try: 
+
+        time.sleep(0.1)
                 
         GPIO.output(17, 1)  
         GPIO.output(18, 1)
         
-        time.sleep(0.05)
+        time.sleep(0.1)
         
         ser.write(packet)
         
@@ -52,17 +76,13 @@ def escreve_serial(packet):
         time.sleep(0.02)
         
         bytesToRead = ser.inWaiting()  
-        in_bin = ser.read(bytesToRead)
-        
-        mutex.release() # Desbloqueia trava de acesso
+        in_bin = ser.read(bytesToRead)        
         
         return in_bin
 
-    except Exception as err:
-
-        print("\nErro na leitura da serial",err)
-        log("Erro na serial")
-        return("erro")
+    except:        
+        
+        return ("b''")
 
 class monta_pacote_in():
 
