@@ -826,26 +826,13 @@ class Leitor(monta_pacote_in,retorna,filtro):
         b = self.filtro.mdl1(i)       
         in1 = self.retorna.entrada(b,'in1')
 
-        return(in1)            
-            
+        return(in1)
     
     def leitor1_in2(self):
 
-        i = self.mod.ler('0x01') 
-        
+        i = self.mod.ler('0x01')        
         b = self.filtro.mdl1(i)
-        in2 = self.retorna.entrada(b,'in2')
-
-        if in2 == 0:
-
-            print("leu in2 = a zero")
-
-            i = self.mod.ler('0x01') 
-        
-            b = self.filtro.mdl1(i)
-            in2 = self.retorna.entrada(b,'in2')
-            
-            return(in2)
+        in2 = self.retorna.entrada(b,'in2')     
 
         return(in2)
           
