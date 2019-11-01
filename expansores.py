@@ -2,7 +2,7 @@
 # coding=UTF-8
 
 # CMM Oficial com placa de expansão da BRAVAS Technololgy
-# Desenvolvido por Leandro Leal  rev. 19/07/2019
+# Desenvolvido por Leandro Leal  rev. 01/11/2019
 
 import RPi.GPIO as GPIO
 import time
@@ -59,12 +59,12 @@ def escreve_serial(packet):
 
     try: 
 
-        time.sleep(0.1)
+        time.sleep(0.005)
                 
         GPIO.output(17, 1)  
         GPIO.output(18, 1)
         
-        time.sleep(0.1)
+        time.sleep(0.01)
         
         ser.write(packet)
         
@@ -73,11 +73,13 @@ def escreve_serial(packet):
         GPIO.output(17, 0)  
         GPIO.output(18, 0)
 
-        time.sleep(0.02)
+        time.sleep(0.01)
         
-        bytesToRead = ser.inWaiting()  
-        in_bin = ser.read(bytesToRead)        
-        
+        bytesToRead = ser.inWaiting()        
+        in_bin = ser.read(bytesToRead)
+
+        verifica = str(in_bin)
+                
         return in_bin
 
     except:        
@@ -133,30 +135,32 @@ class monta_pacote_in():
         b = int(crc[1],16)
             
         packet.append(a) # Controle de redundancia
-        packet.append(b) # Controle de redundancia
+        packet.append(b) # Controle de redundancia        
                
-        in_bin = escreve_serial(packet)
+        in_bin = escreve_serial(packet)        
 
         in_bin = str(in_bin)
 
-        if in_bin == "b''": # reenviando leitura
+        cont = 5
 
-            cont = 5
+        if in_bin == "b''": # reenviando leitura            
 
             while cont > 0:  # reenviando leitura
 
                 in_bin = escreve_serial(packet)
+                in_bin = str(in_bin)
+                
+                if in_bin != "b''":
+                    
+                    in_bin = in_bin
+                
+                    return(in_bin)
 
-                if in_bin == "b''":
+                cont = cont - 1
+                time.sleep(0.05)
+        else:
 
-                    time.sleep(0.1)
-                    cont = cont - 1
-
-                else:
-
-                    return(in_bin)                      
-
-        return(in_bin)
+            return(in_bin)
 
 class retorna:
 
@@ -235,7 +239,7 @@ class filtro(limpa):
         self.limpa = limpa()
 
     def mdl1(self,i):
-
+        
         if i != b'':
 
             i = self.limpa.string(i) 
@@ -831,6 +835,17 @@ class Leitor(monta_pacote_in,retorna,filtro):
         
         b = self.filtro.mdl1(i)
         in2 = self.retorna.entrada(b,'in2')
+
+        if in2 == 0:
+
+            print("leu in2 = a zero")
+
+            i = self.mod.ler('0x01') 
+        
+            b = self.filtro.mdl1(i)
+            in2 = self.retorna.entrada(b,'in2')
+            
+            return(in2)
 
         return(in2)
           
