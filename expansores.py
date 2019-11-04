@@ -78,7 +78,9 @@ def escreve_serial(packet):
         
         bytesToRead = ser.inWaiting()        
         in_bin = ser.read(bytesToRead)
-                        
+
+        verifica = str(in_bin)
+                
         return in_bin
 
     except:        
@@ -1434,7 +1436,7 @@ class monta_pacote():
                 in_bin = escreve_serial(packet)
                 in_bin = str(in_bin)
 
-                print(in_bin)
+##                print(in_bin)
                 
                 if in_bin != "b''":                    
                                    
