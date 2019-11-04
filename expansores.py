@@ -78,9 +78,7 @@ def escreve_serial(packet):
         
         bytesToRead = ser.inWaiting()        
         in_bin = ser.read(bytesToRead)
-
-        verifica = str(in_bin)
-                
+                        
         return in_bin
 
     except:        
