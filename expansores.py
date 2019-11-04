@@ -54,10 +54,11 @@ def log(texto): # Metodo para registro dos eventos no log.txt (exibido na interf
         l.close()
 
 def escreve_serial(packet):
+    
 
-    ser = serial.Serial("/dev/ttyS0", 115200)
+    try:
 
-    try: 
+        ser = serial.Serial("/dev/ttyS0", 115200)
 
         time.sleep(0.005)
                 
@@ -137,30 +138,32 @@ class monta_pacote_in():
         packet.append(a) # Controle de redundancia
         packet.append(b) # Controle de redundancia        
                
-        in_bin = escreve_serial(packet)        
+        in_bin1 = escreve_serial(packet)        
 
-        in_bin = str(in_bin)
+        in_bin1 = str(in_bin1)
 
         cont = 5
 
-        if in_bin == "b''": # reenviando leitura            
+        if in_bin1 == "b''": # reenviando leitura            
 
             while cont > 0:  # reenviando leitura
 
-                in_bin = escreve_serial(packet)
-                in_bin = str(in_bin)
+                time.sleep(0.05)
                 
-                if in_bin != "b''":
+                in_bin1 = escreve_serial(packet)
+                in_bin1 = str(in_bin1)                
+                
+                if in_bin1 != "b''":
                     
-                    in_bin = in_bin
-                
-                    return(in_bin)
+                    in_bin1 = in_bin1                
+                    return(in_bin1)
 
                 cont = cont - 1
-                time.sleep(0.05)
+                
         else:
 
-            return(in_bin)
+            return(in_bin1)
+        
 
 class retorna:
 
@@ -826,13 +829,14 @@ class Leitor(monta_pacote_in,retorna,filtro):
         b = self.filtro.mdl1(i)       
         in1 = self.retorna.entrada(b,'in1')
 
-        return(in1)
+        return(in1)            
+            
     
     def leitor1_in2(self):
 
-        i = self.mod.ler('0x01')        
+        i = self.mod.ler('0x01')
         b = self.filtro.mdl1(i)
-        in2 = self.retorna.entrada(b,'in2')     
+        in2 = self.retorna.entrada(b,'in2')        
 
         return(in2)
           
@@ -1417,28 +1421,32 @@ class monta_pacote():
         packet.append(a) # Controle de redundancia 
         packet.append(b) # Controle de redundancia        
         
-        in_bin = escreve_serial(packet)
+        in_bin = escreve_serial(packet)              
 
         in_bin = str(in_bin)
 
-        if in_bin == "b''": # reenviando acionamento rele
-            
-            cont = 5
+        cont = 5
 
-            while cont > 0:  # rotina de reenvio acionamento
+        if in_bin == "b''": # reenviando leitura            
 
+            while cont > 0:  # reenviando leitura
+
+                time.sleep(0.05)
+                
                 in_bin = escreve_serial(packet)
+                in_bin = str(in_bin)
 
-                if in_bin == "b''":
+                print(in_bin)
+                
+                if in_bin != "b''":                    
+                                   
+                    return(in_bin)
 
-                    time.sleep(0.1)
-                    cont = cont - 1
+                cont = cont - 1
+                
+        else:
 
-                else:
-
-                    return(in_bin)      
-
-        return(in_bin)
+            return(in_bin)
         
 
 class Expansor(monta_pacote):
