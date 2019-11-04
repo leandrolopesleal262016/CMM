@@ -94,7 +94,7 @@ pip3 install gTTS-token --upgrade
 
 gtts-cli "Olá, ouça uma música durante a instalação." --lang pt --output hello.mp3
 sudo mpg123 hello.mp3 
-sudo mpg123 /home/pi/CMM_oficial/mp3/musica.mp3 &
+sudo mpg123 /home/pi/CMM/mp3/musica.mp3 &
 
 
 echo '''
