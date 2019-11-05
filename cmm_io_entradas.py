@@ -2,6 +2,7 @@
 # Atualizado 19/07/2019
 
 import time
+import os
 import wiringpi
 import RPi.GPIO as GPIO
 from banco import Banco
@@ -15,6 +16,8 @@ GPIO.setup(10,GPIO.IN)
 
 GPIO.setup(11,GPIO.OUT)
 GPIO.setup(12,GPIO.OUT)
+
+os.system("sudo chmod 777 -R /var/www/html/log") # Permissão para escrever no log
 
 def log(texto): # Metodo para registro dos eventos no log.txt (exibido na interface grafica)
 
