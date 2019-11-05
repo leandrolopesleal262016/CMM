@@ -22,6 +22,8 @@ import _thread as thread
 
 socket.setdefaulttimeout(2) # limite de 2 segundos para enviar o socket
 
+os.system("sudo chmod 777 -R /var/www/html/log") # Permissão para escrever no log
+os.system("mpg123 /home/pi/CMM/mp3/sistema_carregado.mp3")
 
 def log(texto): # Metodo para registro dos eventos no log.txt (exibido na interface grafica)
 
@@ -51,9 +53,7 @@ def log(texto): # Metodo para registro dos eventos no log.txt (exibido na interf
         l.close()
     
 log("Reiniciou o sistema")
-
-
-os.system("mpg123 /home/pi/CMM/mp3/sistema_carregado.mp3") 
+ 
 
 # Imprimi o nome e o IP do equipamento no log da interface
 
@@ -839,6 +839,8 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
     eventos = banco.consulta("comandos","eventos")
 
     l = cmm.Leitor()
+
+    mudanca1 = 0
             
     while(1):
 
@@ -847,6 +849,13 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
     
         ihm_gar1 = banco.consulta("comandos","abre_garagem") # Valor inserido pelo botão da interface       
         tx1 =  l.leitor1_in3()  # Cantato abre vindo do TX (LINEAR HCS)
+
+        mud1 = l.leitor1_in4()  # Chave de mudança
+
+        t = open("/home/pi/CMM/status_garagem_1.cmm","r")
+        status_tx1 = t.read()
+        t.close()
+                
                         
         if (tx1 == 1 or ihm_gar1 == "1"):    # Se o tx ou o botão da interface mandou abrir o portão
 
@@ -1156,6 +1165,7 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
                                                                             
                                                                                 evento.enviar("R","133","013") # Envia o evento de fechamento para a central
                                                                             
+                                                                            cont = 0
                                                                             break
                                                                         
                                                                     
@@ -1200,6 +1210,101 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                                 cont = cont - 1
                                 time.sleep(0.2)
+       
+
+        if mud1 == 1 and mudanca1 == 0: # Chave de mudança acionada
+
+            time.sleep(0.1)     
+            mud1 = l.leitor1_in4()  # Chave de mudança            
+
+            if mud1 == 1:
+
+                time.sleep(0.1)     
+                mud1 = l.leitor1_in4()  # Chave de mudança            
+
+                if mud1 == 1:    
+
+                    log("Chave de mudança acionada Garagem")
+
+                    s.liga_rele3_exp1() # Sinal Verde
+
+                    if evento == "1":
+
+                        evento.enviar("E","132","26")                
+
+                    t = open("/home/pi/CMM/status_garagem_1.cmm","w")
+                    t.write("1")
+                    t.close()
+
+                    s.liga_rele1_exp1() # Aciona o rele 1 do modulo 1 (Abre)
+                    time.sleep(2)
+                    s.desliga_rele1_exp1()
+                    s.liga_rele2_exp1() # Aciona o rele 2 do modulo 1 (Foto)                
+
+                    mudanca1 = 1
+
+        if mud1 == 0 and mudanca1 == 1:
+
+            time.sleep(0.1)
+            mud1 = l.leitor1_in4()
+
+            if mud1 == 0:
+
+                time.sleep(0.1)
+                mud1 = l.leitor1_in4()
+
+                if mud1 == 0:
+
+                    log("Desligada a chave de mudança")
+
+                    s.desliga_rele3_exp1() # Sinal Vermelho
+
+                    if evento == "1":
+
+                        evento.enviar("R","132","26")
+                                    
+                    s.desliga_rele1_exp1() # Desliga o rele 1 do modulo 1 (Abre)
+                    s.desliga_rele2_exp1() # Desliga o rele 2 do modulo 1 (Foto) 
+
+                    pmg1 = l.leitor1_in1()
+
+                    cont = 30 # Tempo maximo de espera
+
+                    log("Aguardando portão Garagem fechar depois da mudanca")
+
+                    while cont > 0:
+                        
+                        pmg1 = l.leitor1_in1()
+
+                        if pmg1 == 0: # Portão ainda aberto                                      
+
+                            time.sleep(1)
+                            cont = cont - 1
+                                
+                        if pmg1 == 1: # Portão ja fechou
+
+                            time.sleep(0.1)
+                            pmg1 = l.leitor1_in1()
+
+                            if pmg1 == 1:
+
+                                time.sleep(0.1)
+                                pmg1 = l.leitor1_in1()
+
+                                if pmg1 == 1:
+
+                                    log("Portão fechou")
+
+                                    s.desliga_rele3_exp1() # Sinal Vermelho
+
+                                    t = open("/home/pi/CMM/status_garagem_1.cmm","w")
+                                    t.write("0")
+                                    t.close()
+                                    
+                                    cont = 0
+                                    mudanca1 = 0
+                                    time.sleep(1)
+                                    break
                                 
         time.sleep(0.2)        
 
