@@ -156,7 +156,8 @@ sudo apt-get install apache2 -y
 sudo apt-get install mariadb-server php-mysql -y
 sudo apt-get install php -y
 sudo apt-get install phpmyadmin -y
-pip3 install mysql-connector
+sudo apt-get install python3-mysql.connector
+#pip3 install mysql-connector
 
 
 #echo '''
