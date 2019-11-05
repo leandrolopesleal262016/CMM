@@ -863,26 +863,9 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
 
             tx1 =  l.leitor1_in3()
             ihm_gar1 = banco.consulta("comandos","abre_garagem")
+            
 
-            if ihm_gar1 == "1": # Abre através do expansor (rele 1)
-
-                log("Reconheceu abre Garagem Interface pela gráfica")
-
-                s.liga_rele3_exp1() # Sinal Verde (Sinaleira)
-
-                status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
-                status.write("1")
-                status.close()
-
-                s.liga_rele1_exp1() # Pulso para abrir a garagem
-                time.sleep(2)
-                s.desliga_rele1_exp1()
-
-                time.sleep(1)
-
-                banco.atualiza("comandos","abre_garagem","0")
-
-            if (tx1 == 1): # O tx da linear está direto no abre do portão
+            if (tx1 == 1 or ihm_gar1): # O tx da linear está direto no abre do portão
 
                 time.sleep(0.1)
                 tx1 = l.leitor1_in3()
@@ -904,6 +887,24 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
                         status.close()
 
                         time.sleep(1)
+
+                if ihm_gar1 == "1": # Abre através do expansor (rele 1)
+
+                    log("Reconheceu abre Garagem Interface pela gráfica")
+
+                    s.liga_rele3_exp1() # Sinal Verde (Sinaleira)
+
+                    status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
+                    status.write("1")
+                    status.close()
+
+                    s.liga_rele1_exp1() # Pulso para abrir a garagem
+                    time.sleep(2)
+                    s.desliga_rele1_exp1()
+
+                    time.sleep(1)
+
+                    banco.atualiza("comandos","abre_garagem","0")
                     
 
                 time.sleep(1) # Tempo para começar a abrir o portão
@@ -1153,7 +1154,7 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
 
                                                                         if pmg1 == 1:
 
-                                                                            log("Segundo Portão Garagem fechou")
+                                                                            log("Portão Garagem fechou")
 
                                                                             s.desliga_rele3_exp1() # Sinal Vermelho
 
