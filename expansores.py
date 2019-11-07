@@ -25,6 +25,8 @@ GPIO.setup(11,GPIO.OUT)  # Sinal De buzzer
 GPIO.setup(17,GPIO.OUT) # HIGH para enviar LOW para ler dados
 GPIO.setup(18,GPIO.OUT) # HIGH para enviar LOW para ler dados
 
+os.system("sudo chmod 777 /dev/ttyS0") # Altera a permissão do acesso a serial
+
 
 def log(texto): # Metodo para registro dos eventos no log.txt (exibido na interface grafica)
 
@@ -53,28 +55,27 @@ def log(texto): # Metodo para registro dos eventos no log.txt (exibido na interf
         l.write(escrita)
         l.close()
 
-def escreve_serial(packet):
-    
+def escreve_serial(packet):    
 
     try:
 
         ser = serial.Serial("/dev/ttyS0", 115200)
 
-        time.sleep(0.005)
+        time.sleep(0.004) # 005
                 
         GPIO.output(17, 1)  
         GPIO.output(18, 1)
         
-        time.sleep(0.01)
+        time.sleep(0.004) # 01
         
         ser.write(packet)
         
-        time.sleep(0.002)
+        time.sleep(0.002) # no alterar este valor
         
         GPIO.output(17, 0)  
         GPIO.output(18, 0)
 
-        time.sleep(0.01)
+        time.sleep(0.004) # 01
         
         bytesToRead = ser.inWaiting()        
         in_bin = ser.read(bytesToRead)
@@ -83,7 +84,9 @@ def escreve_serial(packet):
                 
         return in_bin
 
-    except:        
+    except:
+
+        os.system("sudo chmod 777 /dev/ttyS0") # Altera a permissão do acesso a serial
         
         return ("b''")
 
@@ -126,7 +129,7 @@ class monta_pacote_in():
         packet.append(modulo) # Endreço do modulo 
         packet.append(0x02) # Modo leitura
         packet.append(0x00) # 
-        packet.append(0x00) # Endereço registrador inicial
+        packet.append(0x04) # Endereço registrador inicial
         packet.append(0x00) # 
         packet.append(0x04) # Registradores a serem lidos
 
@@ -1478,9 +1481,8 @@ class Expansor(monta_pacote):
         self.mod.aciona('0x01','0x02','0xFF') 
 
     def desliga_rele3_exp1(self):
-
+        
         self.mod.aciona('0x01','0x02','0x00')
-
         
     def liga_rele4_exp1(self):
 
