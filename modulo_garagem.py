@@ -8,15 +8,18 @@ import threading
 from banco import Banco
 import cmm_io_entradas as entradas
 import cmm_io_saidas as saidas
-
+from biblioteca_CMM_oficial import Evento
 
 s = Expansor()
 l = Leitor()
+
+evento = Evento("0054")
 
        
 def Garagem1(): # Inicia a thread do portão da garagem importando a classe Rele
 
     os.system("sudo chmod 777 /dev/ttyS0")
+    os.system("sudo chmod 777 -R /var/www/html/log")
 
     def log(texto): # Metodo para registro dos eventos no log.txt (exibido na interface grafica)
 
@@ -116,9 +119,9 @@ def Garagem1(): # Inicia a thread do portão da garagem importando a classe Rele
 
                     time.sleep(1)
 
-                    banco.atualiza("comandos","abre_garagem","0")                    
+                banco.atualiza("comandos","abre_garagem","0")                    
 
-                    time.sleep(1) # Tempo para começar a abrir o portão
+                time.sleep(2) # Tempo para começar a abrir o portão
 
                 pmg1 = l.leitor1_in1()                               
                 
