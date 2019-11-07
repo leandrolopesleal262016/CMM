@@ -11,6 +11,7 @@ import cmm_io_entradas as entradas
 import cmm_io_saidas as saidas
 
 from atualiza_monitor import Monitor
+import modulo_garagem 
 
 from datetime import datetime, timedelta
 import wiringpi # Biblioteca para usar as GPIO da rasp como saidas ou entradas
@@ -95,7 +96,18 @@ def thread_monitor(): # Programa que mantem a conexão com o QR Code
         time.sleep(0.3)
     
 monitor = threading.Thread(target=thread_monitor)
-monitor.start() 
+monitor.start()
+
+def gar1():
+
+    print("\n Programa da garagem executando ...")
+
+    while(1):
+
+        modulo_garagem.Garagem1()
+
+g1 = threading.Thread(target=gar1)
+g1.start()
 
 def Servidor_qr(): ######### Thread servidor Cadastro QR Code ###################
 
@@ -388,8 +400,10 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
         b = open("/home/pi/CMM/status_eclusa.cmm","r")
         abre_eclusa = b.read()
-        b.close()        
+        b.close()
 
+        ihm_soc1 = banco.consulta("comandos","abre_social_externo")
+        ihm_soc2 = banco.consulta("comandos","abre_social_interno")
     
         if comando == "abre_social":
             
@@ -420,7 +434,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                     saidas.liga_blq2() # Aqui abrimos o contato da eclusa para impedir que ela seja aberta enquanto o social esta aberto
                   
-                    social()
+                    social(ihm_soc1)
                    
                     time.sleep(1) # Tempo minimo para o portão abrir
                    
@@ -549,7 +563,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                     saidas.liga_blq1() # Impede o social de abrir enquanto a eclusa esta aberta
                     
-                    eclusa()                                        
+                    eclusa(ihm_soc2)                                        
                    
                     time.sleep(1) # Tempo de espera para o portão abrir
                     
@@ -613,7 +627,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                                 
                                 contador = 1
                                 
-                                s = open("/home/pi/CMM/status_social.cmm","w")
+                                s = open("/home/pi/CMM/status_eclusa.cmm","w")
                                 s.write("0")
                                 s.close()
 
@@ -641,7 +655,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                             
                             ctw1 = entradas.ctw1()
                             
-                            if ctw1 == "1": # Alguem esta tentando abrir o social com a eclusa aberta
+                            if (ctw1 == "1"): # Alguem esta tentando abrir o social com a eclusa aberta
 
                                 log("Aguarde o fechamento do Social Interno")
                                 os.system("mpg123 /home/pi/CMM/mp3/aguarde_fechamento.mp3") # Manter esse audio sempre ativo
@@ -650,7 +664,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                             time.sleep(0.1) # 1 segundo
                             contador = contador - 1
-def social():
+def social(mensagem): # Mensagem informa se o evento veio pelo interface web ou do local
 
     status = open("/home/pi/CMM/status_social.cmm","w") # Para não disparar o arrombamento
     status.write("1")
@@ -659,22 +673,30 @@ def social():
     fechadura = banco.consulta("config","fechadura")
     audio = banco.consulta("config","audio")
 
-    log("Abrindo social...")
+    if mensagem == "0": # local
+
+        log("Abrindo social...")    
 
     saidas.pulso_abre1() # Pulso para abrir direto o portão sem intertravamento (Social)
-        
 
-    if audio == "1":
+    if mensagem == "1": # Via interface web
 
-        if fechadura == "motor":
+        log("Abrindo social pela Central de Monitoramento...")
+        os.system("mpg123 /home/pi/CMM/mp3/acionando_pela_central.mp3")    
 
-            os.system("mpg123 /home/pi/CMM/mp3/abrindo_social.mp3")                    
+    if audio == "1":        
+
+        if mensagem == "0":
+
+            if fechadura == "motor":
+
+                os.system("mpg123 /home/pi/CMM/mp3/abrindo_social.mp3")                    
 
     status = open("/home/pi/CMM/status_social.cmm","w") 
     status.write("0")
     status.close()
     
-def eclusa():
+def eclusa(mensagem):
 
     status = open("/home/pi/CMM/status_eclusa.cmm","w") # Para não disparar o arrombamento
     status.write("1")
@@ -684,13 +706,23 @@ def eclusa():
     audio = banco.consulta("config","audio")
 
     saidas.pulso_abre2() # Pulso para abrir direto o portão sem intertravamento (Eclusa)
-    log("Abrindo eclusa...")
+
+    if mensagem == "0": # local
+
+        log("Abrindo eclusa...")
+
+    if mensagem == "1":
+
+        log("Abrindo eclusa pela Central de Monitoramento...")
+        os.system("mpg123 /home/pi/CMM/mp3/acionando_pela_central.mp3")  
 
     if audio == "1":
 
-        if fechadura == "motor":
+        if mensagem == "0":
 
-            os.system("mpg123 /home/pi/CMM/mp3/abrindo_eclusa.mp3")
+            if fechadura == "motor":
+
+                os.system("mpg123 /home/pi/CMM/mp3/abrindo_eclusa.mp3")
             
     status = open("/home/pi/CMM/status_eclusa.cmm","w") 
     status.write("0")
@@ -701,7 +733,10 @@ def Portoes_sociais(Rele): # Programa
     log("Programa Sociais em execução ")
 
     saida = 0
+    qbv_acionado = 0
     banco = cmm.Banco()
+    qbv2 = entradas.qbv2()
+    print("qbv2",qbv2,type(qbv2))
            
     while(1):
 
@@ -713,19 +748,18 @@ def Portoes_sociais(Rele): # Programa
         ctw1 = entradas.ctw1()
         ctw2 = entradas.ctw2()
 
-
+        qbv1 = entradas.qbv1()
+        
         ihm_soc1 = banco.consulta("comandos","abre_social_externo")
         ihm_soc2 = banco.consulta("comandos","abre_social_interno")
        
-        if ctw1 == "1" or ihm_soc1 == "1":
-
-            banco.atualiza("comandos","abre_social_externo","0")
+        if ctw1 == "1" or ihm_soc1 == "1":                            
 
             if habilita_intertravamento == "0":
 
                 log("Intertravamento desabilitado\n")
                 
-                social()
+                social(ihm_soc1)
 
                 status = open("/home/pi/CMM/status_social.cmm","w") 
                 status.write("0")
@@ -745,16 +779,15 @@ def Portoes_sociais(Rele): # Programa
                 status.write("0")
                 status.close()
 
+            banco.atualiza("comandos","abre_social_externo","0")
             
-        if ctw2 == "1" or ihm_soc2 == "1":
-
-            banco.atualiza("comandos","abre_social_interno","0")
+        if ctw2 == "1" or ihm_soc2 == "1":            
 
             if habilita_intertravamento == "0":
 
                 log("Intertravamento desabilitado\n")
                 
-                eclusa() 
+                eclusa(ihm_soc2) 
                 
             else:
                 
@@ -769,8 +802,71 @@ def Portoes_sociais(Rele): # Programa
                 status.close()
 
                 saida = 1
+
+            banco.atualiza("comandos","abre_social_interno","0")
                    
+        if qbv1 == "1" and qbv_acionado == 0:
+
+            time.sleep(0.2)
+            qbv1 = entradas.qbv1()   
+
+            if qbv1 == "1":
+
+                saidas.pulso_abre1()
                 
+                log("Acionado o quebra de vidro da Eclusa")                
+                os.system("mpg123 /home/pi/CMM/mp3/emergencia.mp3")
+
+                status = open("/home/pi/CMM/status_social.cmm","w")
+                status.write("1")
+                status.close()
+
+                status = open("/home/pi/CMM/status_eclusa.cmm","w")
+                status.write("1")
+                status.close()
+
+                saidas.liga_abre1()
+                saidas.liga_abre2()
+                
+                qbv_acionado = 1
+
+        if qbv1 == "0" and qbv_acionado == 1:
+
+            time.sleep(0.2)
+            qbv1 = entradas.qbv1()
+
+            if qbv1 == "0":
+                
+                log("Restaurou quebra de vidro da Eclusa")
+                os.system("mpg123 /home/pi/CMM/mp3/restaurada_emergencia.mp3")
+
+                saidas.desliga_abre1()
+                saidas.desliga_abre2()
+
+                fechadura = banco.consulta("config","fechadura")
+
+                if fechadura == "magnetica":
+                
+                    time.sleep(1)
+
+                if fechadura == "motor":
+
+                    log("Aguardando 5 segundos para fechamento dos portoes sociais")                
+                    time.sleep(5)
+
+                os.system("mpg123 /home/pi/CMM/mp3/automatico.mp3")    
+
+                status = open("/home/pi/CMM/status_social.cmm","w")
+                status.write("0")
+                status.close()
+
+                status = open("/home/pi/CMM/status_eclusa.cmm","w")
+                status.write("0")
+                status.close()                
+                
+                
+                qbv_acionado = 0
+            
         time.sleep(0.1) 
 
         
@@ -844,6 +940,8 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
             
     while(1):
 
+        os.system("sudo chmod 777 /dev/ttyS0")
+
         hs = time.strftime("%H:%M:%S")
         s = cmm.Expansor()
     
@@ -855,464 +953,530 @@ def Garagem1(Rele): # Inicia a thread do portão da garagem importando a classe 
         t = open("/home/pi/CMM/status_garagem_1.cmm","r")
         status_tx1 = t.read()
         t.close()
+
+        try:
                 
                         
-        if (tx1 == 1 or ihm_gar1 == "1"):    # Se o tx ou o botão da interface mandou abrir o portão
+            if (tx1 == 1 and mudanca1 == 0 or ihm_gar1 == "1" and mudanca1 == 0):    # Se o tx ou o botão da interface mandou abrir o portão
 
-            time.sleep(0.1)
+                time.sleep(0.05)
+                
+                tx1 =  l.leitor1_in3()
+                ihm_gar1 = banco.consulta("comandos","abre_garagem")
+                
 
-            tx1 =  l.leitor1_in3()
-            ihm_gar1 = banco.consulta("comandos","abre_garagem")
-            
+                if (tx1 == 1 and mudanca1 == 0 or ihm_gar1 == "1" and mudanca1 == 0): # O tx da linear está direto no abre do portão
 
-            if (tx1 == 1 or ihm_gar1): # O tx da linear está direto no abre do portão
-
-                time.sleep(0.1)
-                tx1 = l.leitor1_in3()
-
-                if tx1 == 1:
-
-                    time.sleep(0.1)
+                    time.sleep(0.05)
                     tx1 = l.leitor1_in3()
 
                     if tx1 == 1:
 
-                        log("*")
-                        log("Reconheceu tx Garagem") # Se reconheceu o tx, é porque o portão ja esta abrindo
+                        time.sleep(0.05)
+                        tx1 = l.leitor1_in3()
 
-                        s.liga_rele3_exp1() # Sinal Verde (Sinaleira)    
+                        if tx1 == 1:
+
+                            log("*")
+                            log("Reconheceu tx Garagem") # Se reconheceu o tx, é porque o portão ja esta abrindo
+
+                            s.liga_rele3_exp1() # Sinal Verde (Sinaleira)    
+
+                            status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
+                            status.write("1")
+                            status.close()
+
+                            time.sleep(1)
+
+                    if ihm_gar1 == "1": # Abre através do expansor (rele 1)
+
+                        log("*")
+                        log("Reconheceu abre Garagem Interface pela gráfica")
+
+                        s.liga_rele3_exp1() # Sinal Verde (Sinaleira)
 
                         status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                         status.write("1")
                         status.close()
 
+                        s.liga_rele1_exp1() # Pulso para abrir a garagem
+                        time.sleep(2)
+                        s.desliga_rele1_exp1()
+
                         time.sleep(1)
 
-                if ihm_gar1 == "1": # Abre através do expansor (rele 1)
+                    banco.atualiza("comandos","abre_garagem","0")                    
 
-                    log("Reconheceu abre Garagem Interface pela gráfica")
+                    time.sleep(1) # Tempo para começar a abrir o portão
 
-                    s.liga_rele3_exp1() # Sinal Verde (Sinaleira)
-
-                    status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
-                    status.write("1")
-                    status.close()
-
-                    s.liga_rele1_exp1() # Pulso para abrir a garagem
-                    time.sleep(2)
-                    s.desliga_rele1_exp1()
-
-                    time.sleep(1)
-
-                    banco.atualiza("comandos","abre_garagem","0")
+                    pmg1 = l.leitor1_in1()                               
                     
-
-                time.sleep(1) # Tempo para começar a abrir o portão
-
-                pmg1 = l.leitor1_in1()                               
-                
-                if pmg1 == 1: # Portão não abriu apos o comando
-
-                    time.sleep(0.1)
-                    pmg1 = l.leitor1_in1()
-
                     if pmg1 == 1: # Portão não abriu apos o comando
 
-                        time.sleep(0.1)
+                        time.sleep(0.05)
                         pmg1 = l.leitor1_in1()
 
-                        if pmg1 == 1:
+                        if pmg1 == 1: # Portão não abriu apos o comando
 
-                            log("Portão garagem não abriu")
-
-                            s.desliga_rele3_exp1() # Sinal Vermelho
-
-                            if eventos == "1":
-                            
-                                evento.enviar("E","132","015") # Emperrado
-                            
-                            status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
-                            status.write("0")
-                            status.close()
-                                                
-                            cont = 0
-
-                if pmg1 == 0: # Portão abriu
-
-                    time.sleep(0.1)                    
-                    pmg1 = l.leitor1_in1()
-
-                    if pmg1 == 0: # Confirmado que o Portão abriu
-
-                        time.sleep(0.1)                    
-                        pmg1 = l.leitor1_in1()
-
-                        if pmg1 == 0:
-
-                            cont = 300     # Tempo maximo para deixar 300 = 30 segundos
-
-                            if eventos == "1":
-                                
-                                evento.enviar("E","133","013")
-
-                            while cont > 0:   # Enquanto o portão esta aberto verifica
-
-                                if cont == 300:
-
-                                    log("Portão Garagem abriu")
-                                
-                                pmg1 = l.leitor1_in1()
-                                
-                                if pmg1 == 1: # Se o portão ja fechou
-
-                                    time.sleep(0.1)
-                                    pmg1 = l.leitor1_in1()
-
-                                    if pmg1 == 1:
-
-                                        time.sleep(0.1)
-                                        pmg1 = l.leitor1_in1()
-
-                                        if pmg1 == 1:
-
-                                            log("Portão Garagem fechou")
-
-                                            s.desliga_rele3_exp1() # Sinal Vermelho
-
-                                            status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
-                                            status.write("0")
-                                            status.close()
-                                            
-                                            if eventos == "1":
-                                                
-                                                evento.enviar("R","133","013") # Envia o evento de fechamento para a central
-                                            
-                                            cont = 0
-                                            break
-                                    
-                                if pmg1 == 0:     # Se o portão ainda esta aberto
-
-                                    time.sleep(0.1)
-                                    pmg1 = l.leitor1_in1()
-
-                                    if pmg1 == 0:
-
-                                        time.sleep(0.1)
-                                        pmg1 = l.leitor1_in1()
-
-                                        if pmg1 == 0:
-
-                                            time.sleep(0.1)
-                                            bar1 = l.leitor1_in2() # Faz a leitura da barreira 1
-
-                                            if bar1 == 1: # Se acionou a barreira de entrada
-
-                                                time.sleep(0.1)
-                                                bar1 = l.leitor1_in2()
-
-                                                if bar1 == 1:
-
-                                                    log("Acionou a barreira Garagem")
-
-                                                    tempo = 30
-
-                                                    while tempo > 0: # Enquanto a barreira esta acionada
-
-                                                        bar1 = l.leitor1_in2() # Faz a leitura da barreira 1
-                                                        
-                                                        if bar1 == 1:
-
-                                                            time.sleep(0.1) # esperando sair da barreira
-
-                                                        if bar1 == 0:
-
-                                                            time.sleep(0.1)
-
-                                                            bar1 = l.leitor1_in2()
-
-                                                            if bar1 == 0:
-
-                                                                time.sleep(0.1)
-
-                                                                bar1 = l.leitor1_in2()
-
-                                                                if bar1 == 0:
-
-                                                                    log("Saiu da barreira")
-                                                                    s.desliga_rele3_exp1() # Sinal Vermelho
-                                                                    break
-
-                                                        tempo = tempo - 1
-                                                        time.sleep(1)
-                                                    
-                                                    entrada_permitida = 0
-                                                    
-                                                    pmg1 = l.leitor1_in1() # Faz a leitura do ponto magnetico                                    
-                                                    
-                                                    if pmg1 == 0: # Portão ainda aberto
-
-                                                        time.sleep(0.1)                                                        
-                                                        pmg1 = l.leitor1_in1() # Faz a leitura do ponto magnetico                                        
-
-                                                        if pmg1 == 0:
-
-                                                            log("Aguardando portão Garagem fechar")
-
-                                                            temp = 300 
-
-                                                            while temp > 0:  # Enquanto o portão ainda está aberto e tempo menor que 30 seg
-                                                                
-                                                                pmg1 = l.leitor1_in1() # Faz a leitura do ponto magnetico
-                                                                bar1 = l.leitor1_in2() # Faz a leitura da barreira 1
-                                                                tx1 =  l.leitor1_in3()  # Cantato abre vindo do TX (LINEAR HCS)
-
-                                                                if bar1 == 1 and entrada_permitida == 1:
-                                                                    
-                                                                    time.sleep(0.1)                                                                    
-                                                                    bar1 = l.leitor1_in2()
-
-                                                                    if bar1 == 1:
-
-                                                                        time.sleep(0.1)                                                                    
-                                                                        bar1 = l.leitor1_in2()
-
-                                                                        if bar1 == 1:
-
-                                                                            tempo2 = 30
-
-                                                                            while tempo2 > 0: # Enquanto a barreira esta acionada
-
-                                                                                bar1 = l.leitor1_in2() # Faz a leitura da barreira 1
-                                                                                                                                                  
-                                                                                if bar1 == 1: 
-
-                                                                                    time.sleep(0.1)
-                                                                                    bar1 = l.leitor1_in2()
-
-                                                                                    if bar1 == 1:
-
-                                                                                        time.sleep(0.1) # Esperando sair da barreira                                                                                    
-
-                                                                                if bar1 == 0:
-
-                                                                                    time.sleep(0.1)
-                                                                                    bar1 = l.leitor1_in2()
-
-                                                                                    if bar1 == 0:
-
-                                                                                        time.sleep(0.1)
-                                                                                        bar1 = l.leitor1_in2()
-
-                                                                                        if bar1 == 0:
-
-                                                                                            log("Saiu da barreira")
-                                                                                            s.desliga_rele3_exp1() # Sinal Vermelho
-                                                                                            log("Entrou segundo veiculo autorizado")
-
-                                                                                            entrada_permitida = 0
-                                                                                            
-                                                                                            break
-
-                                                                                
-                                                                                tempo2 = tempo2 - 1
-                                                                                time.sleep(1)                                        
-
-                                                                        break
-
-                                                                if bar1 == 1 and entrada_permitida == 0: # Dupla passagem
-
-                                                                    time.sleep(0.1)                                                                    
-                                                                    bar1 = l.leitor1_in2()
-
-                                                                    if bar1 == 1:
-
-                                                                        time.sleep(0.1)                                                                        
-                                                                        bar1 = l.leitor1_in2()
-
-                                                                        if bar1 == 1:
-
-                                                                            log("Dupla passagem Garagem")                                                
-
-                                                                            evento.enviar("E","132","016")
-
-                                                                            s.liga_rele4_exp1() # Sirene                                            
-                                                                            time.sleep(10)
-                                                                            s.desliga_rele4_exp1()                                            
-
-                                                                        break
-                                                                    
-                                                         
-                                                                if pmg1 == 1: # portão ja fechou
-
-                                                                    time.sleep(0.1)                                                                    
-                                                                    pmg1 = l.leitor1_in1()
-
-                                                                    if pmg1 == 1:
-
-                                                                        time.sleep(0.1)                                                                    
-                                                                        pmg1 = l.leitor1_in1()
-
-                                                                        if pmg1 == 1:
-
-                                                                            log("Portão Garagem fechou")
-
-                                                                            s.desliga_rele3_exp1() # Sinal Vermelho
-
-                                                                            status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
-                                                                            status.write("0")
-                                                                            status.close()
-
-                                                                            if evento == "1":
-                                                                            
-                                                                                evento.enviar("R","133","013") # Envia o evento de fechamento para a central
-                                                                            
-                                                                            cont = 0
-                                                                            break
-                                                                        
-                                                                    
-                                                                if tx1 == 1: # Alguem acionou o controle enquanto o portão fechava
-
-                                                                    time.sleep(0.1)                                                                    
-                                                                    tx1 =  l.leitor1_in3()
-
-                                                                    if tx1 == 1:
-
-                                                                        time.sleep(0.1)                                                                    
-                                                                        tx1 =  l.leitor1_in3()
-
-                                                                        if tx1 == 1:
-
-                                                                            log("Reconheceu abre Garagem enquanto o portão estava aberto")                                                    
-                                                                            s.liga_rele3_exp1() # Sinal Verde
-
-                                                                            entrada_permitida = 1 # Reconhece o segundo acionamento
-                                                                                                                                                                                                                                            
-                                                                            break # Sai da função e inicia novamente a verificação
-                                                                    
-
-                                                                if temp == 1:
-
-                                                                    log("Portão aberto por muito tempo")
-
-                                                                    s.desliga_rele3_exp1() # Sinal Vermelho
-
-                                                                    s.liga_rele4_exp1() # Sirene                                            
-                                                                    time.sleep(3)
-                                                                    s.desliga_rele4_exp1()
-
-                                                                    evento.enviar("E","132","026") # Envia obstruçao
-                                                                                                                               
-                                                                    break
-
-                                                                temp = temp - 1
-                                                                time.sleep(0.2)
-
-                                                            
-
-                                cont = cont - 1
-                                time.sleep(0.2)
-       
-
-        if mud1 == 1 and mudanca1 == 0: # Chave de mudança acionada
-
-            time.sleep(0.1)     
-            mud1 = l.leitor1_in4()  # Chave de mudança            
-
-            if mud1 == 1:
-
-                time.sleep(0.1)     
-                mud1 = l.leitor1_in4()  # Chave de mudança            
-
-                if mud1 == 1:    
-
-                    log("Chave de mudança acionada Garagem")
-
-                    s.liga_rele3_exp1() # Sinal Verde
-
-                    if evento == "1":
-
-                        evento.enviar("E","132","26")                
-
-                    t = open("/home/pi/CMM/status_garagem_1.cmm","w")
-                    t.write("1")
-                    t.close()
-
-                    s.liga_rele1_exp1() # Aciona o rele 1 do modulo 1 (Abre)
-                    time.sleep(2)
-                    s.desliga_rele1_exp1()
-                    s.liga_rele2_exp1() # Aciona o rele 2 do modulo 1 (Foto)                
-
-                    mudanca1 = 1
-
-        if mud1 == 0 and mudanca1 == 1:
-
-            time.sleep(0.1)
-            mud1 = l.leitor1_in4()
-
-            if mud1 == 0:
-
-                time.sleep(0.1)
-                mud1 = l.leitor1_in4()
-
-                if mud1 == 0:
-
-                    log("Desligada a chave de mudança")
-
-                    s.desliga_rele3_exp1() # Sinal Vermelho
-
-                    if evento == "1":
-
-                        evento.enviar("R","132","26")
-                                    
-                    s.desliga_rele1_exp1() # Desliga o rele 1 do modulo 1 (Abre)
-                    s.desliga_rele2_exp1() # Desliga o rele 2 do modulo 1 (Foto) 
-
-                    pmg1 = l.leitor1_in1()
-
-                    cont = 30 # Tempo maximo de espera
-
-                    log("Aguardando portão Garagem fechar depois da mudanca")
-
-                    while cont > 0:
-                        
-                        pmg1 = l.leitor1_in1()
-
-                        if pmg1 == 0: # Portão ainda aberto                                      
-
-                            time.sleep(1)
-                            cont = cont - 1
-                                
-                        if pmg1 == 1: # Portão ja fechou
-
-                            time.sleep(0.1)
+                            time.sleep(0.05)
                             pmg1 = l.leitor1_in1()
 
                             if pmg1 == 1:
 
-                                time.sleep(0.1)
+                                log("Portão garagem não abriu")
+
+                                s.desliga_rele3_exp1() # Sinal Vermelho                            
+
+                                if eventos == "1":
+                                
+                                    evento.enviar("E","132","015") # Emperrado
+
+                                banco.atualiza("comandos","abre_garagem","0")
+                                
+                                status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
+                                status.write("0")
+                                status.close()                                               
+                                
+
+                    if pmg1 == 0: # Portão abriu
+
+                        time.sleep(0.05)                    
+                        pmg1 = l.leitor1_in1()
+
+                        if pmg1 == 0: # Confirmado que o Portão abriu
+
+                            time.sleep(0.05)                    
+                            pmg1 = l.leitor1_in1()
+
+                            if pmg1 == 0:                                
+
+                                if eventos == "1":
+                                    
+                                    evento.enviar("E","133","013")
+                                    
+                                try:
+
+                                    cont1 = 300     # Tempo maximo para deixar 300 = 30 segundos
+
+                                    while cont1 > 0:   # Enquanto o portão esta aberto verifica
+
+                                        if cont1 == 300:
+
+                                            log("Portão Garagem abriu")
+                                            
+                                            s.liga_rele3_exp1()
+                                            
+                                            status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
+                                            status.write("1")
+                                            status.close()
+
+                                            time.sleep(1)
+                                        
+                                        pmg1 = l.leitor1_in1()
+                                        
+                                        if pmg1 == 1: # Se o portão ja fechou
+
+                                            time.sleep(0.05)
+                                            pmg1 = l.leitor1_in1()
+
+                                            if pmg1 == 1:
+
+                                                time.sleep(0.05)
+                                                pmg1 = l.leitor1_in1()
+
+                                                if pmg1 == 1:
+
+                                                    log("Portão Garagem fechou")
+
+                                                    s.desliga_rele3_exp1() # Sinal Vermelho
+
+                                                    status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
+                                                    status.write("0")
+                                                    status.close()
+                                                    
+                                                    if eventos == "1":
+                                                        
+                                                        evento.enviar("R","133","013") # Envia o evento de fechamento para a central
+                                                    
+                                                    cont = 0
+                                                    break
+                                            
+                                        if pmg1 == 0: # Se o portão ainda esta aberto
+
+                                            time.sleep(0.05)
+                                            pmg1 = l.leitor1_in1()
+
+                                            if pmg1 == 0:
+
+                                                time.sleep(0.05)
+                                                pmg1 = l.leitor1_in1()
+
+                                                if pmg1 == 0:
+
+                                                    cont2 = 300     # Tempo maximo para deixar 300 = 30 segundos
+
+                                                    while cont2 > 0:   # Enquanto o portão esta aberto verifica
+
+                                                        if cont2 == 300:
+
+                                                            log("Portão ainda aberto...")
+                                                    
+                                                        bar1 = l.leitor1_in2() # Faz a leitura da barreira 1
+                                                        pmg1 = l.leitor1_in1()
+
+                                                        if bar1 == 1: # Se acionou a barreira de entrada
+
+                                                            time.sleep(0.05)
+                                                            bar1 = l.leitor1_in2()
+
+                                                            if bar1 == 1:
+
+                                                                log("Acionou a barreira Garagem")
+
+                                                                tempo = 30
+
+                                                                while tempo > 0: # Enquanto a barreira esta acionada
+
+                                                                    bar1 = l.leitor1_in2() # Faz a leitura da barreira 1                                                                
+                                                                    
+                                                                    if bar1 == 0:
+
+                                                                        time.sleep(0.05)
+                                                                        bar1 = l.leitor1_in2()
+
+                                                                        if bar1 == 0:
+                                                                            
+                                                                            log("Saiu da barreira")
+                                                                            s.desliga_rele3_exp1() # Sinal Vermelho
+                                                                            tempo = 1
+                                                                            break
+
+                                                                    tempo = tempo - 1
+                                                                    time.sleep(1) 
+                                                                
+                                                                pmg1 = l.leitor1_in1() # Faz a leitura do ponto magnetico                                    
+                                                                
+                                                                if pmg1 == 0: # Portão ainda aberto
+
+                                                                    time.sleep(0.05)                                                        
+                                                                    pmg1 = l.leitor1_in1() # Faz a leitura do ponto magnetico                                        
+
+                                                                    if pmg1 == 0:
+
+                                                                        log("Aguardando 30 segundos portão Garagem fechar")
+
+                                                                        temp = 300
+                                                                        entrada_permitida = 0
+
+                                                                        while temp > 0:  # Enquanto o portão ainda está aberto e tempo menor que 30 seg
+                                                                            
+                                                                            pmg1 = l.leitor1_in1() # Faz a leitura do ponto magnetico
+                                                                            bar1 = l.leitor1_in2() # Faz a leitura da barreira 1
+                                                                            tx1 =  l.leitor1_in3()  # Cantato abre vindo do TX (LINEAR HCS)
+
+                                                                            if tx1 == 1: # Alguem acionou o controle enquanto o portão fechava
+
+                                                                                time.sleep(0.05)                                                                    
+                                                                                tx1 =  l.leitor1_in3()
+
+                                                                                if tx1 == 1:
+
+                                                                                    time.sleep(0.05)                                                                    
+                                                                                    tx1 =  l.leitor1_in3()
+
+                                                                                    if tx1 == 1:
+
+                                                                                        log("Reconheceu abre Garagem enquanto o portão estava aberto")                                                    
+                                                                                        s.liga_rele3_exp1() # Sinal Verde
+
+                                                                                        entrada_permitida = 1 # Reconhece o segundo acionamento
+                                                                                                                                                                                                                                                        
+                                                                                        break # Sai da função e inicia novamente a verificação
+
+                                                                            if bar1 == 1 and entrada_permitida == 1:
+                                                                                
+                                                                                time.sleep(0.05)                                                                    
+                                                                                bar1 = l.leitor1_in2()
+                                                                                
+                                                                                if bar1 == 1:
+
+                                                                                    tempo2 = 30
+
+                                                                                    while tempo2 > 0: # Enquanto a barreira esta acionada
+
+                                                                                        bar1 = l.leitor1_in2() # Faz a leitura da barreira 1
+                                                                                                                                                          
+                                                                                        if bar1 == 1: 
+
+                                                                                            time.sleep(0.1)                                                                                                                                                                               
+
+                                                                                        if bar1 == 0:
+
+                                                                                            time.sleep(0.05)
+                                                                                            bar1 = l.leitor1_in2()
+
+                                                                                            if bar1 == 0:
+
+                                                                                                time.sleep(0.05)
+                                                                                                bar1 = l.leitor1_in2()
+
+                                                                                                if bar1 == 0:
+
+                                                                                                    log("Saiu da barreira")
+                                                                                                    s.desliga_rele3_exp1() # Sinal Vermelho
+                                                                                                    log("Entrou segundo veiculo autorizado")
+
+                                                                                                    entrada_permitida = 0
+                                                                                                    
+                                                                                                    break
+
+                                                                                        
+                                                                                        tempo2 = tempo2 - 1
+                                                                                        time.sleep(1)                                        
+
+                                                                                break
+
+                                                                            if bar1 == 1 and entrada_permitida == 0: # Dupla passagem
+
+                                                                                time.sleep(0.05)                                                                    
+                                                                                bar1 = l.leitor1_in2()
+
+                                                                                if bar1 == 1:                                                                            
+
+                                                                                    log("Dupla passagem Garagem")                                                
+
+                                                                                    evento.enviar("E","132","016")
+
+                                                                                    s.liga_rele4_exp1() # Sirene                                            
+                                                                                    time.sleep(10)
+                                                                                    s.desliga_rele4_exp1()                                            
+
+                                                                                break
+                                                                                
+                                                                     
+                                                                            if pmg1 == 1: # portão ja fechou
+
+                                                                                time.sleep(0.05)                                                                    
+                                                                                pmg1 = l.leitor1_in1()
+
+                                                                                if pmg1 == 1:
+
+                                                                                    time.sleep(0.05)                                                                    
+                                                                                    pmg1 = l.leitor1_in1()
+
+                                                                                    if pmg1 == 1:
+
+    ##                                                                                    log("Portão Garagem fechou ")
+
+                                                                                        s.desliga_rele3_exp1() # Sinal Vermelho
+
+                                                                                        status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
+                                                                                        status.write("0")
+                                                                                        status.close()
+
+                                                                                        if evento == "1":
+                                                                                        
+                                                                                            evento.enviar("R","133","013") # Envia o evento de fechamento para a central
+                                                                                        
+                                                                                        cont = 0
+                                                                                        break                                                                                                                                                     
+
+                                                                            if temp == 1:
+
+                                                                                log("Portão aberto por muito tempo")
+
+                                                                                s.desliga_rele3_exp1() # Sinal Vermelho
+
+                                                                                s.liga_rele4_exp1() # Sirene                                            
+                                                                                time.sleep(3)
+                                                                                s.desliga_rele4_exp1()
+
+                                                                                evento.enviar("E","132","026") # Envia obstruçao
+                                                                                                                                           
+            ##                                                                    break
+
+                                                                            temp = temp - 1
+                                                                            time.sleep(0.2)
+                                                        if pmg1 == 1:
+
+                                                            time.sleep(0.05)
+                                                            pmg1 = l.leitor1_in1()
+                                                            
+                                                            if pmg1 == 1:
+
+                                                                log("Portão Garagem fechou.")
+
+                                                                s.desliga_rele3_exp1() # Sinal Vermelho
+
+                                                                status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
+                                                                status.write("0")
+                                                                status.close()
+
+                                                                if evento == "1":
+                                                                
+                                                                    evento.enviar("R","133","013") # Envia o evento de fechamento para a central
+                                                                
+                                                                cont2 = 0
+                                                                break
+                                                                                
+                                                        if cont2 == 1:
+
+                                                            log("Nao detectou nenhuma entrada ou saida")
+
+                                                            break
+                                                        
+                                                        time.sleep(0.1)
+                                                        cont2 = cont2 - 1
+                                                                            
+                                                                    
+                                        if cont1 == 1:
+
+                                            log("Atingiu o tempo máximo e o portão da Garagem não fechou")
+
+                                            s.desliga_rele3_exp1() # Sinal Vermelho
+
+                                            s.liga_rele4_exp1() # Sirene                                            
+                                            time.sleep(3)
+                                            s.desliga_rele4_exp1()
+
+                                            status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
+                                            status.write("0")
+                                            status.close()
+
+                                            break
+                                        
+                                        cont1 = cont1 - 1
+                                        time.sleep(0.1)
+                                    
+                                except Exception as err:
+
+                                    print(err)
+                                    log(err)
+
+            if mud1 == 1 and mudanca1 == 0: # Chave de mudança acionada
+
+                time.sleep(0.05)     
+                mud1 = l.leitor1_in4()  # Chave de mudança            
+
+                if mud1 == 1:
+
+                    time.sleep(0.05)     
+                    mud1 = l.leitor1_in4()  # Chave de mudança            
+
+                    if mud1 == 1:
+
+                        log("*")
+                        log("Chave de mudança acionada Garagem")
+
+                        s.liga_rele3_exp1() # Sinal Verde
+
+                        if evento == "1":
+
+                            evento.enviar("E","132","26")                
+
+                        t = open("/home/pi/CMM/status_garagem_1.cmm","w")
+                        t.write("1")
+                        t.close()
+
+                        s.liga_rele1_exp1() # Aciona o rele 1 do modulo 1 (Abre)
+                        time.sleep(2)
+                        s.desliga_rele1_exp1()
+                        s.liga_rele2_exp1() # Aciona o rele 2 do modulo 1 (Foto)                
+
+                        mudanca1 = 1
+
+            if mud1 == 0 and mudanca1 == 1:
+
+                time.sleep(0.05)
+                mud1 = l.leitor1_in4()
+
+                if mud1 == 0:
+
+                    time.sleep(0.05)
+                    mud1 = l.leitor1_in4()
+
+                    if mud1 == 0:
+
+                        log("Desligada a chave de mudança")
+
+                        s.desliga_rele3_exp1() # Sinal Vermelho
+
+                        if evento == "1":
+
+                            evento.enviar("R","132","26")
+                                        
+                        s.desliga_rele1_exp1() # Desliga o rele 1 do modulo 1 (Abre)
+                        s.desliga_rele2_exp1() # Desliga o rele 2 do modulo 1 (Foto) 
+
+                        pmg1 = l.leitor1_in1()
+
+                        cont = 60 # Tempo maximo de espera
+
+                        log("Aguardando portão Garagem fechar depois da mudanca")
+
+                        while cont > 0:
+                            
+                            pmg1 = l.leitor1_in1()                                                               
+                                    
+                            if pmg1 == 1: # Portão ja fechou
+
+                                time.sleep(0.05)
                                 pmg1 = l.leitor1_in1()
 
                                 if pmg1 == 1:
 
-                                    log("Portão fechou")
+                                    time.sleep(0.05)
+                                    pmg1 = l.leitor1_in1()
 
-                                    s.desliga_rele3_exp1() # Sinal Vermelho
+                                    if pmg1 == 1:
 
-                                    t = open("/home/pi/CMM/status_garagem_1.cmm","w")
-                                    t.write("0")
-                                    t.close()
+                                        log("Portão fechou")
+
+                                        s.desliga_rele3_exp1() # Sinal Vermelho
+
+                                        t = open("/home/pi/CMM/status_garagem_1.cmm","w")
+                                        t.write("0")
+                                        t.close()
+                                        
+                                        cont = 0
+                                        mudanca1 = 0
+                                        time.sleep(1)
+                                        break
                                     
-                                    cont = 0
-                                    mudanca1 = 0
-                                    time.sleep(1)
-                                    break
-                                
-        time.sleep(0.2)        
+                            if cont == 1:
 
+                                log("Chave de mudança desligou mas o portão no fechou após 1 min")
+
+                                s.desliga_rele3_exp1() # Sinal Vermelho
+
+                                t = open("/home/pi/CMM/status_garagem_1.cmm","w")
+                                t.write("0")
+                                t.close()
+
+                                s.liga_rele4_exp1() # Pulso na Sirene                                            
+                                time.sleep(3)
+                                s.desliga_rele4_exp1()                                
+                                
+                                mudanca1 = 0
+                                
+                                time.sleep(1)
+
+                            time.sleep(1)
+                            cont = cont - 1
+            time.sleep(0.2)
+            
+        except Exception as err:
+
+            print(err)
+            log(err)
+        
+    log("Saiu do loop da lógica do portão")
         
 def Arrombamento(Rele): # Inicia a thread arrombamento de portões
+
+    time.sleep(2)
     
-    log("Programa arrombamento de portões em execução")
+    log("Programa arrombamento de portões sociais em execução")
 
     ar1 = 0 # Variavel arrombamento portão 1
     ar2 = 0
@@ -1328,133 +1492,316 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
 
     audio = banco.consulta("comandos","audio")
     eventos = banco.consulta("comandos","eventos")
-   
+
+       
     while(1):
+
+        try:
         
-        pm1 = entradas.pm1()
-        pm2 = entradas.pm2()
-
-        a = open("/home/pi/CMM/status_social.cmm","r")
-        abre_social = a.read()
-        a.close()
-
-        b = open("/home/pi/CMM/status_eclusa.cmm","r")
-        abre_eclusa = b.read()
-        b.close()
-
-        if abre_social == "1" or abre_eclusa == "1":
-
-            saidas.desliga_sirene()
-
-        if ar1 == 0 and reset_ar1 == 0 and segunda_vez1 == 1:
-
-            saidas.desliga_sirene()
-            segunda_vez1 = 0
-
-        if ar2 == 0 and reset_ar2 == 0 and segunda_vez2 == 1:
-
-            saidas.desliga_sirene()
-            segunda_vez2 = 0
-                
-        if abre_social == "0" and pm1 == "0" and ar1 == 0:
-
-            time.sleep(1) # Filtra algum possivel ruido de até 500 milissegundos
+            pm1 = entradas.pm1()
+            pm2 = entradas.pm2()
 
             a = open("/home/pi/CMM/status_social.cmm","r")
             abre_social = a.read()
             a.close()
 
-            pm1 = entradas.pm1()
-
-            if abre_social == "0" and pm1 == "0": # Se realmente foi um arrombamento liga sirene e notifica o Moni
-                
-                log("Arrombamento do portão social")
-                os.system("mpg123 /home/pi/CMM/mp3/violacao_social.mp3")
-                
-                saidas.liga_sirene()
-
-                if eventos == "1":
-
-                    evento.enviar("E","132","002")
-                
-                ar1 = 1
-                reset_ar1 = 1
-
-        if ar1 == 1 and reset_ar1 == 1:
-
-            cont1 = cont1 - 1 # A primeira vez que acontece o arrombamento reseta depois de 20 segundos
-            time.sleep(1)
-
-            if cont1 == 340:
-
-                saidas.desliga_sirene()
-
-            if cont1 <= 0:
-
-                saidas.desliga_sirene()
-
-                if eventos == "1":
-
-                    evento.enviar("R","132","002")
-
-                cont1 = 350 # Se apos o reset o portão continuar aberto envia o evento novamente  espera 5 min
-                ar1 = 0
-                reset_ar1 = 0
-                segunda_vez1 = 1
-
-                saidas.desliga_sirene() # Garantia que esteja desligada
-                
-                
-
-        if abre_eclusa == "0" and pm2 == "0" and ar2 == 0:
-
-            time.sleep(1) # Filtra algum possivel ruido de até 500 milissegundos
-
             b = open("/home/pi/CMM/status_eclusa.cmm","r")
             abre_eclusa = b.read()
             b.close()
 
-            pm2 = entradas.pm2()
-
-            if abre_eclusa == "0" and pm2 == "0": # Se realmente foi um arrombamento liga sirene e notifica o Moni
-
-                log("Arrombamento do portão Eclusa")
-                os.system("mpg123 /home/pi/CMM/mp3/violacao_eclusa.mp3")
-
-                saidas.liga_sirene()
-
-                if eventos == "1":
-
-                    evento.enviar("E","132","004")
-                
-                ar2 = 1
-                reset_ar2 = 1
-
-        if ar2 == 1 and reset_ar2 == 1:
-
-            cont2 = cont2 - 1 # A primeira vez que acontece o arrombamento reseta depois de 20 segundos
-            time.sleep(1)
-
-            if cont2 == 340:
+            if abre_social == "1" or abre_eclusa == "1":
 
                 saidas.desliga_sirene()
 
-            if cont2 <= 0:
+            if ar1 == 0 and reset_ar1 == 0 and segunda_vez1 == 1:
 
                 saidas.desliga_sirene()
+                segunda_vez1 = 0
 
-                if eventos == "1":
-
-                    evento.enviar("R","132","004")
-
-                cont2 = 350 # Se apos o reset o portão continuar aberto envia o evento novamente e espera 5 min
-                ar2 = 0
-                reset_ar2 = 0
-                segunda_vez2 = 1
+            if ar2 == 0 and reset_ar2 == 0 and segunda_vez2 == 1:
 
                 saidas.desliga_sirene()
+                segunda_vez2 = 0
+                    
+            if abre_social == "0" and pm1 == "0" and ar1 == 0:
+
+                time.sleep(1) # Filtra algum possivel ruido de até 500 milissegundos
+
+                a = open("/home/pi/CMM/status_social.cmm","r")
+                abre_social = a.read()
+                a.close()
+
+                pm1 = entradas.pm1()
+
+                if abre_social == "0" and pm1 == "0": # Se realmente foi um arrombamento liga sirene e notifica o Moni
+                    
+                    log("Arrombamento do portão social")
+                    os.system("mpg123 /home/pi/CMM/mp3/violacao_social.mp3")
+                    
+                    saidas.liga_sirene()
+
+                    if eventos == "1":
+
+                        evento.enviar("E","132","002")
+                    
+                    ar1 = 1
+                    reset_ar1 = 1
+
+            if ar1 == 1 and reset_ar1 == 1:
+
+                cont1 = cont1 - 1 # A primeira vez que acontece o arrombamento reseta depois de 20 segundos
+                time.sleep(1)
+
+                if cont1 == 340:
+
+                    saidas.desliga_sirene()
+
+                if cont1 <= 0:
+
+                    saidas.desliga_sirene()
+
+                    if eventos == "1":
+
+                        evento.enviar("R","132","002")
+
+                    cont1 = 350 # Se apos o reset o portão continuar aberto envia o evento novamente  espera 5 min
+                    ar1 = 0
+                    reset_ar1 = 0
+                    segunda_vez1 = 1
+
+                    saidas.desliga_sirene() # Garantia que esteja desligada
+                    
+                    
+
+            if abre_eclusa == "0" and pm2 == "0" and ar2 == 0:
+
+                time.sleep(1) # Filtra algum possivel ruido de até 500 milissegundos
+
+                b = open("/home/pi/CMM/status_eclusa.cmm","r")
+                abre_eclusa = b.read()
+                b.close()
+
+                pm2 = entradas.pm2()
+
+                if abre_eclusa == "0" and pm2 == "0": # Se realmente foi um arrombamento liga sirene e notifica o Moni
+
+                    log("Arrombamento do portão Eclusa")
+                    os.system("mpg123 /home/pi/CMM/mp3/violacao_eclusa.mp3")
+
+                    saidas.liga_sirene()
+
+                    if eventos == "1":
+
+                        evento.enviar("E","132","004")
+                    
+                    ar2 = 1
+                    reset_ar2 = 1
+
+            if ar2 == 1 and reset_ar2 == 1:
+
+                cont2 = cont2 - 1 # A primeira vez que acontece o arrombamento reseta depois de 20 segundos
+                time.sleep(1)
+
+                if cont2 == 340:
+
+                    saidas.desliga_sirene()
+
+                if cont2 <= 0:
+
+                    saidas.desliga_sirene()
+
+                    if eventos == "1":
+
+                        evento.enviar("R","132","004")
+
+                    cont2 = 350 # Se apos o reset o portão continuar aberto envia o evento novamente e espera 5 min
+                    ar2 = 0
+                    reset_ar2 = 0
+                    segunda_vez2 = 1
+
+                    saidas.desliga_sirene()
+            
+            time.sleep(1)   
+
+        except Exception as err:
+
+            print("Erro na rotina de alarmes dos sociais")
+            log("Erro na rotina de alarmes dos sociais")
         
-        time.sleep(1)   
+def alarmes_garagem1():
+            
+        if pmg1 == "0" and mudanca1 == 0 and status_tx1 == "0": # Violação do portão da garagem                              
+
+            cont = 10
+            violacao = 1
+            
+            while cont > 0:
+
+                t = open("/home/pi/CMM/status_garagem_1.cmm","r")
+                status_tx1 = t.read()
+                t.close() 
+
+                pmg1 = leitor("leitor1_in1")
+
+                if pmg1 == "0" and status_tx1 == "0":
+
+                    violacao = 1
+                    
+                if pmg1 == "1":
+                    
+                    violacao = 0
+                    break
+
+                time.sleep(0.1)
+                cont = cont - 1
+
+            if violacao == 0: # Filtrou ruido
+
+                pass
+
+            if violacao == 1:
+
+                log("violação do portão garagem 1")
+
+                s.desliga_rele3_exp1() # Sinal Vermelho
+
+                s.liga_rele4_exp1() # Sirene
+                            
+                #evento.enviar("E","132","014")
+
+                cont = 30 # Tempo maximo de espera
+
+                log("Aguardando portão fechar")
+
+                while cont > 0:
+
+                    pmg1 = leitor("leitor1_in1")
+
+                    if(pmg1 == "0"): # Portão ainda aberto                                      
+
+                        time.sleep(1)
+                        cont = cont - 1
+                            
+                    if (pmg1 == "1"): # Portão ja fechou
+
+                        log("Portão fechou")
+
+                        t = open("/home/pi/CMM/status_garagem_1.cmm","w")
+                        t.write("0")
+                        t.close()
+
+
+                        
+                        cont = 0
+                        time.sleep(1)
+                        
+                        s.desliga_rele4_exp1() # Desliga sirene
+                        
+                        break            
+                
+##                s.desliga_rele4_exp1() # Desliga sirene
+
+##                violacao = 0
+                
+                time.sleep(30)
+                
+        time.sleep(1)        
+
+def Buffer():
+
+    socket.setdefaulttimeout(3) # limite em segundos para enviar o socket
+
+    host = '172.20.1.5'  # '172.20.1.5' Host servidor  Moni
+    port = 4010          # 4010 Porta máquina receptora
+
+    log("Programa buffer de eventos em execução")
+
+    enviado = 0
+
+    while(1):        
+
+        socket.setdefaulttimeout(3)
+
+        b = open("/home/pi/CMM/buffer_eventos.txt","r")
+        
+        for line in b:
+
+            ln = line
+            evento = ln.replace("\n","")
+            
+            if evento != "": # Se houver alguma coisa para enviar
+
+                # Tentanto enviar o evento",evento...
+
+                try:
+        
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.connect ((host,port))
+
+                    command = (evento + "\r") # ("7000 185808E30500008")  # Envia abriu portão da eclusa para a central de monitormento
+                    s.send(str.encode(command))
+                    reply = s.recv(1024)
+                    log(reply.decode('utf-8'))
+                    s.close()
+
+                    enviado = 1                    
+                                
+                except Exception as err: ## Não conseguiu enviar o evento, sem conexão no momento                    
+
+                    s.close()
+
+                    time.sleep(10)
+                    break
+                
+                if enviado == 1:
+                                               
+                    txt = ("Evento enviado ",evento)
+                    log(txt)
+
+                    # Cria uma lista e adiciona todos as linhas encontradas em buffer.txt
+
+                    lista = []
+
+                    try:
+
+                        txt = open("/home/pi/CMM/buffer_eventos.txt","r")
+                        for l in txt:                        
+                            l = l.replace("\n","") # Coloca na lista o evento ja editado
+                            lista.append(evento)
+                        
+                        # Exclui o item enviado da lista
+
+                        for i in lista:
+                            
+                            if i == evento:
+                                indice = lista.index(i)
+                                txt = ("Excluindo o evento",evento,"posicao",indice)
+                                log(txt)
+                                del(lista[indice])
+                                nova_lista = lista
+                                
+                        txt.close()
+
+                        # Zera o arquivo buffer
+
+                        tx = open("/home/pi/CMM/buffer_eventos.txt","w") 
+                        tx.close()
+
+                        # Reescreve o texto com a nova lista editada
+
+                        txt = open("/home/pi/CMM/buffer_eventos.txt","a")
+                        for i in nova_lista:
+                            txt.write(i + "\n")
+                        txt.close()    
+                            
+                        enviado = 0
+
+                    except Exception as err:
+                        txt = ("Erro",err)
+                        log(txt)
+            
+        b.close() # Fecha o arquivo de texto em modo leitura    
+        time.sleep(1)
 
 def Servidor(Rele,Abre): 
     
@@ -1657,270 +2004,6 @@ def Servidor(Rele,Abre):
               except Exception as err:
 
                   log("Encerrou conexão")
-
-        
-def Alarmes_garagem_1(Rele):
-    
-    log("Programa Alarmes Garagem em execução")
-
-    mudanca1 = 0
-    
-    while(1):         
-
-        s = cmm.Expansor()
-
-        pmg1 = leitor("leitor1_in1") # Ponto magnetico portão leitor 1 entrada 1      
-        mud1 = leitor("leitor1_in4")  # Chave de mudança
-
-        t = open("/home/pi/CMM/status_garagem_1.cmm","r")
-        status_tx1 = t.read()
-        t.close()
-                
-
-        if mud1 == "1" and mudanca1 == 0: # Chave de mudança acionada
-
-            time.sleep(0.1)
-
-            pmg1 = leitor("leitor1_in1") # Ponto magnetico portão leitor 1 entrada 1      
-            mud1 = leitor("leitor1_in4")  # Chave de mudança            
-
-            if mud1 == "1" and mudanca1 == 0:    
-
-                log("Chave de mudança acionada Garagem")
-
-                s.liga_rele3_exp1() # Sinal Verde
-
-                #evento.enviar("E","132","26")                
-
-                t = open("/home/pi/CMM/status_garagem_1.cmm","w")
-                t.write("1")
-                t.close()
-
-                s.liga_rele1_exp1() # Aciona o rele 1 do modulo 1 (Abre)
-                time.sleep(2)
-                s.desliga_rele1_exp1()
-                s.liga_rele2_exp1() # Aciona o rele 2 do modulo 1 (Foto)                
-
-                mudanca1 = 1
-
-        if mud1 == "0" and mudanca1 == 1:
-
-            time.sleep(0.1)
-            mud1 = leitor("leitor1_in4")
-
-            if mud1 == "0":
-
-                log("Desligada a chave de mudança")
-
-                s.desliga_rele3_exp1() # Sinal Vermelho
-
-                #evento.enviar("R","132","26")
-                                
-                s.desliga_rele1_exp1() # Desliga o rele 1 do modulo 1 (Abre)
-                s.desliga_rele2_exp1() # Desliga o rele 2 do modulo 1 (Foto) 
-
-                pmg1 = leitor("leitor1_in1")
-
-                cont = 30 # Tempo maximo de espera
-
-                log("Aguardando portão Garagem fechar depois da mudanca")
-
-                while cont > 0:
-
-                    pmg1 = leitor("leitor1_in1")
-
-                    if(pmg1 == "0"): # Portão ainda aberto                                      
-
-                        time.sleep(1)
-                        cont = cont - 1
-                            
-                    if (pmg1 == "1"): # Portão ja fechou
-
-                        log("Portão fechou")
-
-                        s.desliga_rele3_exp1() # Sinal Vermelho
-
-                        t = open("/home/pi/CMM/status_garagem_1.cmm","w")
-                        t.write("0")
-                        t.close()
-                        
-                        cont = 0
-                        mudanca1 = 0
-                        time.sleep(1)
-                        break
-            
-        if pmg1 == "0" and mudanca1 == 0 and status_tx1 == "0": # Violação do portão da garagem                              
-
-            cont = 10
-            violacao = 1
-            
-            while cont > 0:
-
-                t = open("/home/pi/CMM/status_garagem_1.cmm","r")
-                status_tx1 = t.read()
-                t.close() 
-
-                pmg1 = leitor("leitor1_in1")
-
-                if pmg1 == "0" and status_tx1 == "0":
-
-                    violacao = 1
-                    
-                if pmg1 == "1":
-                    
-                    violacao = 0
-                    break
-
-                time.sleep(0.1)
-                cont = cont - 1
-
-            if violacao == 0: # Filtrou ruido
-
-                pass
-
-            if violacao == 1:
-
-                log("violação do portão garagem 1")
-
-                s.desliga_rele3_exp1() # Sinal Vermelho
-
-                s.liga_rele4_exp1() # Sirene
-                            
-                #evento.enviar("E","132","014")
-
-                cont = 30 # Tempo maximo de espera
-
-                log("Aguardando portão fechar")
-
-                while cont > 0:
-
-                    pmg1 = leitor("leitor1_in1")
-
-                    if(pmg1 == "0"): # Portão ainda aberto                                      
-
-                        time.sleep(1)
-                        cont = cont - 1
-                            
-                    if (pmg1 == "1"): # Portão ja fechou
-
-                        log("Portão fechou")
-
-                        t = open("/home/pi/CMM/status_garagem_1.cmm","w")
-                        t.write("0")
-                        t.close()
-
-
-                        
-                        cont = 0
-                        time.sleep(1)
-                        
-                        s.desliga_rele4_exp1() # Desliga sirene
-                        
-                        break            
-                
-##                s.desliga_rele4_exp1() # Desliga sirene
-
-##                violacao = 0
-                
-                time.sleep(30)
-                
-        time.sleep(1)        
-
-def Buffer():
-
-    socket.setdefaulttimeout(3) # limite em segundos para enviar o socket
-
-    host = '172.20.1.5'  # '172.20.1.5' Host servidor  Moni
-    port = 4010          # 4010 Porta máquina receptora
-
-    log("Programa buffer de eventos em execução")
-
-    enviado = 0
-
-    while(1):        
-
-        socket.setdefaulttimeout(3)
-
-        b = open("/home/pi/CMM/buffer_eventos.txt","r")
-        
-        for line in b:
-
-            ln = line
-            evento = ln.replace("\n","")
-            
-            if evento != "": # Se houver alguma coisa para enviar
-
-                # Tentanto enviar o evento",evento...
-
-                try:
-        
-                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    s.connect ((host,port))
-
-                    command = (evento + "\r") # ("7000 185808E30500008")  # Envia abriu portão da eclusa para a central de monitormento
-                    s.send(str.encode(command))
-                    reply = s.recv(1024)
-                    log(reply.decode('utf-8'))
-                    s.close()
-
-                    enviado = 1                    
-                                
-                except Exception as err: ## Não conseguiu enviar o evento, sem conexão no momento                    
-
-                    s.close()
-
-                    time.sleep(10)
-                    break
-                
-                if enviado == 1:
-                                               
-                    txt = ("Evento enviado ",evento)
-                    log(txt)
-
-                    # Cria uma lista e adiciona todos as linhas encontradas em buffer.txt
-
-                    lista = []
-
-                    try:
-
-                        txt = open("/home/pi/CMM/buffer_eventos.txt","r")
-                        for l in txt:                        
-                            l = l.replace("\n","") # Coloca na lista o evento ja editado
-                            lista.append(evento)
-                        
-                        # Exclui o item enviado da lista
-
-                        for i in lista:
-                            
-                            if i == evento:
-                                indice = lista.index(i)
-                                txt = ("Excluindo o evento",evento,"posicao",indice)
-                                log(txt)
-                                del(lista[indice])
-                                nova_lista = lista
-                                
-                        txt.close()
-
-                        # Zera o arquivo buffer
-
-                        tx = open("/home/pi/CMM/buffer_eventos.txt","w") 
-                        tx.close()
-
-                        # Reescreve o texto com a nova lista editada
-
-                        txt = open("/home/pi/CMM/buffer_eventos.txt","a")
-                        for i in nova_lista:
-                            txt.write(i + "\n")
-                        txt.close()    
-                            
-                        enviado = 0
-
-                    except Exception as err:
-                        txt = ("Erro",err)
-                        log(txt)
-            
-        b.close() # Fecha o arquivo de texto em modo leitura    
-        time.sleep(1)
                     
         
 #################### Instancia as Classes  #############################################
@@ -1935,25 +2018,21 @@ garagem1 = threading.Thread(target=Garagem1, args=(cmm.Rele,))
 ##garagem2 = threading.Thread(target=Garagem2, args=(cmm.Rele,))
 arrombamento = threading.Thread(target=Arrombamento, args=(cmm.Rele,))
 servidor = threading.Thread(target=Servidor, args=(cmm.Rele,))
-buffer = threading.Thread(target=Buffer)
+servidor_qr = threading.Thread(target=Servidor_qr)
 
-alarmes1 = threading.Thread(target=Alarmes_garagem_1, args=(cmm.Rele,))
-alarmes2 = threading.Thread(target=Alarmes_garagem_1, args=(cmm.Rele,))
+buffer = threading.Thread(target=Buffer)
 
 
 ######################################### Start dos Programas  #############################################################
 
 sociais.start() # Inicia o programa dos portões sociais
-garagem1.start() # Inicia o programa do portão de garagem
+##garagem1.start() # Inicia o programa do portão de garagem
 ##garagem2.start() # Inicia o programa do portão de garagem
 arrombamento.start() # Inicia o programa de automação
-#servidor.start() 
+#servidor.start()
+servidor_qr.start() 
 ##buffer.start() # Inicia o programa Buffer
 
-##alarmes1.start() # 
-##alarmes2.start()
-##qrcode.start()
-##wiegand.start()
 
 time.sleep(0.2) # Tempo para colocar as linhas impressas após as linhas de inicio de programa
 
