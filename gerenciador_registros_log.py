@@ -3,6 +3,8 @@ import os
 import glob
 import shutil
 
+os.system("sudo chmod 777 -R /var/www/html/log") # Permissão para escrever no log
+
 # Data atual formatada com"_"
 
 data = time.strftime('%d_%m_%Y')
@@ -10,6 +12,34 @@ mes = time.strftime('%m')
 dia = time.strftime('%d')
 
 hs = time.strftime("%H:%M:%S")
+
+def log(texto): # Metodo para registro dos eventos no log.txt (exibido na interface grafica)
+
+    hs = time.strftime("%H:%M:%S") 
+    data = time.strftime('%d/%m/%y')
+
+    texto = str(texto)
+
+    if texto == "*":
+
+        l = open("/var/www/html/log/log.txt","a")
+        l.write("\n")
+        l.close()
+
+    else:        
+
+        texto = texto.replace("'","")
+        texto = texto.replace(",","")
+        texto = texto.replace("(","")
+        texto = texto.replace(")","")
+
+        escrita = ("{} - {}  Evento:  {}\n").format(data, hs, texto)
+        escrita = str(escrita)
+
+        l = open("/var/www/html/log/log.txt","a")
+        l.write(escrita)
+        l.close()
+    
 
 ##print(data)
 
@@ -73,7 +103,7 @@ if mes == "12":
 
     fazer_backup = 31
 
-# Cria uma lista com os nomes contidos na oasta log em formato .txt
+# Cria uma lista com os nomes contidos na pasta log em formato .txt
 
 path = '/var/www/html/log'
 folder = os.fsencode(path)
@@ -94,7 +124,7 @@ quantidade = (len(filenames)) # Quantidade de arquivos na pasta
 
 if quantidade >= fazer_backup:
     
-    print("Limpando a pasta que ja contem o limite de arquivos do mes...")
+    log("Limpando a pasta que ja contem o limite de arquivos do mes...")
 
     diretorio = ("/var/www/html/log/{}").format(mes)
 
@@ -108,26 +138,29 @@ if quantidade >= fazer_backup:
 fonte = "/var/www/html/log/log.txt"
 destino = ("/var/www/html/log/{}/{}.txt").format(mes,data)
 
+ok = 0
+
 try:        
 
     shutil.copyfile(fonte,destino) # Tenta salvar o log.txt como um novo arquivo
     txt = open("/var/www/html/log/log.txt","w")    
     txt.write("\n")
     txt.close()
+    ok = 0
 
-except : # Se for a primeira vez e nao existir pasta, cria uma.
-    
-    print("Criando a pasta do mes que ainda nao existia...")
-    diretorio = ("/var/www/html/log/{}").format(mes)
-    os.mkdir(diretorio)
-    
-    shutil.copyfile(fonte,destino)
-    txt = open("/var/www/html/log/log.txt","w")    
-    txt.write("\n")
-    txt.close()
+except : # Se nao existir pasta, cria uma.
+
+    msg = ("Não encontrou a pasta de {} para salvar o log de hoje").format(mes)
+    log(msg)
+    ok = 1
+
+if ok == 0:
+
+    print("Salvo o log do dia na pasta correspondente")
 
 
-print("Salvo o log do dia na pasta correspondente")    
+
+   
 
 
 
