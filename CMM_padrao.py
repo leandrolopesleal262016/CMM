@@ -1612,7 +1612,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                     s.write("1")
                     s.close()
 
-                    saidaliga_blq2() # Aqui abrimos o contato da eclusa para impedir que ela seja aberta enquanto o social esta aberto
+                    saidas.liga_blq2() # Aqui abrimos o contato da eclusa para impedir que ela seja aberta enquanto o social esta aberto
                   
                     social(ihm_soc1)
                    
@@ -1632,7 +1632,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                             log("Abrindo novamente o social...")
 
-                            saidadesliga_blq2()
+                            saidas.desliga_blq2()
 
                             status = open("/home/pi/CMM/status_social.cmm","w") 
                             status.write("0")
@@ -1645,7 +1645,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                             os.system("mpg123 /home/pi/CMM/mp3/social_emperrado.mp3")
                                                     
-                            saidadesliga_blq2() # Fecha o contato e libera a eclusa para ser acionada
+                            saidas.desliga_blq2() # Fecha o contato e libera a eclusa para ser acionada
 
                             status = open("/home/pi/CMM/status_social.cmm","w") 
                             status.write("0")
@@ -1683,7 +1683,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                                 s.write("0")
                                 s.close()
 
-                                saidadesliga_blq2() # Fecha o contato e libera a eclusa para ser acionada
+                                saidas.desliga_blq2() # Fecha o contato e libera a eclusa para ser acionada
 
                                 break
 
@@ -1703,7 +1703,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                                 contador = 0
 
-                                saidadesliga_blq2() # Fecha o contato e libera a eclusa para ser acionada                                
+                                saidas.desliga_blq2() # Fecha o contato e libera a eclusa para ser acionada                                
                                
                             ctw2 = entradas.ctw2()                            
                             
@@ -1741,7 +1741,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                     s.write("1")
                     s.close()
 
-                    saidaliga_blq1() # Impede o social de abrir enquanto a eclusa esta aberta
+                    saidas.liga_blq1() # Impede o social de abrir enquanto a eclusa esta aberta
                     
                     eclusa(ihm_soc2)                                        
                    
@@ -1761,7 +1761,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                            
                            saidas.pulso_abre2()
                            
-                           saidadesliga_blq1()
+                           saidas.desliga_blq1()
 
                            status = open("/home/pi/CMM/status_eclusa.cmm","w") 
                            status.write("0")
@@ -1773,7 +1773,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                            
                            os.system("mpg123 /home/pi/CMM/mp3/eclusa_emperrado.mp3")
                                 
-                           saidadesliga_blq1() # Libera o social para abrir mesmo com a eclusa aberta
+                           saidas.desliga_blq1() # Libera o social para abrir mesmo com a eclusa aberta
 
                            status = open("/home/pi/CMM/status_eclusa.cmm","w") 
                            status.write("0")
@@ -1811,7 +1811,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                                 s.write("0")
                                 s.close()
 
-                                saidadesliga_blq1() # Libera o social para abrir
+                                saidas.desliga_blq1() # Libera o social para abrir
 
                                 break
 
@@ -1829,7 +1829,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                                 status.write("1")
                                 status.close()                                
 
-                                saidadesliga_blq1() # Libera o social para abrir mesmo com a eclusa aberta
+                                saidas.desliga_blq1() # Libera o social para abrir mesmo com a eclusa aberta
 
                                 contador = 0
                             
@@ -2005,8 +2005,8 @@ def Portoes_sociais(Rele): # Programa
                 status.write("1")
                 status.close()
 
-                saidaliga_abre1()
-                saidaliga_abre2()
+                saidas.liga_abre1()
+                saidas.liga_abre2()
                 
                 qbv_acionado = 1
 
@@ -2020,8 +2020,8 @@ def Portoes_sociais(Rele): # Programa
                 log("Restaurou quebra de vidro da Eclusa")
                 os.system("mpg123 /home/pi/CMM/mp3/restaurada_emergencia.mp3")
 
-                saidadesliga_abre1()
-                saidadesliga_abre2()
+                saidas.desliga_abre1()
+                saidas.desliga_abre2()
 
                 fechadura = banco.consulta("config","fechadura")
 
@@ -2091,16 +2091,16 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
 
             if abre_social == "1" or abre_eclusa == "1":
 
-                saidadesliga_sirene()
+                saidas.desliga_sirene()
 
             if ar1 == 0 and reset_ar1 == 0 and segunda_vez1 == 1:
 
-                saidadesliga_sirene()
+                saidas.desliga_sirene()
                 segunda_vez1 = 0
 
             if ar2 == 0 and reset_ar2 == 0 and segunda_vez2 == 1:
 
-                saidadesliga_sirene()
+                saidas.desliga_sirene()
                 segunda_vez2 = 0
                     
             if abre_social == "0" and pm1 == "0" and ar1 == 0:
@@ -2118,7 +2118,7 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
                     log("Arrombamento do portão social")
                     os.system("mpg123 /home/pi/CMM/mp3/violacao_social.mp3")
                     
-                    saidaliga_sirene()
+                    saidas.liga_sirene()
 
                     if eventos == "1":
 
@@ -2134,11 +2134,11 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
 
                 if cont1 == 340:
 
-                    saidadesliga_sirene()
+                    saidas.desliga_sirene()
 
                 if cont1 <= 0:
 
-                    saidadesliga_sirene()
+                    saidas.desliga_sirene()
 
                     if eventos == "1":
 
@@ -2149,7 +2149,7 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
                     reset_ar1 = 0
                     segunda_vez1 = 1
 
-                    saidadesliga_sirene() # Garantia que esteja desligada
+                    saidas.desliga_sirene() # Garantia que esteja desligada
                     
                     
 
@@ -2168,7 +2168,7 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
                     log("Arrombamento do portão Eclusa")
                     os.system("mpg123 /home/pi/CMM/mp3/violacao_eclusa.mp3")
 
-                    saidaliga_sirene()
+                    saidas.liga_sirene()
 
                     if eventos == "1":
 
@@ -2184,11 +2184,11 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
 
                 if cont2 == 340:
 
-                    saidadesliga_sirene()
+                    saidas.desliga_sirene()
 
                 if cont2 <= 0:
 
-                    saidadesliga_sirene()
+                    saidas.desliga_sirene()
 
                     if eventos == "1":
 
@@ -2199,14 +2199,15 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
                     reset_ar2 = 0
                     segunda_vez2 = 1
 
-                    saidadesliga_sirene()
+                    saidas.desliga_sirene()
             
             time.sleep(1)   
 
         except Exception as err:
 
             print("Erro na rotina de alarmes dos sociais")
-            log("Erro na rotina de alarmes dos sociais",err)
+            txt = ("Erro na rotina de alarmes dos sociais",err)
+            log(txt)
             
         time.sleep(5)
         
