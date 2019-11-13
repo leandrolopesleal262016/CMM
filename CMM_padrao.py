@@ -16,14 +16,19 @@ import servidor_qr as servidor_qr
 
 from datetime import datetime, timedelta
 import wiringpi # Biblioteca para usar as GPIO da rasp como saidas ou entradas
-import os     # Executa comandos do sistema operacional Ex.: os.system('sudo reboot now'))
+import os #      Executa comandos do sistema operacional Ex.: os.system('sudo reboot now'))
 import threading # Modulo superior Para executar as threads
 import sys
 import socket
 import _thread as thread
-
 import serial
 import libscrc
+
+from filtro import Filtro
+from retorna import Retorna
+
+f = Filtro()
+r = Retorna()
 
 socket.setdefaulttimeout(2) # limite de 2 segundos para enviar o socket
 
@@ -104,11 +109,11 @@ def escreve_serial(packet):
 
     try:
 
-        mutex.acquire()
-
-        ser = serial.Serial("/dev/ttyS0", 115200)
+        mutex.acquire() 
 
         time.sleep(0.005) # 004
+
+        ser = serial.Serial("/dev/ttyS0", 115200)        
                 
         GPIO.output(17, 1)  
         GPIO.output(18, 1)
@@ -117,7 +122,7 @@ def escreve_serial(packet):
         
         ser.write(packet)
         
-        time.sleep(0.002) # no alterar este valor
+        time.sleep(0.002) # nao alterar este valor
         
         GPIO.output(17, 0)  
         GPIO.output(18, 0)
@@ -127,1973 +132,292 @@ def escreve_serial(packet):
         bytesToRead = ser.inWaiting()        
         in_bin = ser.read(bytesToRead)
 
-        mutex.release()
-
-        verifica = str(in_bin)
-                
+        mutex.release() 
+                        
         return in_bin
 
     except Exception as err:
 
-        os.system("sudo chmod 777 /dev/ttyS0") # Altera a permissão do acesso a serial
         print("\nErro na leitura da serial",err)
         return ("b''")
 
-class monta_pacote_in():
+def ler(modulo): # passar dados como string
 
-    def __init__(self):
+    modulo = int(modulo,16) # Converte para um inteiro de base 16
 
-        self = self
+    def crc16(byte):
+
+        byte = bytes(byte)
+
+        crc16 = libscrc.modbus(byte) #b'\x07\x05\x00\x00\xFF\x00')  # Estrutura para calculo do CRC
+
+        bin2str = (hex(crc16))
+        bin2str = str(bin2str)
+
+        p = "0x"
+
+        a1 = bin2str[-2]
+        a2 = bin2str[-1]
+        if a1 == "x":
+            a1 = "0"
+        a = p + a1 + a2            
+
+        b1 = bin2str[-4]
+        b2 = bin2str[-3]
+        if b1 == "x":
+            b1 = "0"
+        b = p + b1 + b2
         
-    def ler(self,modulo): # passar dados como string
-
-        modulo = int(modulo,16) # Converte para um inteiro de base 16
-
-        def crc16(byte):
-
-            byte = bytes(byte)
-
-            self.crc16 = libscrc.modbus(byte) #b'\x07\x05\x00\x00\xFF\x00')  # Estrutura para calculo do CRC
-
-            bin2str = (hex(self.crc16))
-            bin2str = str(bin2str)
-
-            p = "0x"
-
-            a1 = bin2str[-2]
-            a2 = bin2str[-1]
-            if a1 == "x":
-                a1 = "0"
-            a = p + a1 + a2            
-
-            b1 = bin2str[-4]
-            b2 = bin2str[-3]
-            if b1 == "x":
-                b1 = "0"
-            b = p + b1 + b2
-            
-            return(a,b) 
-               
-        packet = bytearray()  
-        packet.append(modulo) # Endreço do modulo 
-        packet.append(0x02) # Modo leitura
-        packet.append(0x00) # 
-        packet.append(0x04) # Endereço registrador inicial
-        packet.append(0x00) # 
-        packet.append(0x04) # Registradores a serem lidos
-
-        crc = crc16(packet)
-
-        a = int(crc[0],16)
-        b = int(crc[1],16)
-            
-        packet.append(a) # Controle de redundancia
-        packet.append(b) # Controle de redundancia
-                       
-        in_bin1 = escreve_serial(packet)        
-
-        in_bin1 = str(in_bin1)
-
-        cont = 5
-
-        if in_bin1 == "b''": # reenviando leitura            
-
-            while cont > 0:  # reenviando leitura
-
-                time.sleep(0.05)
-                
-                in_bin1 = escreve_serial(packet)
-                in_bin1 = str(in_bin1)                
-                
-                if in_bin1 != "b''":
-                    
-                    in_bin1 = in_bin1                
-                    return(in_bin1)
-
-                cont = cont - 1
-                
-        else:
-
-            return(in_bin1)
-        
-
-class retorna:
-
-    def __init__(self):
-
-        self = self
-
-    def entrada(self,b,entrada_requisitada):
-            
-        in1 = 0
-        in2 = 0
-        in3 = 0
-        in4 = 0
-
-        if (b == "1" or b =="3" or b =="5" or b =="7" or b =="9" or b =="b" or b =="d" or b =="f"):
-            in1 = 1
-        
-        if (b == "2" or b =="3" or b =="6" or b =="7" or b =="a" or b =="b" or b =="e" or b =="f"):
-            in2 = 1
-        
-        if (b == "4" or b =="5" or b =="6" or b =="7" or b =="c" or b =="d" or b =="e" or b =="f"):
-            in3 = 1
-        
-        if (b == "8" or b =="9" or b =="a" or b =="b" or b =="c" or b =="d" or b =="e" or b =="f"):
-            in4 = 1
-
-        if entrada_requisitada == 'in1':
-
-            entrada_requisitada = in1
-            
-        if entrada_requisitada == 'in2':
-
-            entrada_requisitada = in2
-
-        if entrada_requisitada == 'in3':
-
-            entrada_requisitada = in3
-
-        if entrada_requisitada == 'in4':
-
-            entrada_requisitada = in4
-       
-        return(entrada_requisitada)
-
-class limpa:
-
-    def _init__(self):
-
-        self = self
-
-    def string(self,i):
-
-        try:
-
-            i = str(i.split('\\')) 
-            i = i.replace("x","")
-            i = i.replace("'","")
-            i = i.replace("`","")
-            i = i.replace(" ","")
-            i = i.replace("!","")
-            i = i.replace("I","")
-            i = i.replace('"',"")
-            i = i.replace("[","")
-            i = i.replace("]","")
-       
-            return(i)
-
-        except:
-            
-            pass # Erro na classe limpa string
-
-class filtro(limpa):
-
-    def __init__(self):
-        
-        self.limpa = limpa()
-
-    def mdl1(self,i):
-        
-        if i != b'':
-
-            i = self.limpa.string(i) 
-            
-            try:
-                
-                i= i.split(",")
-                                
-                i = (i[4])  # Obtem da lista o byte referente ao estado das entradas                    
-                b = (i[-1]) # Obtem do byte a metade que contem os bits que representa as entradas
-                                        
-                if i == "05a": # Formatações devido ao retorno do byte com representação em ascii
-                    b = "5"            
-                if i == "ta":
-                    b = "9"
-                if i == "n":
-                    b = "a"
-                if i == "r":
-                    b = "d"
-                if i == "":
-                    b = "d"
-                if i == "0eL":
-                    b = "e"
-                if i == "rM":
-                    b = "d"
-                if i == "01H":                    
-                    b = "1"
-                                             
-                return(b)
-            
-            except:
-
-                pass #log("erro fitro mdl1")
-                
-
-    def mdl2(self,i):
-
-        if i != b'':                
-            
-            i = self.limpa.string(i) 
-            
-            try:
-                
-                i= i.split(",")
-                                
-                i = (i[4])  # Obtem da lista o byte referente ao estado das entradas  
-                  
-                b = (i[-1]) # Obtem do byte a metade que contem os bits que representa as entradas
-                        
-                if i == "05a": # Formatações devido ao retorno do byte com representação em ascii
-                    b = "5"            
-                if i == "ta":
-                    b = "9"
-                if i == "n":
-                    b = "a"
-                if i == "r":
-                    b = "d"
-                if i == "":
-                    b = "d"
-                if i == "0eL":
-                    b = "e"
-                if i == "rM":
-                    b = "d"                            
-                
-                return(b)
-            
-            except:
-
-                pass #log("erro fitro mdl2")                
-
-    def mdl3(self,i):
-
-        if i != "b''":                
-            
-            i = self.limpa.string(i) 
-
-        try:
-            
-            i= i.split(",")
-                            
-            i = (i[4])  # Obtem da lista o byte referente ao estado das entradas                    
-            b = (i[-1]) # Obtem do byte a metade que contem os bits que representa as entradas
-                                
-            if i == "05a": # Formatações devido ao retorno do byte com representação em ascii
-                b = "5"            
-            if i == "ta":
-                b = "9"
-            if i == "n":
-                b = "a"
-            if i == "r":
-                b = "d"
-            if i == "":
-                b = "d"
-            if i == "0eL":
-                b = "e"
-            if i == "rM":
-                b = "d"
-            if i == "01a":
-                b = "1"
-            if i == "053":
-                b = "5"
-            if i == "062":
-                b = "6"
-            if i == "t6":
-                b = "9"
-            if i == "n7":
-                b = "a"
-            if i == "ra":
-                b = "d"
-                                    
-            return(b)
-        
-        except:
-            
-            pass #log("erro fitro mdl3")            
-
-    def mdl4(self,i):       
-
-        if i != "b''":                
-            
-            i = self.limpa.string(i) 
-
-        try:
-            
-            i= i.split(",")
-                            
-            i = (i[4])               
-            b = (i[-1])             
-                                
-            if i == "05aG": 
-                b = "5"
-            if i == "06F": 
-                b = "6"
-            if i == "taB": 
-                b = "9"
-            if i == "nC": 
-                b = "a"
-            if i == "r": 
-                b = "d"
-            
-                                    
-            return(b)
-        
-        except:            
-            
-            pass #log("erro fitro mdl4")
-            
-
-    def mdl5(self,i):       
-
-        if i != "b''":                
-            
-            i = self.limpa.string(i) 
-
-        try:
-            
-            i= i.split(",")
-                            
-            i = (i[4])               
-            b = (i[-1])            
-                                
-            if i == "01a": 
-                b = "1"
-            if i == "02y": 
-                b = "2"
-            if i == "t": 
-                b = "9"
-            if i == "n": 
-                b = "a"
-            if i == "ra}": 
-                b = "d"
-            if i == "0e|": 
-                b = "e"                        
-                                    
-            return(b)
-        
-        except:            
-            
-            pass #log("erro fitro mdl5")
-
-    def mdl6(self,i):       
-
-        if i != "b''":                
-            
-            i = self.limpa.string(i) 
-
-        try:
-            
-            i= i.split(",")
-                            
-            i = (i[4])               
-            b = (i[-1])
-                                
-            if i == "01a<": 
-                b = "1"
-            if i == "02=": 
-                b = "2"
-            if i == "t": 
-                b = "9"
-            if i == "n": 
-                b = "a"
-            if i == "ra9": 
-                b = "d"
-            if i == "0e8": 
-                b = "e"                        
-                                    
-            return(b)
-        
-        except:
-
-            pass #log("erro fitro mdl6")
-
-    def mdl7(self,i):
-
-        if i != "b''":
-                    
-            i = self.limpa.string(i)
-
-            try:
-
-                i= i.split(",")
-                    
-                i = (i[4])  
-                b = (i[-1])
-
-                
-                if i == "05a": 
-                    b = "5"            
-                if i == "ta":
-                    b = "9"
-                if i == "n":
-                    b = "a"
-                if i == "r":
-                    b = "d"
-               
-                return (b)                            
-
-            except:
-
-                pass #log("erro fitro mdl7")
-
-                
-    def mdl8(self,i):
-
-        if i != "b''":
-        
-            i = self.limpa.string(i) 
-
-            try:
-
-                i= i.split(",")
-                    
-                i = (i[4])  
-                b = (i[-1])               
-
-                if i == "01c":
-                    b = "1"
-                if i == "02#":
-                    b = "2"                
-                if i == "05b": 
-                    b = "5"            
-                if i == "tb":
-                    b = "9"
-                if i == "n":
-                    b = "a"
-                if i == "rc":
-                    b = "d"
-                if i == "0e#":
-                    b = "e"
-               
-                return (b)                            
-
-            except:
-
-                pass #log("erro fitro mdl9")
-                
-
-    def mdl9(self,i):
-
-        if i != "b''":
-        
-            i = self.limpa.string(i) 
-
-            try:
-
-                i= i.split(",")
-                    
-                i = (i[4])  
-                b = (i[-1])                
-
-                if i == "01b(":
-                    b = "1"
-                if i == "02)\\":
-                    b = "2"                
-                if i == "05c": 
-                    b = "5"
-                if i == "06#": 
-                    b = "6"
-                if i == "tc":
-                    b = "9"
-                if i == "n#":
-                    b = "a"
-                if i == "rb-":
-                    b = "d"
-                              
-                return (b)                            
-
-            except:
-
-                pass #log("erro fitro mdl9")
-                
-
-    def mdl10(self,i):
-
-        if i != "b''":
-        
-            i = self.limpa.string(i) 
-
-            try:
-
-                i= i.split(",")
-                    
-                i = (i[4])  
-                b = (i[-1])                
-
-                if i == "01b(":
-                    b = "1"
-                if i == "02)\\":
-                    b = "2"                
-                if i == "05c": 
-                    b = "5"
-                if i == "06#": 
-                    b = "6"
-                if i == "tc":
-                    b = "9"
-                if i == "n#":
-                    b = "a"
-                if i == "rb-":
-                    b = "d"
-                              
-                return (b)                            
-
-            except:
-
-                pass #log("erro fitro mdl10")
-                
-
-    def mdl11(self,i):
-
-        if i != "b''":
-        
-            i = self.limpa.string(i) 
-
-            try:
-
-                i= i.split(",")
-                    
-                i = (i[4])  
-                b = (i[-1])
-
-                if i == "01c":
-                    b = "1"                    
-                if i == "02#":                    
-                    b = "2"                    
-                if i == "05bS": 
-                    b = "5"                    
-                if i == "06R\\": 
-                    b = "6"                    
-                if i == "tbV":
-                    b = "9"                    
-                if i == "nW\\":
-                    b = "a"                    
-                if i == "rc":
-                    b = "d"                    
-                if i == "0e#":
-                    b = "e"
-                              
-                return (b)                            
-
-            except:
-
-                pass #log("erro fitro mdl11")
-                
-
-    def mdl12(self,i):
-
-        if i != "b''":
-        
-            i = self.limpa.string(i) 
-
-            try:
-
-                i= i.split(",")
-                    
-                i = (i[4])  
-                b = (i[-1])
-
-                
-
-                if i == "01b":
-                    b = "1"      
-                if i == "05c\\": 
-                    b = "5"                    
-                if i == "06#&": 
-                    b = "6"                    
-                if i == "tc\\":
-                    b = "9"                    
-                if i == "n##":
-                    b = "a"                    
-                if i == "rb":
-                    b = "d"                    
-                                              
-                return (b)                            
-
-            except:
-
-                pass #log("erro fitro mdl12")
-                
-
-    def mdl13(self,i):
-
-        if i != "b''":
-        
-            i = self.limpa.string(i) 
-
-            try:
-
-                i= i.split(",")
-                    
-                i = (i[4])  
-                b = (i[-1])
-
-                if i == "01c":
-                    b = "1"
-                if i == "02#":
-                    b = "2" 
-                if i == "05b": 
-                    b = "5"      
-                if i == "tb":
-                    b = "9"                    
-                if i == "n":
-                    b = "a"                    
-                if i == "rc":
-                    b = "d"
-                if i == "0e#":
-                    b = "e"                
-                                              
-                return (b)                            
-
-            except:
-                
-                pass #log("erro fitro mdl13")
-
-    def mdl14(self,i):
-
-        if i != "b''":
-        
-            i = self.limpa.string(i) 
-
-            try:
-
-                i= i.split(",")
-                    
-                i = (i[4])  
-                b = (i[-1])                
-
-                if i == "01c":
-                    b = "1"
-                if i == "02#":
-                    b = "2"
-                if i == "04":                    
-                    b = "4" 
-                if i == "05b": 
-                    b = "5"
-                if i == "06":
-                    b = "6"
-                if i == "07":
-                    b = "7"
-                if i == "06":
-                    b = "6" 
-                if i == "tb":
-                    b = "9"                    
-                if i == "n":
-                    b = "a"
-                if i == "0b":
-                    b = "b"
-                if i == "0c":
-                    b = "c" 
-                if i == "rcY":
-                    b = "d"
-                if i == "0e#X":
-                    b = "e"                
-                                              
-                return (b)                            
-
-            except:
-
-                pass #log("erro fitro mdl14")
-                
-
-    def mdl15(self,i):
-
-        if i != "b''":
-        
-            i = self.limpa.string(i) 
-
-            try:
-
-                i= i.split(",")
-                    
-                i = (i[4])  
-                b = (i[-1])
-                
-                if i == "01b":
-                    b = "1"               
-                if i == "05cc": 
-                    b = "5"
-                if i == "06#b": 
-                    b = "6"
-                if i == "tcf":
-                    b = "9"                    
-                if i == "n#g":
-                    b = "a"                    
-                if i == "rb":
-                    b = "d" 
-                                              
-                return (b)                            
-
-            except:
-
-                pass #log("erro fitro mdl15")
-                
-
-    def mdl16(self,i):
-
-        if i != "b''":
-        
-            i = self.limpa.string(i) 
-
-            try:
-
-                i= i.split(",")
-                    
-                i = (i[4])  
-                b = (i[-1])                
-
-                if i == "01et":
-                    b = "1"               
-                if i == "02%u": 
-                    b = "2"
-                if i == "05d": 
-                    b = "5"
-                if i == "06$":
-                    b = "6"                    
-                if i == "td":
-                    b = "9"                    
-                if i == "n$":
-                    b = "a"
-                if i == "req":
-                    b = "d"                    
-                if i == "0e%p":
-                    b = "e"
-                                              
-                return (b)                            
-
-            except:
-
-                pass #log("erro fitro mdl16")
-                
-    
-class Leitor(monta_pacote_in,retorna,filtro):
-
-    def __init__(self):
-        
-        self.mod = monta_pacote_in()
-        self.retorna = retorna()
-        self.filtro = filtro()
+        return(a,b) 
            
-# Leitor mdulo expansor 1
+    packet = bytearray()  
+    packet.append(modulo) # Endreço do modulo 
+    packet.append(0x02) # Modo leitura
+    packet.append(0x00) # 
+    packet.append(0x04) # Endereço registrador inicial
+    packet.append(0x00) # 
+    packet.append(0x04) # Registradores a serem lidos
 
-    def leitor1_in1(self):
+    crc = crc16(packet)
 
-        i = self.mod.ler('0x01') # modulo, entrada
-        b = self.filtro.mdl1(i)       
-        in1 = self.retorna.entrada(b,'in1')
-
-        return(in1)            
-            
-    
-    def leitor1_in2(self):
-
-        i = self.mod.ler('0x01')
-        b = self.filtro.mdl1(i)
-        in2 = self.retorna.entrada(b,'in2')        
-
-        return(in2)
-          
-    def leitor1_in3(self):
-    
-        i = self.mod.ler('0x01')      
-        b = self.filtro.mdl1(i)
-        in3 = self.retorna.entrada(b,'in3')
-
-        return(in3)    
-            
-    def leitor1_in4(self):
-    
-        i = self.mod.ler('0x01') 
-        b = self.filtro.mdl1(i) 
-        in4 = self.retorna.entrada(b,'in4')
-
-        return(in4)
-    
-# Leitor mdulo expansor 2
-
-    def leitor2_in1(self):
-
-        i = self.mod.ler('0x02') # modulo
-        b = self.filtro.mdl2(i) # Limpa e edita os dados recebidos da leitura (i)
-        in1 = self.retorna.entrada(b,'in1') 
-
-        return(in1)            
-           
-    def leitor2_in2(self):
-
-        i = self.mod.ler('0x02')
-        b = self.filtro.mdl2(i)        
-        in2 = self.retorna.entrada(b,'in2')
+    a = int(crc[0],16)
+    b = int(crc[1],16)
         
-        return(in2)            
-           
-    def leitor2_in3(self):
-    
-        i = self.mod.ler('0x02')   
-        b = self.filtro.mdl2(i) 
-        in3 = self.retorna.entrada(b,'in3') 
+    packet.append(a) # Controle de redundancia
+    packet.append(b) # Controle de redundancia
+                   
+    in_bin1 = escreve_serial(packet)        
 
-        return(in3)            
+    in_bin1 = str(in_bin1)
+
+    cont = 5
+
+    if in_bin1 == "b''": # reenviando leitura            
+
+        while cont > 0:  # reenviando leitura
+
+            time.sleep(0.05)
             
-    def leitor2_in4(self):
-    
-        i = self.mod.ler('0x02')  
-        b = self.filtro.mdl2(i) 
-        in4 = self.retorna.entrada(b,'in4') 
-
-        return(in4)
-    
-# Leitor mdulo expansor 3
-
-    def leitor3_in1(self):
-
-        i = self.mod.ler('0x03') # modulo, entrada
-        b = self.filtro.mdl3(i) # Limpa e edita os dados recebidos da leitura (i)
-        in1 = self.retorna.entrada(b,'in1') # Confere em uma tabela binaria qual o valor da entrada requisitada 'in1'
-        
-        return(in1)
-    
-    def leitor3_in2(self):
-
-        i = self.mod.ler('0x03') 
-        b = self.filtro.mdl3(i)
-        in2 = self.retorna.entrada(b,'in2')
-        
-        return(in2)            
-         
-    def leitor3_in3(self):
-    
-        i = self.mod.ler('0x03') 
-        b = self.filtro.mdl3(i)
-        in3 = self.retorna.entrada(b,'in3') 
-
-        return(in3)            
+            in_bin1 = escreve_serial(packet)
+            in_bin1 = str(in_bin1)                
             
-    def leitor3_in4(self):
-    
-        i = self.mod.ler('0x03') 
-        b = self.filtro.mdl3(i)
-        in4 = self.retorna.entrada(b,'in4')
+            if in_bin1 != "b''":
+                
+                in_bin1 = in_bin1                
+                return(in_bin1)
+
+            cont = cont - 1
+            
+    else:
+
+        return(in_bin1)
+
+def aciona(modulo,rele,funcao): # passar dados como string '0x01','0x01','0xFF'
+
+    modulo = int(modulo,16)
+    rele = int(rele,16)
+    funcao = int(funcao,16)
+
+    def crc16(byte):
+
+        byte = bytes(byte)
+
+        crc16 = libscrc.modbus(byte) #b'\x07\x05\x00\x00\xFF\x00')  # Estrutura para calculo do CRC
+
+        bin2str = (hex(crc16))
+        bin2str = str(bin2str)
+
+        p = "0x"
+
+        a1 = bin2str[-2]
+        a2 = bin2str[-1]
+        if a1 == "x":
+            a1 = "0"
+        a = p + a1 + a2            
+
+        b1 = bin2str[-4]
+        b2 = bin2str[-3]
+        if b1 == "x":
+            b1 = "0"
+        b = p + b1 + b2 
         
-        return(in4)
-
-# Leitor mdulo expansor 4
-                      
-    def leitor4_in1(self):        
-
-        i = self.mod.ler('0x04') # modulo, entrada        
-        b = self.filtro.mdl4(i)
-        in1 = self.retorna.entrada(b,'in1')
-
-        return (in1)                            
+        return(a,b) 
+            
+    packet = bytearray()  
+    packet.append(modulo) # endereço do modulo (dip switch) 
+    packet.append(0x05) # modo acionamento de rele 
+    packet.append(0x00) #            
+    packet.append(rele) # endereço do rele (00,01,02,03) 
+    packet.append(funcao) # Liga / Desliga rele
+    packet.append(0x00) #
    
-    def leitor4_in2(self):
+    crc = crc16(packet)
 
-        i = self.mod.ler('0x04') 
-        b = self.filtro.mdl4(i)
-        in2 = self.retorna.entrada(b,'in2')                
+    a = int(crc[0],16)
+    b = int(crc[1],16)
 
-        return(in2)
+    packet.append(a) # Controle de redundancia 
+    packet.append(b) # Controle de redundancia        
+    
+    in_bin = escreve_serial(packet)              
+
+    in_bin = str(in_bin)
+
+    cont = 5
+
+    if in_bin == "b''": # reenviando leitura            
+
+        while cont > 0:  # reenviando leitura
+
+            time.sleep(0.05)
             
-    def leitor4_in3(self):
-
-        i = self.mod.ler('0x04')
-        b = self.filtro.mdl4(i)                    
-        in3 = self.retorna.entrada(b,'in3') 
-
-        return(in3)
-           
-    def leitor4_in4(self):
-    
-        i = self.mod.ler('0x04') 
-        b = self.filtro.mdl4(i)
-        in4 = self.retorna.entrada(b,'in4') 
-
-        return(in4)
-
-# Leitor mdulo expansor 5
-                      
-    def leitor5_in1(self):        
-
-        i = self.mod.ler('0x05') # modulo, entrada        
-        b = self.filtro.mdl5(i)
-        in1 = self.retorna.entrada(b,'in1')
-
-        return (in1)
-               
-    def leitor5_in2(self):
-
-        i = self.mod.ler('0x05') 
-        b = self.filtro.mdl5(i)
-        in2 = self.retorna.entrada(b,'in2')                
-
-        return(in2)
+            in_bin = escreve_serial(packet)
+            in_bin = str(in_bin)
             
-    def leitor5_in3(self):
+            if in_bin != "b''":                    
+                               
+                return(in_bin)
 
-        i = self.mod.ler('0x05') 
-        b = self.filtro.mdl5(i)                    
-        in3 = self.retorna.entrada(b,'in3') 
-
-        return(in3)
-           
-    def leitor5_in4(self):
-    
-        i = self.mod.ler('0x05') 
-        b = self.filtro.mdl5(i)
-        in4 = self.retorna.entrada(b,'in4') 
-
-        return(in4)
-
-# Leitor mdulo expansor 6
-                      
-    def leitor6_in1(self):        
-
-        i = self.mod.ler('0x06') # modulo, entrada        
-        b = self.filtro.mdl6(i)
-        in1 = self.retorna.entrada(b,'in1')
-
-        return (in1)
-               
-    def leitor6_in2(self):
-
-        i = self.mod.ler('0x06') 
-        b = self.filtro.mdl6(i)
-        in2 = self.retorna.entrada(b,'in2')                
-
-        return(in2)
+            cont = cont - 1
             
-    def leitor6_in3(self):
+    else:
 
-        i = self.mod.ler('0x06') 
-        b = self.filtro.mdl6(i)                    
-        in3 = self.retorna.entrada(b,'in3') 
-
-        return(in3)
-           
-    def leitor6_in4(self):
-    
-        i = self.mod.ler('0x06') 
-        b = self.filtro.mdl6(i)
-        in4 = self.retorna.entrada(b,'in4') 
-
-        return(in4)
-    
-# Leitor mdulo expansor 7
-
-    def leitor7_in1(self):
-
-        i = self.mod.ler('0x07')       
-        b = self.filtro.mdl7(i) 
-        in1 = self.retorna.entrada(b,'in1') 
-        
-        return(in1)
-    
-    def leitor7_in2(self):
-
-        i = self.mod.ler('0x07') 
-        b = self.filtro.mdl7(i)
-        in2 = self.retorna.entrada(b,'in2')
-        
-        return(in2)            
-         
-    def leitor7_in3(self):
-    
-        i = self.mod.ler('0x07') 
-        b = self.filtro.mdl7(i)
-        in3 = self.retorna.entrada(b,'in3') 
-
-        return(in3)            
-            
-    def leitor7_in4(self):
-    
-        i = self.mod.ler('0x07') 
-        b = self.filtro.mdl7(i)
-        in4 = self.retorna.entrada(b,'in4')
-        
-        return(in4)
-              
-# Leitor mdulo expansor 8
-
-    def leitor8_in1(self):
-
-        i = self.mod.ler('0x08')       
-        b = self.filtro.mdl8(i) 
-        in1 = self.retorna.entrada(b,'in1') 
-        
-        return(in1)
-    
-    def leitor8_in2(self):
-
-        i = self.mod.ler('0x08') 
-        b = self.filtro.mdl8(i)
-        in2 = self.retorna.entrada(b,'in2')
-        
-        return(in2)            
-         
-    def leitor8_in3(self):
-    
-        i = self.mod.ler('0x08') 
-        b = self.filtro.mdl8(i)
-        in3 = self.retorna.entrada(b,'in3') 
-
-        return(in3)            
-            
-    def leitor8_in4(self):
-    
-        i = self.mod.ler('0x08') 
-        b = self.filtro.mdl8(i)
-        in4 = self.retorna.entrada(b,'in4')
-        
-        return(in4)
-
-# Leitor mdulo expansor 9
-
-    def leitor9_in1(self):
-
-        i = self.mod.ler('0x09')       
-        b = self.filtro.mdl9(i) 
-        in1 = self.retorna.entrada(b,'in1') 
-        
-        return(in1)
-    
-    def leitor9_in2(self):
-
-        i = self.mod.ler('0x09') 
-        b = self.filtro.mdl9(i)
-        in2 = self.retorna.entrada(b,'in2')
-        
-        return(in2)            
-         
-    def leitor9_in3(self):
-    
-        i = self.mod.ler('0x09') 
-        b = self.filtro.mdl9(i)
-        in3 = self.retorna.entrada(b,'in3') 
-
-        return(in3)            
-            
-    def leitor9_in4(self):
-    
-        i = self.mod.ler('0x09') 
-        b = self.filtro.mdl9(i)
-        in4 = self.retorna.entrada(b,'in4')
-        
-        return(in4)
-
-# Leitor mdulo expansor 10
-
-    def leitor10_in1(self):
-
-        i = self.mod.ler('0x0a')       
-        b = self.filtro.mdl10(i) 
-        in1 = self.retorna.entrada(b,'in1') 
-        
-        return(in1)
-    
-    def leitor10_in2(self):
-
-        i = self.mod.ler('0x0a') 
-        b = self.filtro.mdl10(i)
-        in2 = self.retorna.entrada(b,'in2')
-        
-        return(in2)            
-         
-    def leitor10_in3(self):
-    
-        i = self.mod.ler('0x0a') 
-        b = self.filtro.mdl10(i)
-        in3 = self.retorna.entrada(b,'in3') 
-
-        return(in3)            
-            
-    def leitor10_in4(self):
-    
-        i = self.mod.ler('0x0b') 
-        b = self.filtro.mdl11(i)
-        in4 = self.retorna.entrada(b,'in4')
-        
-        return(in4)
-
-# Leitor mdulo expansor 11
-
-    def leitor11_in1(self):
-
-        i = self.mod.ler('0x0b')        
-        b = self.filtro.mdl11(i) 
-        in1 = self.retorna.entrada(b,'in1') 
-        
-        return(in1)
-    
-    def leitor11_in2(self):
-
-        i = self.mod.ler('0x0b') 
-        b = self.filtro.mdl11(i)
-        in2 = self.retorna.entrada(b,'in2')
-        
-        return(in2)            
-         
-    def leitor11_in3(self):
-    
-        i = self.mod.ler('0x0b') 
-        b = self.filtro.mdl11(i)
-        in3 = self.retorna.entrada(b,'in3') 
-
-        return(in3)            
-            
-    def leitor11_in4(self):
-    
-        i = self.mod.ler('0x0b') 
-        b = self.filtro.mdl11(i)
-        in4 = self.retorna.entrada(b,'in4')
-        
-        return(in4)
-
-# Leitor mdulo expansor 12
-
-    def leitor12_in1(self):
-
-        i = self.mod.ler('0x0c')        
-        b = self.filtro.mdl12(i) 
-        in1 = self.retorna.entrada(b,'in1') 
-        
-        return(in1)
-    
-    def leitor12_in2(self):
-
-        i = self.mod.ler('0x0c') 
-        b = self.filtro.mdl12(i)
-        in2 = self.retorna.entrada(b,'in2')
-        
-        return(in2)            
-         
-    def leitor12_in3(self):
-    
-        i = self.mod.ler('0x0c') 
-        b = self.filtro.mdl12(i)
-        in3 = self.retorna.entrada(b,'in3') 
-
-        return(in3)            
-            
-    def leitor12_in4(self):
-    
-        i = self.mod.ler('0x0c') 
-        b = self.filtro.mdl12(i)
-        in4 = self.retorna.entrada(b,'in4')
-        
-        return(in4)
-
-# Leitor mdulo expansor 13
-
-    def leitor13_in1(self):
-
-        i = self.mod.ler('0x0d')       
-        b = self.filtro.mdl13(i) 
-        in1 = self.retorna.entrada(b,'in1') 
-        
-        return(in1)
-    
-    def leitor13_in2(self):
-
-        i = self.mod.ler('0x0d') 
-        b = self.filtro.mdl13(i)
-        in2 = self.retorna.entrada(b,'in2')
-        
-        return(in2)            
-         
-    def leitor13_in3(self):
-    
-        i = self.mod.ler('0x0d') 
-        b = self.filtro.mdl13(i)
-        in3 = self.retorna.entrada(b,'in3') 
-
-        return(in3)            
-            
-    def leitor13_in4(self):
-    
-        i = self.mod.ler('0x0d') 
-        b = self.filtro.mdl13(i)
-        in4 = self.retorna.entrada(b,'in4')
-        
-        return(in4)
-    
-# Leitor mdulo expansor 14
-
-    def leitor14_in1(self):
-
-        i = self.mod.ler('0x0e')        
-        b = self.filtro.mdl14(i)        
-        in1 = self.retorna.entrada(b,'in1') 
-        
-        return(in1)
-    
-    def leitor14_in2(self):
-
-        i = self.mod.ler('0x0e') 
-        b = self.filtro.mdl14(i)
-        in2 = self.retorna.entrada(b,'in2')
-        
-        return(in2)            
-         
-    def leitor14_in3(self):
-    
-        i = self.mod.ler('0x0e') 
-        b = self.filtro.mdl14(i)
-        in3 = self.retorna.entrada(b,'in3') 
-
-        return(in3)            
-            
-    def leitor14_in4(self):
-    
-        i = self.mod.ler('0x0e') 
-        b = self.filtro.mdl14(i)
-        in4 = self.retorna.entrada(b,'in4')
-        
-        return(in4)
-    
-# Leitor mdulo expansor 15
-
-    def leitor15_in1(self):
-
-        i = self.mod.ler('0x0f')        
-        b = self.filtro.mdl15(i)        
-        in1 = self.retorna.entrada(b,'in1') 
-        
-        return(in1)
-    
-    def leitor15_in2(self):
-
-        i = self.mod.ler('0x0f') 
-        b = self.filtro.mdl15(i)
-        in2 = self.retorna.entrada(b,'in2')
-        
-        return(in2)            
-         
-    def leitor15_in3(self):
-    
-        i = self.mod.ler('0x0f') 
-        b = self.filtro.mdl15(i)
-        in3 = self.retorna.entrada(b,'in3') 
-
-        return(in3)            
-            
-    def leitor15_in4(self):
-    
-        i = self.mod.ler('0x0f') 
-        b = self.filtro.mdl15(i)
-        in4 = self.retorna.entrada(b,'in4')
-        
-        return(in4)
-
-# Leitor mdulo expansor 16
-
-    def leitor16_in1(self):
-
-        i = self.mod.ler('0x10')        
-        b = self.filtro.mdl16(i)        
-        in1 = self.retorna.entrada(b,'in1') 
-        
-        return(in1)
-    
-    def leitor16_in2(self):
-
-        i = self.mod.ler('0x10') 
-        b = self.filtro.mdl16(i)
-        in2 = self.retorna.entrada(b,'in2')
-        
-        return(in2)            
-         
-    def leitor16_in3(self):
-    
-        i = self.mod.ler('0x10') 
-        b = self.filtro.mdl16(i)
-        in3 = self.retorna.entrada(b,'in3') 
-
-        return(in3)            
-            
-    def leitor16_in4(self):
-    
-        i = self.mod.ler('0x10') 
-        b = self.filtro.mdl16(i)
-        in4 = self.retorna.entrada(b,'in4')
-        
-        return(in4)
-
-#############################################  Acionamento reles Expansores  ##############################
-
-class monta_pacote():
-
-    def __init__(self):
-
-        self = self
-        
-    def aciona(self,modulo,rele,funcao): # passar dados como string '0x01','0x01','0xFF'
-
-        modulo = int(modulo,16)
-        rele = int(rele,16)
-        funcao = int(funcao,16)
-
-        def crc16(byte):
-
-            byte = bytes(byte)
-
-            self.crc16 = libscrc.modbus(byte) #b'\x07\x05\x00\x00\xFF\x00')  # Estrutura para calculo do CRC
-
-            bin2str = (hex(self.crc16))
-            bin2str = str(bin2str)
-
-            p = "0x"
-
-            a1 = bin2str[-2]
-            a2 = bin2str[-1]
-            if a1 == "x":
-                a1 = "0"
-            a = p + a1 + a2            
-
-            b1 = bin2str[-4]
-            b2 = bin2str[-3]
-            if b1 == "x":
-                b1 = "0"
-            b = p + b1 + b2 
-            
-            return(a,b) 
+        return(in_bin)
                 
-        packet = bytearray()  
-        packet.append(modulo) # endereço do modulo (dip switch) 
-        packet.append(0x05) # modo acionamento de rele 
-        packet.append(0x00) #            
-        packet.append(rele) # endereço do rele (00,01,02,03) 
-        packet.append(funcao) # Liga / Desliga rele
-        packet.append(0x00) #
+def leitor1_in1():
+
+    i = ler('0x01') # modulo, entrada
+    b = f.mdl1(i)       
+    in1 = r.entrada(b,'in1')
+
+    return(in1)
+    
+def leitor1_in2():
+
+    i = ler('0x01')
+    b = f.mdl1(i)
+    in2 = r.entrada(b,'in2')        
+
+    return(in2)
+      
+def leitor1_in3():
+
+    i = ler('0x01')      
+    b = f.mdl1(i)
+    in3 = r.entrada(b,'in3')
+
+    return(in3)    
+        
+def leitor1_in4():
+
+    i = ler('0x01') 
+    b = f.mdl1(i) 
+    in4 = r.entrada(b,'in4')
+
+    return(in4)
+
+def leitor2_in1():
+
+    i = ler('0x02') # modulo
+    b = f.mdl2(i) # Limpa e edita os dados recebidos da leitura (i)
+    in1 = r.entrada(b,'in1') 
+
+    return(in1)
+
+def leitor2_in2():
+
+    i = ler('0x02')
+    b = f.mdl2(i)        
+    in2 = r.entrada(b,'in2')
+    
+    return(in2)            
        
-        crc = crc16(packet)
+def leitor2_in3():
 
-        a = int(crc[0],16)
-        b = int(crc[1],16)
+    i = ler('0x02')   
+    b = f.mdl2(i) 
+    in3 = r.entrada(b,'in3') 
 
-        packet.append(a) # Controle de redundancia 
-        packet.append(b) # Controle de redundancia        
+    return(in3)            
         
-        in_bin = escreve_serial(packet)              
+def leitor2_in4():
 
-        in_bin = str(in_bin)
+    i = ler('0x02')  
+    b = f.mdl2(i) 
+    in4 = r.entrada(b,'in4') 
 
-        cont = 5
+    return(in4)
 
-        if in_bin == "b''": # reenviando leitura            
 
-            while cont > 0:  # reenviando leitura
+def liga_rele1_exp1():
 
-                time.sleep(0.05)
-                
-                in_bin = escreve_serial(packet)
-                in_bin = str(in_bin)
+    aciona('0x01','0x00','0xFF') # Modulo, rele , funcao
 
-##                print(in_bin)
-                
-                if in_bin != "b''":                    
-                                   
-                    return(in_bin)
+def desliga_rele1_exp1():
 
-                cont = cont - 1
-                
-        else:
+    aciona('0x01','0x00','0x00') 
 
-            return(in_bin)
-        
+def liga_rele2_exp1():
 
-class Expansor(monta_pacote):
+    aciona('0x01','0x01','0xFF') 
 
-    def __init__(self):
+def desliga_rele2_exp1():
 
-        self.mod = monta_pacote()        
+    aciona('0x01','0x01','0x00') 
+
+def liga_rele3_exp1():
+
+    aciona('0x01','0x02','0xFF') 
+
+def desliga_rele3_exp1():
     
-# Acionamentos modulo expansor 1
+    aciona('0x01','0x02','0x00')
+    
+def liga_rele4_exp1():
 
-    def liga_rele1_exp1(self):
+    aciona('0x01','0x03','0xFF')
 
-        self.mod.aciona('0x01','0x00','0xFF') # Modulo, rele , funcao
+def desliga_rele4_exp1():
 
-    def desliga_rele1_exp1(self):
-
-        self.mod.aciona('0x01','0x00','0x00') 
-
-    def liga_rele2_exp1(self):
-
-        self.mod.aciona('0x01','0x01','0xFF') 
-
-    def desliga_rele2_exp1(self):
-
-        self.mod.aciona('0x01','0x01','0x00') 
-
-    def liga_rele3_exp1(self):
-
-        self.mod.aciona('0x01','0x02','0xFF') 
-
-    def desliga_rele3_exp1(self):
-        
-        self.mod.aciona('0x01','0x02','0x00')
-        
-    def liga_rele4_exp1(self):
-
-        self.mod.aciona('0x01','0x03','0xFF')
-
-    def desliga_rele4_exp1(self):
-
-        self.mod.aciona('0x01','0x03','0x00')        
+    aciona('0x01','0x03','0x00')        
 
 
 # Acionamentos modulo expansor 2
-    
-    def liga_rele1_exp2(self):
 
-        self.mod.aciona('0x02','0x00','0xFF') # Modulo, rele , funcao
+def liga_rele1_exp2():
 
-    def desliga_rele1_exp2(self):
+    aciona('0x02','0x00','0xFF') # Modulo, rele , funcao
 
-        self.mod.aciona('0x02','0x00','0x00')        
+def desliga_rele1_exp2():
 
-    def liga_rele2_exp2(self):
+    aciona('0x02','0x00','0x00')        
 
-        self.mod.aciona('0x02','0x01','0xFF') 
+def liga_rele2_exp2():
 
-    def desliga_rele2_exp2(self):
+    aciona('0x02','0x01','0xFF') 
 
-        self.mod.aciona('0x02','0x01','0x00')        
+def desliga_rele2_exp2():
 
-    def liga_rele3_exp2(self):
+    aciona('0x02','0x01','0x00')        
 
-        self.mod.aciona('0x02','0x02','0xFF') 
+def liga_rele3_exp2():
 
-    def desliga_rele3_exp2(self):
+    aciona('0x02','0x02','0xFF') 
 
-        self.mod.aciona('0x02','0x02','0x00')        
+def desliga_rele3_exp2():
 
-    def liga_rele4_exp2(self):
+    aciona('0x02','0x02','0x00')        
 
-        self.mod.aciona('0x02','0x03','0xFF') 
+def liga_rele4_exp2():
 
-    def desliga_rele4_exp2(self):
+    aciona('0x02','0x03','0xFF') 
 
-        self.mod.aciona('0x02','0x03','0x00')        
+def desliga_rele4_exp2():
 
-# Acionamentos modulo expansor 3
-    
-    def liga_rele1_exp3(self):
+    aciona('0x02','0x03','0x00')    
+           
+#############################################  Acionamento reles Expansores  ##############################
 
-        self.mod.aciona('0x03','0x00','0xFF') # Modulo, rele , funcao
-
-    def desliga_rele1_exp3(self):
-
-        self.mod.aciona('0x03','0x00','0x00')        
-
-    def liga_rele2_exp3(self):
-
-        self.mod.aciona('0x03','0x01','0xFF') 
-
-    def desliga_rele2_exp3(self):
-
-        self.mod.aciona('0x03','0x01','0x00')        
-
-    def liga_rele3_exp3(self):
-
-        self.mod.aciona('0x03','0x02','0xFF') 
-
-    def desliga_rele3_exp3(self):
-
-        self.mod.aciona('0x03','0x02','0x00')        
-
-    def liga_rele4_exp3(self):
-
-        self.mod.aciona('0x03','0x03','0xFF') 
-
-    def desliga_rele4_exp3(self):
-
-        self.mod.aciona('0x03','0x03','0x00') 
-
-# Acionamentos modulo expansor 4
-    
-    def liga_rele1_exp4(self):
-
-        self.mod.aciona('0x04','0x00','0xFF') # Modulo, rele , funcao
-
-    def desliga_rele1_exp4(self):
-
-        self.mod.aciona('0x04','0x00','0x00')        
-
-    def liga_rele2_exp4(self):
-
-        self.mod.aciona('0x04','0x01','0xFF') 
-
-    def desliga_rele2_exp4(self):
-
-        self.mod.aciona('0x04','0x01','0x00')        
-
-    def liga_rele3_exp4(self):
-
-        self.mod.aciona('0x04','0x02','0xFF') 
-
-    def desliga_rele3_exp4(self):
-
-        self.mod.aciona('0x04','0x02','0x00')        
-
-    def liga_rele4_exp4(self):
-
-        self.mod.aciona('0x04','0x03','0xFF') 
-
-    def desliga_rele4_exp4(self):
-
-        self.mod.aciona('0x04','0x03','0x00')
-        
-# Acionamentos modulo expansor 5
-    
-    def liga_rele1_exp5(self):
-
-        self.mod.aciona('0x05','0x00','0xFF') # Modulo, rele , funcao
-
-    def desliga_rele1_exp5(self):
-
-        self.mod.aciona('0x05','0x00','0x00')        
-
-    def liga_rele2_exp5(self):
-
-        self.mod.aciona('0x05','0x01','0xFF') 
-
-    def desliga_rele2_exp5(self):
-
-        self.mod.aciona('0x05','0x01','0x00')        
-
-    def liga_rele3_exp5(self):
-
-        self.mod.aciona('0x05','0x02','0xFF') 
-
-    def desliga_rele3_exp5(self):
-
-        self.mod.aciona('0x05','0x02','0x00')        
-
-    def liga_rele4_exp5(self):
-
-        self.mod.aciona('0x05','0x03','0xFF') 
-
-    def desliga_rele4_exp5(self):
-
-        self.mod.aciona('0x05','0x03','0x00')
-
-# Acionamentos modulo expansor 6
-    
-    def liga_rele1_exp6(self):
-
-        self.mod.aciona('0x06','0x00','0xFF') # Modulo, rele , funcao
-
-    def desliga_rele1_exp6(self):
-
-        self.mod.aciona('0x06','0x00','0x00')        
-
-    def liga_rele2_exp6(self):
-
-        self.mod.aciona('0x06','0x01','0xFF') 
-
-    def desliga_rele2_exp6(self):
-
-        self.mod.aciona('0x06','0x01','0x00')        
-
-    def liga_rele3_exp6(self):
-
-        self.mod.aciona('0x06','0x02','0xFF') 
-
-    def desliga_rele3_exp6(self):
-
-        self.mod.aciona('0x06','0x02','0x00')        
-
-    def liga_rele4_exp6(self):
-
-        self.mod.aciona('0x06','0x03','0xFF') 
-
-    def desliga_rele4_exp6(self):
-
-        self.mod.aciona('0x06','0x03','0x00') 
-
-# Acionamentos modulo expansor 7    
-    
-    def liga_rele1_exp7(self):
-
-        self.mod.aciona('0x07','0x00','0xFF') 
-
-    def desliga_rele1_exp7(self):
-
-        self.mod.aciona('0x07','0x00','0x00') 
-
-    def liga_rele2_exp7(self):
-
-        self.mod.aciona('0x07','0x01','0xFF') 
-
-    def desliga_rele2_exp7(self):
-
-        self.mod.aciona('0x07','0x01','0x00') 
-
-    def liga_rele3_exp7(self):
-
-        self.mod.aciona('0x07','0x02','0xFF') 
-
-    def desliga_rele3_exp7(self):
-
-        self.mod.aciona('0x07','0x02','0x00') 
-  
-    def liga_rele4_exp7(self):
-
-        self.mod.aciona('0x07','0x03','0xFF')        
-    def desliga_rele4_exp7(self):
-
-        self.mod.aciona('0x07','0x03','0x00')
-
-# Acionamentos modulo expansor 8   
-    
-    def liga_rele1_exp8(self):
-
-        self.mod.aciona('0x08','0x00','0xFF') 
-
-    def desliga_rele1_exp8(self):
-
-        self.mod.aciona('0x08','0x00','0x00') 
-
-    def liga_rele2_exp8(self):
-
-        self.mod.aciona('0x08','0x01','0xFF') 
-
-    def desliga_rele2_exp8(self):
-
-        self.mod.aciona('0x08','0x01','0x00') 
-
-    def liga_rele3_exp8(self):
-
-        self.mod.aciona('0x08','0x02','0xFF') 
-
-    def desliga_rele3_exp8(self):
-
-        self.mod.aciona('0x08','0x02','0x00') 
-  
-    def liga_rele4_exp8(self):
-
-        self.mod.aciona('0x08','0x03','0xFF')        
-    def desliga_rele4_exp8(self):
-
-        self.mod.aciona('0x08','0x03','0x00')
-
-# Acionamentos modulo expansor 9    
-    
-    def liga_rele1_exp9(self):
-
-        self.mod.aciona('0x09','0x00','0xFF') 
-
-    def desliga_rele1_exp9(self):
-
-        self.mod.aciona('0x09','0x00','0x00') 
-
-    def liga_rele2_exp9(self):
-
-        self.mod.aciona('0x09','0x01','0xFF') 
-
-    def desliga_rele2_exp9(self):
-
-        self.mod.aciona('0x09','0x01','0x00') 
-
-    def liga_rele3_exp9(self):
-
-        self.mod.aciona('0x09','0x02','0xFF') 
-
-    def desliga_rele3_exp9(self):
-
-        self.mod.aciona('0x09','0x02','0x00') 
-  
-    def liga_rele4_exp9(self):
-
-        self.mod.aciona('0x09','0x03','0xFF')        
-    def desliga_rele4_exp9(self):
-
-        self.mod.aciona('0x09','0x03','0x00')
-
-# Acionamentos modulo expansor 10    
-    
-    def liga_rele1_exp10(self):
-
-        self.mod.aciona('0xa','0x00','0xFF') 
-
-    def desliga_rele1_exp10(self):
-
-        self.mod.aciona('0xa','0x00','0x00') 
-
-    def liga_rele2_exp10(self):
-
-        self.mod.aciona('0xa','0x01','0xFF') 
-
-    def desliga_rele2_exp10(self):
-
-        self.mod.aciona('0xa','0x01','0x00') 
-
-    def liga_rele3_exp10(self):
-
-        self.mod.aciona('0xa','0x02','0xFF') 
-
-    def desliga_rele3_exp10(self):
-
-        self.mod.aciona('0xa','0x02','0x00') 
-  
-    def liga_rele4_exp10(self):
-
-        self.mod.aciona('0xa','0x03','0xFF')        
-    def desliga_rele4_exp10(self):
-
-        self.mod.aciona('0xa','0x03','0x00')
-
-# Acionamentos modulo expansor 11    
-    
-    def liga_rele1_exp11(self):
-
-        self.mod.aciona('0xb','0x00','0xFF') 
-
-    def desliga_rele1_exp11(self):
-
-        self.mod.aciona('0xb','0x00','0x00') 
-
-    def liga_rele2_exp11(self):
-
-        self.mod.aciona('0xb','0x01','0xFF') 
-
-    def desliga_rele2_exp11(self):
-
-        self.mod.aciona('0xb','0x01','0x00') 
-
-    def liga_rele3_exp11(self):
-
-        self.mod.aciona('0xb','0x02','0xFF') 
-
-    def desliga_rele3_exp11(self):
-
-        self.mod.aciona('0xb','0x02','0x00') 
-  
-    def liga_rele4_exp11(self):
-
-        self.mod.aciona('0xb','0x03','0xFF')        
-    def desliga_rele4_exp11(self):
-
-        self.mod.aciona('0xb','0x03','0x00')
-
-# Acionamentos modulo expansor 12    
-    
-    def liga_rele1_exp12(self):
-
-        self.mod.aciona('0xc','0x00','0xFF') 
-
-    def desliga_rele1_exp12(self):
-
-        self.mod.aciona('0xc','0x00','0x00') 
-
-    def liga_rele2_exp12(self):
-
-        self.mod.aciona('0xc','0x01','0xFF') 
-
-    def desliga_rele2_exp12(self):
-
-        self.mod.aciona('0xc','0x01','0x00') 
-
-    def liga_rele3_exp12(self):
-
-        self.mod.aciona('0xc','0x02','0xFF') 
-
-    def desliga_rele3_exp12(self):
-
-        self.mod.aciona('0xc','0x02','0x00') 
-  
-    def liga_rele4_exp12(self):
-
-        self.mod.aciona('0xc','0x03','0xFF')        
-    def desliga_rele4_exp12(self):
-
-        self.mod.aciona('0xc','0x03','0x00')
-
-# Acionamentos modulo expansor 13    
-    
-    def liga_rele1_exp13(self):
-
-        self.mod.aciona('0xd','0x00','0xFF') 
-
-    def desliga_rele1_exp13(self):
-
-        self.mod.aciona('0xd','0x00','0x00') 
-
-    def liga_rele2_exp13(self):
-
-        self.mod.aciona('0xd','0x01','0xFF') 
-
-    def desliga_rele2_exp13(self):
-
-        self.mod.aciona('0xd','0x01','0x00') 
-
-    def liga_rele3_exp13(self):
-
-        self.mod.aciona('0xd','0x02','0xFF') 
-
-    def desliga_rele3_exp13(self):
-
-        self.mod.aciona('0xd','0x02','0x00') 
-  
-    def liga_rele4_exp13(self):
-
-        self.mod.aciona('0xd','0x03','0xFF')        
-    def desliga_rele4_exp13(self):
-
-        self.mod.aciona('0xd','0x03','0x00')
-
-# Acionamentos modulo expansor 14    
-    
-    def liga_rele1_exp14(self):
-
-        self.mod.aciona('0xe','0x00','0xFF') 
-
-    def desliga_rele1_exp14(self):
-
-        self.mod.aciona('0xe','0x00','0x00') 
-
-    def liga_rele2_exp14(self):
-
-        self.mod.aciona('0xe','0x01','0xFF') 
-
-    def desliga_rele2_exp14(self):
-
-        self.mod.aciona('0xe','0x01','0x00') 
-
-    def liga_rele3_exp14(self):
-
-        self.mod.aciona('0xe','0x02','0xFF') 
-
-    def desliga_rele3_exp14(self):
-
-        self.mod.aciona('0xe','0x02','0x00') 
-  
-    def liga_rele4_exp14(self):
-
-        self.mod.aciona('0xe','0x03','0xFF')        
-    def desliga_rele4_exp14(self):
-
-        self.mod.aciona('0xe','0x03','0x00')
-
-# Acionamentos modulo expansor 15    
-    
-    def liga_rele1_exp15(self):
-
-        self.mod.aciona('0xf','0x00','0xFF') 
-
-    def desliga_rele1_exp15(self):
-
-        self.mod.aciona('0xf','0x00','0x00') 
-
-    def liga_rele2_exp15(self):
-
-        self.mod.aciona('0xf','0x01','0xFF') 
-
-    def desliga_rele2_exp15(self):
-
-        self.mod.aciona('0xf','0x01','0x00') 
-
-    def liga_rele3_exp15(self):
-
-        self.mod.aciona('0xf','0x02','0xFF') 
-
-    def desliga_rele3_exp15(self):
-
-        self.mod.aciona('0xf','0x02','0x00') 
-  
-    def liga_rele4_exp15(self):
-
-        self.mod.aciona('0xf','0x03','0xFF')        
-    def desliga_rele4_exp15(self):
-
-        self.mod.aciona('0xf','0x03','0x00')
-
-# Acionamentos modulo expansor 16    
-    
-    def liga_rele1_exp16(self):
-
-        self.mod.aciona('0x10','0x00','0xFF') 
-
-    def desliga_rele1_exp16(self):
-
-        self.mod.aciona('0x10','0x00','0x00') 
-
-    def liga_rele2_exp16(self):
-
-        self.mod.aciona('0x10','0x01','0xFF') 
-
-    def desliga_rele2_exp16(self):
-
-        self.mod.aciona('0x10','0x01','0x00') 
-
-    def liga_rele3_exp16(self):
-
-        self.mod.aciona('0x10','0x02','0xFF') 
-
-    def desliga_rele3_exp16(self):
-
-        self.mod.aciona('0x10','0x02','0x00') 
-  
-    def liga_rele4_exp16(self):
-
-        self.mod.aciona('0x10','0x03','0xFF')        
-    def desliga_rele4_exp16(self):
-
-        self.mod.aciona('0x10','0x03','0x00')
-
-
-
-s = Expansor()
-l = Leitor()
-
-def leitor(entrada):
-
-##    mutex.acquire() # Trava para acesso exclusivo
-
-    l = Leitor()
-
-    if  entrada == ("leitor1_in1"):
-
-        i = l.leitor1_in1()
-        return(i)
-
-    if  entrada == ("leitor1_in2"):
-
-        i = l.leitor1_in2()
-        return(i)
-
-    if  entrada == ("leitor1_in3"):
-
-        i = l.leitor1_in3()
-        return(i)
-
-    if  entrada == ("leitor1_in4"):
-
-        i = l.leitor1_in4()
-        return(i)
-
-    if  entrada == ("leitor2_in1"):
-
-        i = l.leitor2_in1()
-        return(i)
-
-    if  entrada == ("leitor2_in2"):
-
-        i = l.leitor2_in2()
-        return(i)
-
-    if  entrada == ("leitor2_in3"):
-
-        i = l.leitor2_in3()
-        return(i)
-
-    if  entrada == ("leitor2_in4"):
-
-        i = l.leitor2_in4()
-        return(i)
-
-################################################################################################################
 def thread_monitor(): # Programa que mantem a conexão com o QR Code
 
     print("\nPrograma Monitor em execução\n")
@@ -2110,7 +434,7 @@ monitor.start()
 
 def gar1():
 
-    s = Expansor()
+    
 
     exp1 = banco.consulta("entradas","exp1")       
 
@@ -2126,13 +450,13 @@ def gar1():
 
         log("Programa Garagem 1 em execução no expansor 1... ")
         
-##        s = Expansor()
+##        
 ##        l = Leitor()
         
-        s.desliga_rele4_exp1() # Garante que a sirene esteja desligada
-        s.desliga_rele3_exp1() # Garante que sinaleira esteja com sinal vermelho (NF)
-        s.desliga_rele2_exp1() # Garante que o Foto esteja desligado
-        s.desliga_rele1_exp1() # Garante que o Abre esteja desligado
+        desliga_rele4_exp1() # Garante que a sirene esteja desligada
+        desliga_rele3_exp1() # Garante que sinaleira esteja com sinal vermelho (NF)
+        desliga_rele2_exp1() # Garante que o Foto esteja desligado
+        desliga_rele1_exp1() # Garante que o Abre esteja desligado
 
     ##    banco = Banco()
         eventos = banco.consulta("comandos","eventos")
@@ -2143,12 +467,12 @@ def gar1():
             
 
             hs = time.strftime("%H:%M:%S")
-            s = Expansor()
+            
         
             ihm_gar1 = banco.consulta("comandos","abre_garagem1") # Valor inserido pelo botão da interface       
-            tx1 =  leitor("leitor1_in3")  # Cantato abre vindo do TX (LINEAR HCS)
+            tx1 =  leitor1_in3()  # Cantato abre vindo do TX (LINEAR HCS)
 
-            mud1 = leitor("leitor1_in4")  # Chave de mudança
+            mud1 = leitor1_in4()  # Chave de mudança
 
             t = open("/home/pi/CMM/status_garagem_1.cmm","r")
             status_tx1 = t.read()
@@ -2158,19 +482,19 @@ def gar1():
             if (tx1 == 1 or ihm_gar1 == "1"):   
 
                 time.sleep(0.05)                
-                tx1 =  leitor("leitor1_in3")                                
+                tx1 =  leitor1_in3()                                
 
                 if (tx1 == 1 or ihm_gar1 == "1"): # O tx da linear está direto no abre do portão
 
                     time.sleep(0.05)
-                    tx1 = leitor("leitor1_in3")
+                    tx1 = leitor1_in3()
 
                     if tx1 == 1 :
 
                         log("*")
                         log("Reconheceu tx Garagem 1") # Se reconheceu o tx, é porque o portão ja esta abrindo
 
-                        s.liga_rele3_exp1() # Sinal Verde (Sinaleira)    
+                        liga_rele3_exp1() # Sinal Verde (Sinaleira)    
 
                         status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                         status.write("1")
@@ -2183,15 +507,15 @@ def gar1():
                         log("*")
                         log("Reconheceu abre Garagem 1 Interface gráfica")
 
-                        s.liga_rele3_exp1() # Sinal Verde (Sinaleira)
+                        liga_rele3_exp1() # Sinal Verde (Sinaleira)
 
                         status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                         status.write("1")
                         status.close()
 
-                        s.liga_rele1_exp1() # Pulso para abrir a garagem
+                        liga_rele1_exp1() # Pulso para abrir a garagem
                         time.sleep(2)
-                        s.desliga_rele1_exp1()
+                        desliga_rele1_exp1()
 
                         time.sleep(1)
 
@@ -2199,23 +523,23 @@ def gar1():
 
                     time.sleep(2) # Tempo para começar a abrir o portão
 
-                    pmg1 = leitor("leitor1_in1")                              
+                    pmg1 = leitor1_in1()                              
                     
                     if pmg1 == 1: # Portão não abriu apos o comando
 
                         time.sleep(0.05)
-                        pmg1 = leitor("leitor1_in1")
+                        pmg1 = leitor1_in1()
 
                         if pmg1 == 1: # Portão não abriu apos o comando
 
                             time.sleep(0.05)
-                            pmg1 = leitor("leitor1_in1")
+                            pmg1 = leitor1_in1()
 
                             if pmg1 == 1:
 
                                 log("Portão Garagem 1 não abriu")
 
-                                s.desliga_rele3_exp1() # Sinal Vermelho                            
+                                desliga_rele3_exp1() # Sinal Vermelho                            
 
                                 if eventos == "1":
                                 
@@ -2231,12 +555,12 @@ def gar1():
                     if pmg1 == 0: # Portão abriu
 
                         time.sleep(0.05)                    
-                        pmg1 = leitor("leitor1_in1")
+                        pmg1 = leitor1_in1()
 
                         if pmg1 == 0: # Confirmado que o Portão abriu
 
                             time.sleep(0.05)                    
-                            pmg1 = leitor("leitor1_in1")
+                            pmg1 = leitor1_in1()
 
                             if pmg1 == 0:                                
 
@@ -2252,7 +576,7 @@ def gar1():
 
                                         log("Portão Garagem 1 abriu")
                                         
-                                        s.liga_rele3_exp1() # Sinal verde
+                                        liga_rele3_exp1() # Sinal verde
                                         
                                         status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                                         status.write("1")
@@ -2260,23 +584,23 @@ def gar1():
 
                                         time.sleep(2)
                                     
-                                    pmg1 = leitor("leitor1_in1")
+                                    pmg1 = leitor1_in1()
                                     
                                     if pmg1 == 1: # Se o portão ja fechou
 
                                         time.sleep(0.05)
-                                        pmg1 = leitor("leitor1_in1")
+                                        pmg1 = leitor1_in1()
 
                                         if pmg1 == 1:
 
                                             time.sleep(0.05)
-                                            pmg1 = leitor("leitor1_in1")
+                                            pmg1 = leitor1_in1()
 
                                             if pmg1 == 1:
 
                                                 log("Portão Garagem 1 fechou")
 
-                                                s.desliga_rele3_exp1() # Sinal Vermelho
+                                                desliga_rele3_exp1() # Sinal Vermelho
 
                                                 status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                                                 status.write("0")
@@ -2292,12 +616,12 @@ def gar1():
                                     if pmg1 == 0: # Se o portão ainda esta aberto
 
                                         time.sleep(0.05)
-                                        pmg1 = leitor("leitor1_in1")
+                                        pmg1 = leitor1_in1()
 
                                         if pmg1 == 0:
 
                                             time.sleep(0.05)
-                                            pmg1 = leitor("leitor1_in1")
+                                            pmg1 = leitor1_in1()
 
                                             if pmg1 == 0:
 
@@ -2309,18 +633,18 @@ def gar1():
 
                                                         log("Portão Garagem 1 aberto...")
                                                 
-                                                    bar1 = leitor("leitor1_in2") # Faz a leitura da barreira 1
-                                                    pmg1 = leitor("leitor1_in1")
+                                                    bar1 = leitor1_in2() # Faz a leitura da barreira 1
+                                                    pmg1 = leitor1_in1()
 
                                                     if bar1 == 1: # Se acionou a barreira de entrada
 
                                                         time.sleep(0.05)
-                                                        bar1 = leitor("leitor1_in2")
+                                                        bar1 = leitor1_in2()
 
                                                         if bar1 == 1:
 
                                                             time.sleep(0.05)
-                                                            bar1 = leitor("leitor1_in2")
+                                                            bar1 = leitor1_in2()
 
                                                             if bar1 == 1: # Se acionou a barreira de entrada                                                            
 
@@ -2330,17 +654,17 @@ def gar1():
 
                                                                 while tempo > 0: # Enquanto esta na frente da barreira
 
-                                                                    bar1 = leitor("leitor1_in2") # Faz a leitura da barreira 1                                                                
+                                                                    bar1 = leitor1_in2() # Faz a leitura da barreira 1                                                                
                                                                     
                                                                     if bar1 == 0:
 
                                                                         time.sleep(0.05)
-                                                                        bar1 = leitor("leitor1_in2")
+                                                                        bar1 = leitor1_in2()
 
                                                                         if bar1 == 0:
                                                                             
                                                                             log("Saiu da barreira Garagem 1")
-                                                                            s.desliga_rele3_exp1() # Sinal Vermelho
+                                                                            desliga_rele3_exp1() # Sinal Vermelho
                                                                             tempo = 0
                                                                             break
                                                                         
@@ -2348,11 +672,11 @@ def gar1():
 
                                                                         log("Portão Garagem 1 aberto por muito tempo")
 
-                                                                        s.desliga_rele3_exp1() # Sinal Vermelho
+                                                                        desliga_rele3_exp1() # Sinal Vermelho
 
-                                                                        s.liga_rele4_exp1() # Sirene                                            
+                                                                        liga_rele4_exp1() # Sirene                                            
                                                                         time.sleep(3)
-                                                                        s.desliga_rele4_exp1()
+                                                                        desliga_rele4_exp1()
 
                                                                         if eventos == "1":
 
@@ -2367,12 +691,12 @@ def gar1():
                                                                     tempo = tempo - 1
                                                                     time.sleep(1) 
                                                             
-                                                            pmg1 = leitor("leitor1_in1") # Faz a leitura do ponto magnetico                                    
+                                                            pmg1 = leitor1_in1() # Faz a leitura do ponto magnetico                                    
                                                             
                                                             if pmg1 == 0: # Portão ainda aberto
 
                                                                 time.sleep(0.05)                                                        
-                                                                pmg1 = leitor("leitor1_in1") # Faz a leitura do ponto magnetico                                        
+                                                                pmg1 = leitor1_in1() # Faz a leitura do ponto magnetico                                        
 
                                                                 if pmg1 == 0:
 
@@ -2383,24 +707,24 @@ def gar1():
 
                                                                     while temp > 0:  # Enquanto o portão ainda está aberto e tempo menor que 30 seg
                                                                         
-                                                                        pmg1 = leitor("leitor1_in1") # Faz a leitura do ponto magnetico
-                                                                        bar1 = leitor("leitor1_in2") # Faz a leitura da barreira 1
-                                                                        tx1 =  leitor("leitor1_in3")  # Cantato abre vindo do TX (LINEAR HCS)
+                                                                        pmg1 = leitor1_in1() # Faz a leitura do ponto magnetico
+                                                                        bar1 = leitor1_in2() # Faz a leitura da barreira 1
+                                                                        tx1 =  leitor1_in3()  # Cantato abre vindo do TX (LINEAR HCS)
 
                                                                         if tx1 == 1: # Alguem acionou o controle enquanto o portão fechava
 
                                                                             time.sleep(0.05)                                                                    
-                                                                            tx1 =  leitor("leitor1_in3")
+                                                                            tx1 =  leitor1_in3()
 
                                                                             if tx1 == 1:
 
                                                                                 time.sleep(0.05)                                                                    
-                                                                                tx1 =  leitor("leitor1_in3")
+                                                                                tx1 =  leitor1_in3()
 
                                                                                 if tx1 == 1:
 
                                                                                     log("Reconheceu abre Garagem 1 enquanto o portão estava aberto")                                                    
-                                                                                    s.liga_rele3_exp1() # Sinal Verde
+                                                                                    liga_rele3_exp1() # Sinal Verde
 
                                                                                     entrada_permitida = 1 # Reconhece o segundo acionamento
                                                                                                                                                                                                                                                     
@@ -2409,7 +733,7 @@ def gar1():
                                                                         if bar1 == 1 and entrada_permitida == 1:
                                                                             
                                                                             time.sleep(0.05)                                                                    
-                                                                            bar1 = leitor("leitor1_in2")
+                                                                            bar1 = leitor1_in2()
                                                                             
                                                                             if bar1 == 1:
 
@@ -2417,22 +741,22 @@ def gar1():
 
                                                                                 while tempo2 > 0: # Enquanto a barreira esta acionada
 
-                                                                                    bar1 = leitor("leitor1_in2")# Faz a leitura da barreira 1                                                                                                                                                                                                                                                       
+                                                                                    bar1 = leitor1_in2()# Faz a leitura da barreira 1                                                                                                                                                                                                                                                       
 
                                                                                     if bar1 == 0:
 
                                                                                         time.sleep(0.05)
-                                                                                        bar1 = leitor("leitor1_in2")
+                                                                                        bar1 = leitor1_in2()
 
                                                                                         if bar1 == 0:
 
                                                                                             time.sleep(0.05)
-                                                                                            bar1 = leitor("leitor1_in2")
+                                                                                            bar1 = leitor1_in2()
 
                                                                                             if bar1 == 0:
 
                                                                                                 log("Saiu da barreira")
-                                                                                                s.desliga_rele3_exp1() # Sinal Vermelho
+                                                                                                desliga_rele3_exp1() # Sinal Vermelho
                                                                                                 log("Entrou segundo veiculo autorizado")
 
                                                                                                 entrada_permitida = 0
@@ -2443,11 +767,11 @@ def gar1():
 
                                                                                         log("Portão do segundo veiculo aberto por muito tempo")
 
-                                                                                        s.desliga_rele3_exp1() # Sinal Vermelho
+                                                                                        desliga_rele3_exp1() # Sinal Vermelho
 
-                                                                                        s.liga_rele4_exp1() # Sirene                                            
+                                                                                        liga_rele4_exp1() # Sirene                                            
                                                                                         time.sleep(3)
-                                                                                        s.desliga_rele4_exp1()
+                                                                                        desliga_rele4_exp1()
 
                                                                                         if eventos == "1":
 
@@ -2466,14 +790,14 @@ def gar1():
                                                                         if bar1 == 1 and entrada_permitida == 0: # Dupla passagem
                                                                             
                                                                             time.sleep(0.05)                                                                    
-                                                                            bar1 = leitor("leitor1_in2")
+                                                                            bar1 = leitor1_in2()
 
                                                                             if bar1 == 1:
 
                                                                                 if bar1 == 1 and entrada_permitida == 0: # Dupla passagem
                                                                             
                                                                                     time.sleep(0.05)                                                                    
-                                                                                    bar1 = leitor("leitor1_in2")
+                                                                                    bar1 = leitor1_in2()
 
                                                                                     log("Dupla passagem Garagem 1")
 
@@ -2481,9 +805,9 @@ def gar1():
 
                                                                                         evento.enviar("E","132","016")
 
-                                                                                    s.liga_rele4_exp1() # Sirene                                            
+                                                                                    liga_rele4_exp1() # Sirene                                            
                                                                                     time.sleep(10)
-                                                                                    s.desliga_rele4_exp1()                                            
+                                                                                    desliga_rele4_exp1()                                            
 
                                                                                     break
                                                                             
@@ -2491,16 +815,16 @@ def gar1():
                                                                         if pmg1 == 1: # portão ja fechou
 
                                                                             time.sleep(0.05)                                                                    
-                                                                            pmg1 = leitor("leitor1_in1")
+                                                                            pmg1 = leitor1_in1()
 
                                                                             if pmg1 == 1:
 
                                                                                 time.sleep(0.05)                                                                    
-                                                                                pmg1 = leitor("leitor1_in1")
+                                                                                pmg1 = leitor1_in1()
 
                                                                                 if pmg1 == 1:
                                                                                     
-                                                                                    s.desliga_rele3_exp1() # Sinal Vermelho
+                                                                                    desliga_rele3_exp1() # Sinal Vermelho
 
                                                                                     status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                                                                                     status.write("0")
@@ -2517,11 +841,11 @@ def gar1():
 
                                                                             log("Portão aberto por muito tempo")
 
-                                                                            s.desliga_rele3_exp1() # Sinal Vermelho
+                                                                            desliga_rele3_exp1() # Sinal Vermelho
 
-                                                                            s.liga_rele4_exp1() # Sirene                                            
+                                                                            liga_rele4_exp1() # Sirene                                            
                                                                             time.sleep(3)
-                                                                            s.desliga_rele4_exp1()
+                                                                            desliga_rele4_exp1()
 
                                                                             status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                                                                             status.write("0")
@@ -2540,18 +864,18 @@ def gar1():
                                                     if pmg1 == 1:
 
                                                         time.sleep(0.05)
-                                                        pmg1 = leitor("leitor1_in1")
+                                                        pmg1 = leitor1_in1()
                                                         
                                                         if pmg1 == 1:
 
                                                             time.sleep(0.05)
-                                                            pmg1 = leitor("leitor1_in1")
+                                                            pmg1 = leitor1_in1()
                                                             
                                                             if pmg1 == 1:
 
                                                                 log("Portão Garagem 1 fechou.")
 
-                                                                s.desliga_rele3_exp1() # Sinal Vermelho
+                                                                desliga_rele3_exp1() # Sinal Vermelho
 
                                                                 status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                                                                 status.write("0")
@@ -2567,7 +891,7 @@ def gar1():
                                                     if cont2 == 1:
 
                                                         log("Nao detectou nenhuma entrada ou saida Garagem 1")
-                                                        s.desliga_rele3_exp1() # Sinal Vermelho
+                                                        desliga_rele3_exp1() # Sinal Vermelho
                                                         
                                                         break
                                                     
@@ -2579,11 +903,11 @@ def gar1():
 
                                         log("Atingiu o tempo máximo e o portão da Garagem não fechou")
 
-                                        s.desliga_rele3_exp1() # Sinal Vermelho
+                                        desliga_rele3_exp1() # Sinal Vermelho
 
-                                        s.liga_rele4_exp1() # Sirene                                            
+                                        liga_rele4_exp1() # Sirene                                            
                                         time.sleep(3)
-                                        s.desliga_rele4_exp1()
+                                        desliga_rele4_exp1()
 
                                         status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                                         status.write("0")
@@ -2599,7 +923,7 @@ def gar1():
 
                         log ("Recebeu comando para abrir Garagem 1 mas o portão no abriu")
                         
-                        s.desliga_rele3_exp1() # Sinal Vermelho
+                        desliga_rele3_exp1() # Sinal Vermelho
                         
                         status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                         status.write("0")
@@ -2608,19 +932,19 @@ def gar1():
                 if mud1 == 1 and mudanca1 == 0: # Chave de mudança acionada
 
                     time.sleep(0.05)     
-                    mud1 = leitor("leitor1_in4")  # Chave de mudança            
+                    mud1 = leitor1_in4()  # Chave de mudança            
 
                     if mud1 == 1:
 
                         time.sleep(0.05)     
-                        mud1 = leitor("leitor1_in4")  # Chave de mudança            
+                        mud1 = leitor1_in4()  # Chave de mudança            
 
                         if mud1 == 1:
 
                             log("*")
                             log("Chave de mudança acionada Garagem")
 
-                            s.liga_rele3_exp1() # Sinal Verde
+                            liga_rele3_exp1() # Sinal Verde
 
                             if evento == "1":
 
@@ -2630,37 +954,37 @@ def gar1():
                             t.write("1")
                             t.close()
 
-                            s.liga_rele1_exp1() # Aciona o rele 1 do modulo 1 (Abre)
+                            liga_rele1_exp1() # Aciona o rele 1 do modulo 1 (Abre)
                             time.sleep(2)
-                            s.desliga_rele1_exp1()
-                            s.liga_rele2_exp1() # Aciona o rele 2 do modulo 1 (Foto)                
+                            desliga_rele1_exp1()
+                            liga_rele2_exp1() # Aciona o rele 2 do modulo 1 (Foto)                
 
                             mudanca1 = 1
 
             if mud1 == 0 and mudanca1 == 1:
 
                 time.sleep(0.05)
-                mud1 = leitor("leitor1_in4")
+                mud1 = leitor1_in4()
 
                 if mud1 == 0:
 
                     time.sleep(0.05)
-                    mud1 = leitor("leitor1_in4")
+                    mud1 = leitor1_in4()
 
                     if mud1 == 0:
 
                         log("Desligada a chave de mudança")
 
-                        s.desliga_rele3_exp1() # Sinal Vermelho
+                        desliga_rele3_exp1() # Sinal Vermelho
 
                         if evento == "1":
 
                             evento.enviar("R","132","26")
                                         
-                        s.desliga_rele1_exp1() # Desliga o rele 1 do modulo 1 (Abre)
-                        s.desliga_rele2_exp1() # Desliga o rele 2 do modulo 1 (Foto) 
+                        desliga_rele1_exp1() # Desliga o rele 1 do modulo 1 (Abre)
+                        desliga_rele2_exp1() # Desliga o rele 2 do modulo 1 (Foto) 
 
-                        pmg1 = leitor("leitor1_in1")
+                        pmg1 = leitor1_in1()
 
                         cont = 60 # Tempo maximo de espera
 
@@ -2668,23 +992,23 @@ def gar1():
 
                         while cont > 0:
                             
-                            pmg1 = leitor("leitor1_in1")                                                              
+                            pmg1 = leitor1_in1()                                                              
                                     
                             if pmg1 == 1: # Portão ja fechou
 
                                 time.sleep(0.05)
-                                pmg1 = leitor("leitor1_in1")
+                                pmg1 = leitor1_in1()
 
                                 if pmg1 == 1:
 
                                     time.sleep(0.05)
-                                    pmg1 = leitor("leitor1_in1")
+                                    pmg1 = leitor1_in1()
 
                                     if pmg1 == 1:
 
                                         log("Portão fechou")
 
-                                        s.desliga_rele3_exp1() # Sinal Vermelho
+                                        desliga_rele3_exp1() # Sinal Vermelho
 
                                         t = open("/home/pi/CMM/status_garagem_1.cmm","w")
                                         t.write("0")
@@ -2699,15 +1023,15 @@ def gar1():
 
                                 log("Chave de mudança desligou mas o portão nao fechou após 1 min")
 
-                                s.desliga_rele3_exp1() # Sinal Vermelho
+                                desliga_rele3_exp1() # Sinal Vermelho
 
                                 t = open("/home/pi/CMM/status_garagem_1.cmm","w")
                                 t.write("0")
                                 t.close()
 
-                                s.liga_rele4_exp1() # Pulso na Sirene                                            
+                                liga_rele4_exp1() # Pulso na Sirene                                            
                                 time.sleep(3)
-                                s.desliga_rele4_exp1()                                
+                                desliga_rele4_exp1()                                
                                 
                                 mudanca1 = 0
                                 
@@ -2725,7 +1049,7 @@ g1.start()
 
 def gar2():
 
-    s = Expansor()
+    
 
     exp2 = banco.consulta("entradas","exp2")    
 
@@ -2736,13 +1060,13 @@ def gar2():
         os.system("sudo chmod 777 /dev/ttyS0")
         os.system("sudo chmod 777 -R /var/www/html/log")   
         
-##        s = Expansor()
+##        
 ##        l = Leitor()
         
-        s.desliga_rele4_exp2() # Garante que a sirene esteja desligada
-        s.desliga_rele3_exp2() # Garante que sinaleira esteja com sinal vermelho (NF)
-        s.desliga_rele2_exp2() # Garante que o Foto esteja desligado
-        s.desliga_rele1_exp2() # Garante que o Abre esteja desligado
+        desliga_rele4_exp2() # Garante que a sirene esteja desligada
+        desliga_rele3_exp2() # Garante que sinaleira esteja com sinal vermelho (NF)
+        desliga_rele2_exp2() # Garante que o Foto esteja desligado
+        desliga_rele1_exp2() # Garante que o Abre esteja desligado
 
     ##    banco = Banco()
         eventos = banco.consulta("comandos","eventos2")
@@ -2752,12 +1076,12 @@ def gar2():
         while(1):        
 
             hs = time.strftime("%H:%M:%S")
-            s = Expansor()
+            
         
             ihm_gar2 = banco.consulta("comandos","abre_garagem2") # Valor inserido pelo botão da interface       
-            tx2 =  leitor("leitor2_in3")  # Cantato abre vindo do TX (LINEAR HCS)
+            tx2 =  leitor2_in3()  # Cantato abre vindo do TX (LINEAR HCS)
 
-            mud2 = leitor("leitor2_in4")  # Chave de mudança
+            mud2 = leitor2_in4()  # Chave de mudança
 
             t = open("/home/pi/CMM/status_garagem_2.cmm","r")
             status_tx2 = t.read()
@@ -2767,19 +1091,19 @@ def gar2():
             if (tx2 == 1 or ihm_gar2 == "1"):   
 
                 time.sleep(0.05)                
-                tx2 =  leitor("leitor2_in3")                               
+                tx2 =  leitor2_in3()                               
 
                 if (tx2 == 1 or ihm_gar2 == "1"): # O tx da linear está direto no abre do portão
 
                     time.sleep(0.05)
-                    tx2 = leitor("leitor2_in3")
+                    tx2 = leitor2_in3()
 
                     if tx2 == 1 :
 
                         log("*")
                         log("Reconheceu tx Garagem 2") # Se reconheceu o tx, é porque o portão ja esta abrindo
 
-                        s.liga_rele3_exp2() # Sinal Verde (Sinaleira)    
+                        liga_rele3_exp2() # Sinal Verde (Sinaleira)    
 
                         status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                         status.write("1")
@@ -2792,15 +1116,15 @@ def gar2():
                         log("*")
                         log("Reconheceu abre Garagem 2 Interface gráfica")
 
-                        s.liga_rele3_exp2() # Sinal Verde (Sinaleira)
+                        liga_rele3_exp2() # Sinal Verde (Sinaleira)
 
                         status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                         status.write("1")
                         status.close()
 
-                        s.liga_rele1_exp2() # Pulso para abrir a garagem
+                        liga_rele1_exp2() # Pulso para abrir a garagem
                         time.sleep(2)
-                        s.desliga_rele1_exp2()
+                        desliga_rele1_exp2()
 
                         time.sleep(1)
 
@@ -2808,23 +1132,23 @@ def gar2():
 
                     time.sleep(2) # Tempo para começar a abrir o portão
 
-                    pmg2 = leitor("leitor2_in1")                               
+                    pmg2 = leitor2_in1()                               
                     
                     if pmg2 == 1: # Portão não abriu apos o comando
 
                         time.sleep(0.05)
-                        pmg2 = leitor("leitor2_in1")
+                        pmg2 = leitor2_in1()
 
                         if pmg2 == 1: # Portão não abriu apos o comando
 
                             time.sleep(0.05)
-                            pmg2 = leitor("leitor2_in1")
+                            pmg2 = leitor2_in1()
 
                             if pmg2 == 1:
 
                                 log("Portão Garagem 2 não abriu")
 
-                                s.desliga_rele3_exp2() # Sinal Vermelho                            
+                                desliga_rele3_exp2() # Sinal Vermelho                            
 
                                 if eventos == "1":
                                 
@@ -2840,12 +1164,12 @@ def gar2():
                     if pmg2 == 0: # Portão abriu
 
                         time.sleep(0.05)                    
-                        pmg2 = leitor("leitor2_in1")
+                        pmg2 = leitor2_in1()
 
                         if pmg2 == 0: # Confirmado que o Portão abriu
 
                             time.sleep(0.05)                    
-                            pmg2 = leitor("leitor2_in1")
+                            pmg2 = leitor2_in1()
 
                             if pmg2 == 0:                                
 
@@ -2861,7 +1185,7 @@ def gar2():
 
                                         log("Portão Garagem 2 abriu")
                                         
-                                        s.liga_rele3_exp2() # Sinal verde
+                                        liga_rele3_exp2() # Sinal verde
                                         
                                         status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                                         status.write("1")
@@ -2869,23 +1193,23 @@ def gar2():
 
                                         time.sleep(2)
                                     
-                                    pmg2 = leitor("leitor2_in1")
+                                    pmg2 = leitor2_in1()
                                     
                                     if pmg2 == 1: # Se o portão ja fechou
 
                                         time.sleep(0.05)
-                                        pmg2 = leitor("leitor2_in1")
+                                        pmg2 = leitor2_in1()
 
                                         if pmg2 == 1:
 
                                             time.sleep(0.05)
-                                            pmg2 = leitor("leitor2_in1")
+                                            pmg2 = leitor2_in1()
 
                                             if pmg2 == 1:
 
                                                 log("Portão Garagem 2 fechou")
 
-                                                s.desliga_rele3_exp2() # Sinal Vermelho
+                                                desliga_rele3_exp2() # Sinal Vermelho
 
                                                 status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                                                 status.write("0")
@@ -2901,12 +1225,12 @@ def gar2():
                                     if pmg2 == 0: # Se o portão ainda esta aberto
 
                                         time.sleep(0.05)
-                                        pmg2 = leitor("leitor2_in1")
+                                        pmg2 = leitor2_in1()
 
                                         if pmg2 == 0:
 
                                             time.sleep(0.05)
-                                            pmg2 = leitor("leitor2_in1")
+                                            pmg2 = leitor2_in1()
 
                                             if pmg2 == 0:
 
@@ -2918,18 +1242,18 @@ def gar2():
 
                                                         log("Portão Garagem 2 aberto...")
                                                 
-                                                    bar2 = leitor("leitor2_in2") # Faz a leitura da barreira 1
-                                                    pmg2 = leitor("leitor2_in1")
+                                                    bar2 = leitor2_in2() # Faz a leitura da barreira 1
+                                                    pmg2 = leitor2_in1()
 
                                                     if bar2 == 1: # Se acionou a barreira de entrada
 
                                                         time.sleep(0.05)
-                                                        bar2 = leitor("leitor2_in2")
+                                                        bar2 = leitor2_in2()
 
                                                         if bar2 == 1:
 
                                                             time.sleep(0.05)
-                                                            bar2 = leitor("leitor2_in2")
+                                                            bar2 = leitor2_in2()
 
                                                             if bar2 == 1: # Se acionou a barreira de entrada                                                            
 
@@ -2939,17 +1263,17 @@ def gar2():
 
                                                                 while tempo > 0: # Enquanto esta na frente da barreira
 
-                                                                    bar2 = leitor("leitor2_in2") # Faz a leitura da barreira 1                                                                
+                                                                    bar2 = leitor2_in2() # Faz a leitura da barreira 1                                                                
                                                                     
                                                                     if bar2 == 0:
 
                                                                         time.sleep(0.05)
-                                                                        bar2 = leitor("leitor2_in2")
+                                                                        bar2 = leitor2_in2()
 
                                                                         if bar2 == 0:
                                                                             
                                                                             log("Saiu da barreira Garagem 2")
-                                                                            s.desliga_rele3_exp2() # Sinal Vermelho
+                                                                            desliga_rele3_exp2() # Sinal Vermelho
                                                                             tempo = 0
                                                                             break
                                                                         
@@ -2957,11 +1281,11 @@ def gar2():
 
                                                                         log("Portão Garagem 2 aberto por muito tempo")
 
-                                                                        s.desliga_rele3_exp2() # Sinal Vermelho
+                                                                        desliga_rele3_exp2() # Sinal Vermelho
 
-                                                                        s.liga_rele4_exp2() # Sirene                                            
+                                                                        liga_rele4_exp2() # Sirene                                            
                                                                         time.sleep(3)
-                                                                        s.desliga_rele4_exp2()
+                                                                        desliga_rele4_exp2()
 
                                                                         if eventos == "1":
 
@@ -2976,12 +1300,12 @@ def gar2():
                                                                     tempo = tempo - 1
                                                                     time.sleep(1) 
                                                             
-                                                            pmg2 = leitor("leitor2_in1") # Faz a leitura do ponto magnetico                                    
+                                                            pmg2 = leitor2_in1() # Faz a leitura do ponto magnetico                                    
                                                             
                                                             if pmg2 == 0: # Portão ainda aberto
 
                                                                 time.sleep(0.05)                                                        
-                                                                pmg2 = leitor("leitor2_in1") # Faz a leitura do ponto magnetico                                        
+                                                                pmg2 = leitor2_in1() # Faz a leitura do ponto magnetico                                        
 
                                                                 if pmg2 == 0:
 
@@ -2992,24 +1316,24 @@ def gar2():
 
                                                                     while temp > 0:  # Enquanto o portão ainda está aberto e tempo menor que 30 seg
                                                                         
-                                                                        pmg2 = leitor("leitor2_in1") # Faz a leitura do ponto magnetico
-                                                                        bar2 = leitor("leitor2_in2") # Faz a leitura da barreira 1
-                                                                        tx2 =  leitor("leitor2_in3")  # Cantato abre vindo do TX (LINEAR HCS)
+                                                                        pmg2 = leitor2_in1() # Faz a leitura do ponto magnetico
+                                                                        bar2 = leitor2_in2() # Faz a leitura da barreira 1
+                                                                        tx2 =  leitor2_in3()  # Cantato abre vindo do TX (LINEAR HCS)
 
                                                                         if tx2 == 1: # Alguem acionou o controle enquanto o portão fechava
 
                                                                             time.sleep(0.05)                                                                    
-                                                                            tx2 =  leitor("leitor2_in3")
+                                                                            tx2 =  leitor2_in3()
 
                                                                             if tx2 == 1:
 
                                                                                 time.sleep(0.05)                                                                    
-                                                                                tx2 =  leitor("leitor2_in3")
+                                                                                tx2 =  leitor2_in3()
 
                                                                                 if tx2 == 1:
 
                                                                                     log("Reconheceu abre Garagem 2 enquanto o portão estava aberto")                                                    
-                                                                                    s.liga_rele3_exp2() # Sinal Verde
+                                                                                    liga_rele3_exp2() # Sinal Verde
 
                                                                                     entrada_permitida = 1 # Reconhece o segundo acionamento
                                                                                                                                                                                                                                                     
@@ -3018,7 +1342,7 @@ def gar2():
                                                                         if bar2 == 1 and entrada_permitida == 1:
                                                                             
                                                                             time.sleep(0.05)                                                                    
-                                                                            bar2 = leitor("leitor2_in2")
+                                                                            bar2 = leitor2_in2()
                                                                             
                                                                             if bar2 == 1:
 
@@ -3026,22 +1350,22 @@ def gar2():
 
                                                                                 while tempo2 > 0: # Enquanto a barreira esta acionada
 
-                                                                                    bar2 = leitor("leitor2_in2") # Faz a leitura da barreira 1                                                                                                                                                                                                                                                       
+                                                                                    bar2 = leitor2_in2() # Faz a leitura da barreira 1                                                                                                                                                                                                                                                       
 
                                                                                     if bar2 == 0:
 
                                                                                         time.sleep(0.05)
-                                                                                        bar2 = leitor("leitor2_in2")
+                                                                                        bar2 = leitor2_in2()
 
                                                                                         if bar2 == 0:
 
                                                                                             time.sleep(0.05)
-                                                                                            bar2 = leitor("leitor2_in2")
+                                                                                            bar2 = leitor2_in2()
 
                                                                                             if bar2 == 0:
 
                                                                                                 log("Saiu da barreira Garagem 2")
-                                                                                                s.desliga_rele3_exp2() # Sinal Vermelho
+                                                                                                desliga_rele3_exp2() # Sinal Vermelho
                                                                                                 log("Entrou segundo veiculo autorizado Garagem 2")
 
                                                                                                 entrada_permitida = 0
@@ -3052,11 +1376,11 @@ def gar2():
 
                                                                                         log("Portão do segundo veiculo aberto por muito tempo Garagem 2 ")
 
-                                                                                        s.desliga_rele3_exp2() # Sinal Vermelho
+                                                                                        desliga_rele3_exp2() # Sinal Vermelho
 
-                                                                                        s.liga_rele4_exp2() # Sirene                                            
+                                                                                        liga_rele4_exp2() # Sirene                                            
                                                                                         time.sleep(3)
-                                                                                        s.desliga_rele4_exp2()
+                                                                                        desliga_rele4_exp2()
 
                                                                                         if eventos == "1":
 
@@ -3075,14 +1399,14 @@ def gar2():
                                                                         if bar2 == 1 and entrada_permitida == 0: # Dupla passagem
                                                                             
                                                                             time.sleep(0.05)                                                                    
-                                                                            bar2 = leitor("leitor2_in2")
+                                                                            bar2 = leitor2_in2()
 
                                                                             if bar2 == 1:
 
                                                                                 if bar2 == 1 and entrada_permitida == 0: # Dupla passagem
                                                                             
                                                                                     time.sleep(0.05)                                                                    
-                                                                                    bar2 = leitor("leitor2_in2")
+                                                                                    bar2 = leitor2_in2()
 
                                                                                     log("Dupla passagem Garagem 2")
 
@@ -3090,9 +1414,9 @@ def gar2():
 
                                                                                         evento.enviar("E","132","020")
 
-                                                                                    s.liga_rele4_exp2() # Sirene                                            
+                                                                                    liga_rele4_exp2() # Sirene                                            
                                                                                     time.sleep(10)
-                                                                                    s.desliga_rele4_exp2()                                            
+                                                                                    desliga_rele4_exp2()                                            
 
                                                                                     break
                                                                             
@@ -3100,16 +1424,16 @@ def gar2():
                                                                         if pmg2 == 1: # portão ja fechou
 
                                                                             time.sleep(0.05)                                                                    
-                                                                            pmg2 = leitor("leitor2_in1")
+                                                                            pmg2 = leitor2_in1()
 
                                                                             if pmg2 == 1:
 
                                                                                 time.sleep(0.05)                                                                    
-                                                                                pmg2 = leitor("leitor2_in1")
+                                                                                pmg2 = leitor2_in1()
 
                                                                                 if pmg2 == 1:
                                                                                     
-                                                                                    s.desliga_rele3_exp2() # Sinal Vermelho
+                                                                                    desliga_rele3_exp2() # Sinal Vermelho
 
                                                                                     status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                                                                                     status.write("0")
@@ -3126,11 +1450,11 @@ def gar2():
 
                                                                             log("Portão Garagem 2 aberto por muito tempo")
 
-                                                                            s.desliga_rele3_exp2() # Sinal Vermelho
+                                                                            desliga_rele3_exp2() # Sinal Vermelho
 
-                                                                            s.liga_rele4_exp2() # Sirene                                            
+                                                                            liga_rele4_exp2() # Sirene                                            
                                                                             time.sleep(3)
-                                                                            s.desliga_rele4_exp2()
+                                                                            desliga_rele4_exp2()
 
                                                                             status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                                                                             status.write("0")
@@ -3149,18 +1473,18 @@ def gar2():
                                                     if pmg2 == 1:
 
                                                         time.sleep(0.05)
-                                                        pmg2 = leitor("leitor2_in1")
+                                                        pmg2 = leitor2_in1()
                                                         
                                                         if pmg2 == 1:
 
                                                             time.sleep(0.05)
-                                                            pmg2 = leitor("leitor2_in1")
+                                                            pmg2 = leitor2_in1()
                                                             
                                                             if pmg2 == 1:
 
                                                                 log("Portão Garagem 2 fechou.")
 
-                                                                s.desliga_rele3_exp2() # Sinal Vermelho
+                                                                desliga_rele3_exp2() # Sinal Vermelho
 
                                                                 status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                                                                 status.write("0")
@@ -3176,7 +1500,7 @@ def gar2():
                                                     if cont2 == 1:
 
                                                         log("Nao detectou nenhuma entrada ou saida Garagem 2")
-                                                        s.desliga_rele3_exp2() # Sinal Vermelho
+                                                        desliga_rele3_exp2() # Sinal Vermelho
                                                         
                                                         break
                                                     
@@ -3188,11 +1512,11 @@ def gar2():
 
                                         log("Atingiu o tempo máximo e o portão da Garagem 2 não fechou")
 
-                                        s.desliga_rele3_exp2() # Sinal Vermelho
+                                        desliga_rele3_exp2() # Sinal Vermelho
 
-                                        s.liga_rele4_exp2() # Sirene                                            
+                                        liga_rele4_exp2() # Sirene                                            
                                         time.sleep(3)
-                                        s.desliga_rele4_exp2()
+                                        desliga_rele4_exp2()
 
                                         status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                                         status.write("0")
@@ -3208,7 +1532,7 @@ def gar2():
 
                         log ("Recebeu comando para abrir Garagem 2 mas o portão no abriu")
                         
-                        s.desliga_rele3_exp2() # Sinal Vermelho
+                        desliga_rele3_exp2() # Sinal Vermelho
                         
                         status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                         status.write("0")
@@ -3288,7 +1612,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                     s.write("1")
                     s.close()
 
-                    saidas.liga_blq2() # Aqui abrimos o contato da eclusa para impedir que ela seja aberta enquanto o social esta aberto
+                    saidaliga_blq2() # Aqui abrimos o contato da eclusa para impedir que ela seja aberta enquanto o social esta aberto
                   
                     social(ihm_soc1)
                    
@@ -3308,7 +1632,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                             log("Abrindo novamente o social...")
 
-                            saidas.desliga_blq2()
+                            saidadesliga_blq2()
 
                             status = open("/home/pi/CMM/status_social.cmm","w") 
                             status.write("0")
@@ -3321,7 +1645,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                             os.system("mpg123 /home/pi/CMM/mp3/social_emperrado.mp3")
                                                     
-                            saidas.desliga_blq2() # Fecha o contato e libera a eclusa para ser acionada
+                            saidadesliga_blq2() # Fecha o contato e libera a eclusa para ser acionada
 
                             status = open("/home/pi/CMM/status_social.cmm","w") 
                             status.write("0")
@@ -3359,7 +1683,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                                 s.write("0")
                                 s.close()
 
-                                saidas.desliga_blq2() # Fecha o contato e libera a eclusa para ser acionada
+                                saidadesliga_blq2() # Fecha o contato e libera a eclusa para ser acionada
 
                                 break
 
@@ -3379,7 +1703,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                                 contador = 0
 
-                                saidas.desliga_blq2() # Fecha o contato e libera a eclusa para ser acionada                                
+                                saidadesliga_blq2() # Fecha o contato e libera a eclusa para ser acionada                                
                                
                             ctw2 = entradas.ctw2()                            
                             
@@ -3417,7 +1741,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                     s.write("1")
                     s.close()
 
-                    saidas.liga_blq1() # Impede o social de abrir enquanto a eclusa esta aberta
+                    saidaliga_blq1() # Impede o social de abrir enquanto a eclusa esta aberta
                     
                     eclusa(ihm_soc2)                                        
                    
@@ -3437,7 +1761,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                            
                            saidas.pulso_abre2()
                            
-                           saidas.desliga_blq1()
+                           saidadesliga_blq1()
 
                            status = open("/home/pi/CMM/status_eclusa.cmm","w") 
                            status.write("0")
@@ -3449,7 +1773,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                            
                            os.system("mpg123 /home/pi/CMM/mp3/eclusa_emperrado.mp3")
                                 
-                           saidas.desliga_blq1() # Libera o social para abrir mesmo com a eclusa aberta
+                           saidadesliga_blq1() # Libera o social para abrir mesmo com a eclusa aberta
 
                            status = open("/home/pi/CMM/status_eclusa.cmm","w") 
                            status.write("0")
@@ -3487,7 +1811,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                                 s.write("0")
                                 s.close()
 
-                                saidas.desliga_blq1() # Libera o social para abrir
+                                saidadesliga_blq1() # Libera o social para abrir
 
                                 break
 
@@ -3505,7 +1829,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
                                 status.write("1")
                                 status.close()                                
 
-                                saidas.desliga_blq1() # Libera o social para abrir mesmo com a eclusa aberta
+                                saidadesliga_blq1() # Libera o social para abrir mesmo com a eclusa aberta
 
                                 contador = 0
                             
@@ -3681,8 +2005,8 @@ def Portoes_sociais(Rele): # Programa
                 status.write("1")
                 status.close()
 
-                saidas.liga_abre1()
-                saidas.liga_abre2()
+                saidaliga_abre1()
+                saidaliga_abre2()
                 
                 qbv_acionado = 1
 
@@ -3696,8 +2020,8 @@ def Portoes_sociais(Rele): # Programa
                 log("Restaurou quebra de vidro da Eclusa")
                 os.system("mpg123 /home/pi/CMM/mp3/restaurada_emergencia.mp3")
 
-                saidas.desliga_abre1()
-                saidas.desliga_abre2()
+                saidadesliga_abre1()
+                saidadesliga_abre2()
 
                 fechadura = banco.consulta("config","fechadura")
 
@@ -3767,16 +2091,16 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
 
             if abre_social == "1" or abre_eclusa == "1":
 
-                saidas.desliga_sirene()
+                saidadesliga_sirene()
 
             if ar1 == 0 and reset_ar1 == 0 and segunda_vez1 == 1:
 
-                saidas.desliga_sirene()
+                saidadesliga_sirene()
                 segunda_vez1 = 0
 
             if ar2 == 0 and reset_ar2 == 0 and segunda_vez2 == 1:
 
-                saidas.desliga_sirene()
+                saidadesliga_sirene()
                 segunda_vez2 = 0
                     
             if abre_social == "0" and pm1 == "0" and ar1 == 0:
@@ -3794,7 +2118,7 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
                     log("Arrombamento do portão social")
                     os.system("mpg123 /home/pi/CMM/mp3/violacao_social.mp3")
                     
-                    saidas.liga_sirene()
+                    saidaliga_sirene()
 
                     if eventos == "1":
 
@@ -3810,11 +2134,11 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
 
                 if cont1 == 340:
 
-                    saidas.desliga_sirene()
+                    saidadesliga_sirene()
 
                 if cont1 <= 0:
 
-                    saidas.desliga_sirene()
+                    saidadesliga_sirene()
 
                     if eventos == "1":
 
@@ -3825,7 +2149,7 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
                     reset_ar1 = 0
                     segunda_vez1 = 1
 
-                    saidas.desliga_sirene() # Garantia que esteja desligada
+                    saidadesliga_sirene() # Garantia que esteja desligada
                     
                     
 
@@ -3844,7 +2168,7 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
                     log("Arrombamento do portão Eclusa")
                     os.system("mpg123 /home/pi/CMM/mp3/violacao_eclusa.mp3")
 
-                    saidas.liga_sirene()
+                    saidaliga_sirene()
 
                     if eventos == "1":
 
@@ -3860,11 +2184,11 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
 
                 if cont2 == 340:
 
-                    saidas.desliga_sirene()
+                    saidadesliga_sirene()
 
                 if cont2 <= 0:
 
-                    saidas.desliga_sirene()
+                    saidadesliga_sirene()
 
                     if eventos == "1":
 
@@ -3875,7 +2199,7 @@ def Arrombamento(Rele): # Inicia a thread arrombamento de portões
                     reset_ar2 = 0
                     segunda_vez2 = 1
 
-                    saidas.desliga_sirene()
+                    saidadesliga_sirene()
             
             time.sleep(1)   
 
@@ -3899,7 +2223,7 @@ def alarmes_garagem1():
                 status_tx1 = t.read()
                 t.close() 
 
-                pmg1 = leitor("leitor1_in1")
+                pmg1 = leitor1_in1()
 
                 if pmg1 == "0" and status_tx1 == "0":
 
@@ -3921,9 +2245,9 @@ def alarmes_garagem1():
 
                 log("violação do portão garagem 1")
 
-                s.desliga_rele3_exp1() # Sinal Vermelho
+                desliga_rele3_exp1() # Sinal Vermelho
 
-                s.liga_rele4_exp1() # Sirene
+                liga_rele4_exp1() # Sirene
                             
                 #evento.enviar("E","132","014")
 
@@ -3933,7 +2257,7 @@ def alarmes_garagem1():
 
                 while cont > 0:
 
-                    pmg1 = leitor("leitor1_in1")
+                    pmg1 = leitor1_in1()
 
                     if(pmg1 == "0"): # Portão ainda aberto                                      
 
@@ -3953,11 +2277,11 @@ def alarmes_garagem1():
                         cont = 0
                         time.sleep(1)
                         
-                        s.desliga_rele4_exp1() # Desliga sirene
+                        desliga_rele4_exp1() # Desliga sirene
                         
                         break            
                 
-##                s.desliga_rele4_exp1() # Desliga sirene
+##                desliga_rele4_exp1() # Desliga sirene
 
 ##                violacao = 0
                 
