@@ -104,7 +104,6 @@ cliente = banco.consulta("config","cliente")
 evento = cmm.Evento("6653") # Inicia a classe evento com o codigo do cliente
 
 ############################################# LEITOR EXPANSOR #####################################################
-os.system("sudo chmod 777 /dev/ttyS0")
 
 def escreve_serial(packet):    
 
@@ -112,14 +111,15 @@ def escreve_serial(packet):
 
         mutex.acquire() 
 
-        time.sleep(0.01) # 004
+        time.sleep(0.05) # 004
 
-        ser = serial.Serial("/dev/ttyS0", 115200)        
+        ser = serial.Serial("/dev/ttyS0", 115200)      
+               
                 
         GPIO.output(17, 1)  
         GPIO.output(18, 1)
         
-        time.sleep(0.005) # 004
+        time.sleep(0.02) # 004
         
         ser.write(packet)
         
@@ -128,25 +128,34 @@ def escreve_serial(packet):
         GPIO.output(17, 0)  
         GPIO.output(18, 0)
 
-        time.sleep(0.005) # 004
+        time.sleep(0.02) # 004
+
+        try:
         
-        bytesToRead = ser.inWaiting()        
-        in_bin = ser.read(bytesToRead)
+            bytesToRead = ser.inWaiting()        
+            in_bin = ser.read(bytesToRead)
 
-        mutex.release()
+        except Exception as err:
 
-        time.sleep(0.005) # Tempo para destravar o mutex
-                        
+            print("Aqui o erro...")
+            in_bin = ("b''")
+
+        else:
+
+            mutex.release()
+                                
         return in_bin
 
     except Exception as err:
 
         mutex.release()
-        txt = ("\nSerial",err)
-        print(txt)
-##        log(txt)
-        
-        return ("b''")
+        print("Erro Serial")
+##        print(err)
+##        time.sleep(0.005)
+##        ser = serial.Serial("/dev/ttyS0", 115200)
+
+        in_bin = ("b''")        
+        return in_bin
 
 def ler(modulo): # passar dados como string
 
@@ -442,7 +451,6 @@ monitor.start()
 def gar1():
 
     
-
     exp1 = banco.consulta("entradas","exp1")       
 
     if(exp1 == "garagem1"):
@@ -1080,7 +1088,7 @@ g1 = threading.Thread(target=gar1)
 g1.start()
 
 def gar2():
-
+    
     habilita_mudanca = 0    
 
     exp2 = banco.consulta("entradas","exp2")    
