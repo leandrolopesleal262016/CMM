@@ -1333,20 +1333,20 @@ def gar2():
                                                                         if pmg2 == 1:
 
                                                                             
-
-                                                                            log("Portão Garagem 2 fechou.")
-
-                                                                            l.desliga_rele3_exp2() # Sinal Vermelho
-
-                                                                            status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
-                                                                            status.write("0")
-                                                                            status.close()
-
-                                                                            if eventos == "1":
-                                                                            
-                                                                                evento.enviar("R","133","017") # Envia o evento de fechamento para a central
-                                                                            
-                                                                            cont2 = 0
+##
+##                                                                            log("Portão Garagem 2 fechou.")
+##
+##                                                                            l.desliga_rele3_exp2() # Sinal Vermelho
+##
+##                                                                            status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
+##                                                                            status.write("0")
+##                                                                            status.close()
+##
+##                                                                            if eventos == "1":
+##                                                                            
+##                                                                                evento.enviar("R","133","017") # Envia o evento de fechamento para a central
+##                                                                            
+##                                                                            cont2 = 0
                                                                             break
                                                                         
                                                                     if tempo == 1:
@@ -1556,19 +1556,19 @@ def gar2():
                                                             
                                                             if pmg2 == 1:
 
-                                                                log("Portão Garagem 2 fechou.")
-
-                                                                l.desliga_rele3_exp2() # Sinal Vermelho
-
-                                                                status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
-                                                                status.write("0")
-                                                                status.close()
-
-                                                                if eventos == "1":
-                                                                
-                                                                    evento.enviar("R","133","017") # Envia o evento de fechamento para a central
-                                                                
-                                                                cont2 = 0
+##                                                                log("Portão Garagem 2 fechou.")
+##
+##                                                                l.desliga_rele3_exp2() # Sinal Vermelho
+##
+##                                                                status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
+##                                                                status.write("0")
+##                                                                status.close()
+##
+##                                                                if eventos == "1":
+##                                                                
+##                                                                    evento.enviar("R","133","017") # Envia o evento de fechamento para a central
+##                                                                
+##                                                                cont2 = 0
                                                                 break
                                                                                 
                                                     if cont2 == 1:
@@ -1840,9 +1840,9 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                                 os.system("mpg123 /home/pi/CMM/mp3/empurre.mp3")
                                 
-##                                log("Abrindo novamente o social...")
+                                log("Abrindo novamente o social...")
                                 
-##                                saidas.pulso_abre1() # Pulso para abrir direto o portão sem intertravamento (Social)
+                                saidas.pulso_abre1() # Pulso para abrir direto o portão sem intertravamento (Social)
 
                                 saidas.desliga_blq2()
 
@@ -1975,9 +1975,9 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                            os.system("mpg123 /home/pi/CMM/mp3/empurre.mp3")
 
-##                           log("Abrindo novamente a eclusa")
-##                           
-##                           saidas.pulso_abre2()
+                           log("Abrindo novamente a eclusa")
+                           
+                           saidas.pulso_abre2()
                            
                            saidas.desliga_blq1()
 
@@ -2903,7 +2903,7 @@ while(1):
 
         os.system("mpg123 /home/pi/CMM/mp3/reiniciando_sistema.mp3")
 
-        #os.system("sudo reboot now")
+        Os.system("sudo reboot now")
 
     # Colocar aqui o keep alive  
     
