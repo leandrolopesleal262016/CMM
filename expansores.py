@@ -74,7 +74,7 @@ def escreve_serial(packet):
 
         except:
 
-            print("Erro na escrita",packet)
+##            print("Erro na escrita",packet)
             return ("b''")
 
         else:            
@@ -95,7 +95,7 @@ def escreve_serial(packet):
 
             except:
 
-                print("Erro na leitura do retorno")
+##                print("Erro na leitura do retorno")
                 return ("b''")
 
     except Exception as err:

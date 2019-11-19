@@ -11,7 +11,7 @@ import cmm_io_entradas as entradas
 import cmm_io_saidas as saidas
 
 from atualiza_monitor import Monitor
-##from expansores import Leitor, Expansor
+from expansores import Leitor # teste com uma unica classe com a leitura e acionamento
 import servidor_qr as servidor_qr
 
 from datetime import datetime, timedelta
@@ -29,6 +29,8 @@ from retorna import Retorna
 
 f = Filtro()
 r = Retorna()
+
+l = Leitor()
 
 socket.setdefaulttimeout(2) # limite de 2 segundos para enviar o socket
 
@@ -105,343 +107,340 @@ evento = cmm.Evento("6653") # Inicia a classe evento com o codigo do cliente
 
 ############################################# LEITOR EXPANSOR #####################################################
 
-def escreve_serial(packet):    
-
-    try:
-
-        mutex.acquire() 
-
-        time.sleep(0.1) # 004
-
-        ser = serial.Serial("/dev/ttyS0", 115200)
-        
-        GPIO.output(17, 1)  
-        GPIO.output(18, 1)
-        
-        time.sleep(0.02) # 004
-
-        try:
-        
-            ser.write(packet)
-##            print("aceito",packet)
-
-        except:
-
-            print("Erro na escrita")
-            print("pacote",packet)
-
-        else:
-        
-            time.sleep(0.002) # nao alterar este valor
-            
-            GPIO.output(17, 0)  
-            GPIO.output(18, 0)
-
-            time.sleep(0.02) # 004
-
-        try:
-        
-            bytesToRead = ser.inWaiting()        
-            in_bin = ser.read(bytesToRead)
-
-        except Exception as err:
-
-            print("Aqui o erro...",packet)
-            in_bin = ("b''")
-
-        finally:
-
-            mutex.release()
-                                
-        return in_bin
-
-    except Exception as err:
-
-        mutex.release()
-        print("Erro Serial")
-##        print(err)
-##        time.sleep(0.005)
+##def escreve_serial(packet):    
+##
+##    try:
+##
+##        mutex.acquire() 
+##
+##        time.sleep(0.05) # 004
+##
 ##        ser = serial.Serial("/dev/ttyS0", 115200)
-
-    
-
-    in_bin = ("b''")        
-    return in_bin
-
-def ler(modulo): # passar dados como string
-
-    modulo = int(modulo,16) # Converte para um inteiro de base 16
-
-    def crc16(byte):
-
-        byte = bytes(byte)
-
-        crc16 = libscrc.modbus(byte) #b'\x07\x05\x00\x00\xFF\x00')  # Estrutura para calculo do CRC
-
-        bin2str = (hex(crc16))
-        bin2str = str(bin2str)
-
-        p = "0x"
-
-        a1 = bin2str[-2]
-        a2 = bin2str[-1]
-        if a1 == "x":
-            a1 = "0"
-        a = p + a1 + a2            
-
-        b1 = bin2str[-4]
-        b2 = bin2str[-3]
-        if b1 == "x":
-            b1 = "0"
-        b = p + b1 + b2
-        
-        return(a,b) 
-           
-    packet = bytearray()  
-    packet.append(modulo) # Endreço do modulo 
-    packet.append(0x02) # Modo leitura
-    packet.append(0x00) # 
-    packet.append(0x00) # Endereço registrador inicial
-    packet.append(0x00) # 
-    packet.append(0x04) # Registradores a serem lidos
-
-    crc = crc16(packet)
-
-    a = int(crc[0],16)
-    b = int(crc[1],16)
-        
-    packet.append(a) # Controle de redundancia
-    packet.append(b) # Controle de redundancia
-                   
-    in_bin1 = escreve_serial(packet)        
-
-    in_bin1 = str(in_bin1)
-
-    cont = 3
-
-    if in_bin1 == "b''": # reenviando leitura            
-
-        while cont > 0:  # reenviando leitura
-
-            time.sleep(0.1)
-            
-            in_bin1 = escreve_serial(packet)
-            in_bin1 = str(in_bin1)                
-            
-            if in_bin1 != "b''":
-                
-                in_bin1 = in_bin1                
-                return(in_bin1)
-
-            cont = cont - 1
-            
-    else:
-
-        return(in_bin1)
-
-def aciona(modulo,rele,funcao): # passar dados como string '0x01','0x01','0xFF'
-
-    modulo = int(modulo,16)
-    rele = int(rele,16)
-    funcao = int(funcao,16)
-
-    def crc16(byte):
-
-        byte = bytes(byte)
-
-        crc16 = libscrc.modbus(byte) #b'\x07\x05\x00\x00\xFF\x00')  # Estrutura para calculo do CRC
-
-        bin2str = (hex(crc16))
-        bin2str = str(bin2str)
-
-        p = "0x"
-
-        a1 = bin2str[-2]
-        a2 = bin2str[-1]
-        if a1 == "x":
-            a1 = "0"
-        a = p + a1 + a2            
-
-        b1 = bin2str[-4]
-        b2 = bin2str[-3]
-        if b1 == "x":
-            b1 = "0"
-        b = p + b1 + b2 
-        
-        return(a,b) 
-            
-    packet = bytearray()  
-    packet.append(modulo) # endereço do modulo (dip switch) 
-    packet.append(0x05) # modo acionamento de rele 
-    packet.append(0x00) #            
-    packet.append(rele) # endereço do rele (00,01,02,03) 
-    packet.append(funcao) # Liga / Desliga rele
-    packet.append(0x00) #
-   
-    crc = crc16(packet)
-
-    a = int(crc[0],16)
-    b = int(crc[1],16)
-
-    packet.append(a) # Controle de redundancia 
-    packet.append(b) # Controle de redundancia        
-    
-    in_bin = escreve_serial(packet)              
-
-    in_bin = str(in_bin)
-
-    cont = 3
-
-    if in_bin == "b''": # reenviando leitura            
-
-        while cont > 0:  # reenviando leitura
-
-            time.sleep(0.1)
-            
-            in_bin = escreve_serial(packet)
-            in_bin = str(in_bin)
-            
-            if in_bin != "b''":                    
-                               
-                return(in_bin)
-
-            cont = cont - 1
-            
-    else:
-
-        return(in_bin)
-                
-def leitor1_in1():
-
-    i = ler('0x01') # modulo, entrada
-    b = f.mdl1(i)       
-    in1 = r.entrada(b,'in1')
-
-    return(in1)
-    
-def leitor1_in2():
-
-    i = ler('0x01')
-    b = f.mdl1(i)
-    in2 = r.entrada(b,'in2')        
-
-    return(in2)
-      
-def leitor1_in3():
-
-    i = ler('0x01')      
-    b = f.mdl1(i)
-    in3 = r.entrada(b,'in3')
-
-    return(in3)    
-        
-def leitor1_in4():
-
-    i = ler('0x01') 
-    b = f.mdl1(i) 
-    in4 = r.entrada(b,'in4')
-
-    return(in4)
-
-def leitor2_in1():
-
-    i = ler('0x02') # modulo
-    b = f.mdl2(i) # Limpa e edita os dados recebidos da leitura (i)
-    in1 = r.entrada(b,'in1') 
-
-    return(in1)
-
-def leitor2_in2():
-
-    i = ler('0x02')
-    b = f.mdl2(i)        
-    in2 = r.entrada(b,'in2')
-    
-    return(in2)            
-       
-def leitor2_in3():
-
-    i = ler('0x02')   
-    b = f.mdl2(i) 
-    in3 = r.entrada(b,'in3') 
-
-    return(in3)            
-        
-def leitor2_in4():
-
-    i = ler('0x02')  
-    b = f.mdl2(i) 
-    in4 = r.entrada(b,'in4') 
-
-    return(in4)
-
-
-def liga_rele1_exp1():
-
-    aciona('0x01','0x00','0xFF') # Modulo, rele , funcao
-
-def desliga_rele1_exp1():
-
-    aciona('0x01','0x00','0x00') 
-
-def liga_rele2_exp1():
-
-    aciona('0x01','0x01','0xFF') 
-
-def desliga_rele2_exp1():
-
-    aciona('0x01','0x01','0x00') 
-
-def liga_rele3_exp1():
-
-    aciona('0x01','0x02','0xFF') 
-
-def desliga_rele3_exp1():
-    
-    aciona('0x01','0x02','0x00')
-    
-def liga_rele4_exp1():
-
-    aciona('0x01','0x03','0xFF')
-
-def desliga_rele4_exp1():
-
-    aciona('0x01','0x03','0x00')        
-
-
-# Acionamentos modulo expansor 2
-
-def liga_rele1_exp2():
-
-    aciona('0x02','0x00','0xFF') # Modulo, rele , funcao
-
-def desliga_rele1_exp2():
-
-    aciona('0x02','0x00','0x00')        
-
-def liga_rele2_exp2():
-
-    aciona('0x02','0x01','0xFF') 
-
-def desliga_rele2_exp2():
-
-    aciona('0x02','0x01','0x00')        
-
-def liga_rele3_exp2():
-
-    aciona('0x02','0x02','0xFF') 
-
-def desliga_rele3_exp2():
-
-    aciona('0x02','0x02','0x00')        
-
-def liga_rele4_exp2():
-
-    aciona('0x02','0x03','0xFF') 
-
-def desliga_rele4_exp2():
-
-    aciona('0x02','0x03','0x00')    
+##        
+##        GPIO.output(17, 1)  
+##        GPIO.output(18, 1)
+##        
+##        time.sleep(0.02) # 004
+##
+##        try:
+##        
+##            ser.write(packet)
+####            print("aceito",packet)
+##
+##        except:
+##
+##            print("Erro na escrita",packet)
+##           
+##
+##        else:
+##        
+##            time.sleep(0.002) # nao alterar este valor
+##            
+##            GPIO.output(17, 0)  
+##            GPIO.output(18, 0)
+##
+##            time.sleep(0.02) # 004
+##
+##        try:
+##        
+##            bytesToRead = ser.inWaiting()        
+##            in_bin = ser.read(bytesToRead)
+##            mutex.release()
+##            return in_bin
+##
+##        except Exception as err:
+##
+##            print("erro leitura dados recebidos do modulo",packet)
+##            in_bin = ("b''")       
+##
+##            mutex.release()
+##                                
+##            return in_bin
+##
+##    except Exception as err:
+##
+##        mutex.release()
+##        print("Erro Serial")
+##
+##    
+##
+##    in_bin = ("b''")        
+##    return in_bin
+##
+##def ler(modulo): # passar dados como string
+##
+##    modulo = int(modulo,16) # Converte para um inteiro de base 16
+##
+##    def crc16(byte):
+##
+##        byte = bytes(byte)
+##
+##        crc16 = libscrc.modbus(byte) #b'\x07\x05\x00\x00\xFF\x00')  # Estrutura para calculo do CRC
+##
+##        bin2str = (hex(crc16))
+##        bin2str = str(bin2str)
+##
+##        p = "0x"
+##
+##        a1 = bin2str[-2]
+##        a2 = bin2str[-1]
+##        if a1 == "x":
+##            a1 = "0"
+##        a = p + a1 + a2            
+##
+##        b1 = bin2str[-4]
+##        b2 = bin2str[-3]
+##        if b1 == "x":
+##            b1 = "0"
+##        b = p + b1 + b2
+##        
+##        return(a,b) 
+##           
+##    packet = bytearray()  
+##    packet.append(modulo) # Endreço do modulo 
+##    packet.append(0x02) # Modo leitura
+##    packet.append(0x00) # 
+##    packet.append(0x00) # Endereço registrador inicial
+##    packet.append(0x00) # 
+##    packet.append(0x04) # Registradores a serem lidos
+##
+##    crc = crc16(packet)
+##
+##    a = int(crc[0],16)
+##    b = int(crc[1],16)
+##        
+##    packet.append(a) # Controle de redundancia
+##    packet.append(b) # Controle de redundancia
+##                   
+##    in_bin1 = escreve_serial(packet)        
+##
+##    in_bin1 = str(in_bin1)
+##
+##    cont = 3
+##
+##    if in_bin1 == "b''": # reenviando leitura            
+##
+##        while cont > 0:  # reenviando leitura
+##
+##            time.sleep(0.1)
+##            
+##            in_bin1 = escreve_serial(packet)
+##            in_bin1 = str(in_bin1)                
+##            
+##            if in_bin1 != "b''":
+##                
+##                in_bin1 = in_bin1                
+##                return(in_bin1)
+##
+##            cont = cont - 1
+##            
+##    else:
+##
+##        return(in_bin1)
+##
+##def aciona(modulo,rele,funcao): # passar dados como string '0x01','0x01','0xFF'
+##
+##    modulo = int(modulo,16)
+##    rele = int(rele,16)
+##    funcao = int(funcao,16)
+##
+##    def crc16(byte):
+##
+##        byte = bytes(byte)
+##
+##        crc16 = libscrc.modbus(byte) #b'\x07\x05\x00\x00\xFF\x00')  # Estrutura para calculo do CRC
+##
+##        bin2str = (hex(crc16))
+##        bin2str = str(bin2str)
+##
+##        p = "0x"
+##
+##        a1 = bin2str[-2]
+##        a2 = bin2str[-1]
+##        if a1 == "x":
+##            a1 = "0"
+##        a = p + a1 + a2            
+##
+##        b1 = bin2str[-4]
+##        b2 = bin2str[-3]
+##        if b1 == "x":
+##            b1 = "0"
+##        b = p + b1 + b2 
+##        
+##        return(a,b) 
+##            
+##    packet = bytearray()  
+##    packet.append(modulo) # endereço do modulo (dip switch) 
+##    packet.append(0x05) # modo acionamento de rele 
+##    packet.append(0x00) #            
+##    packet.append(rele) # endereço do rele (00,01,02,03) 
+##    packet.append(funcao) # Liga / Desliga rele
+##    packet.append(0x00) #
+##   
+##    crc = crc16(packet)
+##
+##    a = int(crc[0],16)
+##    b = int(crc[1],16)
+##
+##    packet.append(a) # Controle de redundancia 
+##    packet.append(b) # Controle de redundancia        
+##    
+##    in_bin = escreve_serial(packet)              
+##
+##    in_bin = str(in_bin)
+##
+##    cont = 3
+##
+##    if in_bin == "b''": # reenviando leitura            
+##
+##        while cont > 0:  # reenviando leitura
+##
+##            time.sleep(0.1)
+##            
+##            in_bin = escreve_serial(packet)
+##            in_bin = str(in_bin)
+##            
+##            if in_bin != "b''":                    
+##                               
+##                return(in_bin)
+##
+##            cont = cont - 1
+##            
+##    else:
+##
+##        return(in_bin)
+##                
+##def leitor1_in1():
+##
+##    i = ler('0x01') # modulo, entrada
+##    b = f.mdl1(i)       
+##    in1 = r.entrada(b,'in1')
+##
+##    return(in1)
+##    
+##def leitor1_in2():
+##
+##    i = ler('0x01')
+##    b = f.mdl1(i)
+##    in2 = r.entrada(b,'in2')        
+##
+##    return(in2)
+##      
+##def leitor1_in3():
+##
+##    i = ler('0x01')      
+##    b = f.mdl1(i)
+##    in3 = r.entrada(b,'in3')
+##
+##    return(in3)    
+##        
+##def leitor1_in4():
+##
+##    i = ler('0x01') 
+##    b = f.mdl1(i) 
+##    in4 = r.entrada(b,'in4')
+##
+##    return(in4)
+##
+##def leitor2_in1():
+##
+##    i = ler('0x02') # modulo
+##    b = f.mdl2(i) # Limpa e edita os dados recebidos da leitura (i)
+##    in1 = r.entrada(b,'in1') 
+##
+##    return(in1)
+##
+##def leitor2_in2():
+##
+##    i = ler('0x02')
+##    b = f.mdl2(i)        
+##    in2 = r.entrada(b,'in2')
+##    
+##    return(in2)            
+##       
+##def leitor2_in3():
+##
+##    i = ler('0x02')   
+##    b = f.mdl2(i) 
+##    in3 = r.entrada(b,'in3') 
+##
+##    return(in3)            
+##        
+##def leitor2_in4():
+##
+##    i = ler('0x02')  
+##    b = f.mdl2(i) 
+##    in4 = r.entrada(b,'in4') 
+##
+##    return(in4)
+##
+##
+##def liga_rele1_exp1():
+##
+##    aciona('0x01','0x00','0xFF') # Modulo, rele , funcao
+##
+##def desliga_rele1_exp1():
+##
+##    aciona('0x01','0x00','0x00') 
+##
+##def liga_rele2_exp1():
+##
+##    aciona('0x01','0x01','0xFF') 
+##
+##def desliga_rele2_exp1():
+##
+##    aciona('0x01','0x01','0x00') 
+##
+##def liga_rele3_exp1():
+##
+##    aciona('0x01','0x02','0xFF') 
+##
+##def desliga_rele3_exp1():
+##    
+##    aciona('0x01','0x02','0x00')
+##    
+##def liga_rele4_exp1():
+##
+##    aciona('0x01','0x03','0xFF')
+##
+##def desliga_rele4_exp1():
+##
+##    aciona('0x01','0x03','0x00')        
+##
+##
+### Acionamentos modulo expansor 2
+##
+##def liga_rele1_exp2():
+##
+##    aciona('0x02','0x00','0xFF') # Modulo, rele , funcao
+##
+##def desliga_rele1_exp2():
+##
+##    aciona('0x02','0x00','0x00')        
+##
+##def liga_rele2_exp2():
+##
+##    aciona('0x02','0x01','0xFF') 
+##
+##def desliga_rele2_exp2():
+##
+##    aciona('0x02','0x01','0x00')        
+##
+##def liga_rele3_exp2():
+##
+##    aciona('0x02','0x02','0xFF') 
+##
+##def desliga_rele3_exp2():
+##
+##    aciona('0x02','0x02','0x00')        
+##
+##def liga_rele4_exp2():
+##
+##    aciona('0x02','0x03','0xFF') 
+##
+##def desliga_rele4_exp2():
+##
+##    aciona('0x02','0x03','0x00')    
            
 #############################################  Acionamento reles Expansores  ##############################
 
@@ -458,6 +457,7 @@ def thread_monitor(): # Programa que mantem a conexão com o QR Code
     
 monitor = threading.Thread(target=thread_monitor)
 monitor.start()
+
 
 def gar1():
 
@@ -479,10 +479,10 @@ def gar1():
 ##        
 ##        l = Leitor()
         
-        desliga_rele4_exp1() # Garante que a sirene esteja desligada
-        desliga_rele3_exp1() # Garante que sinaleira esteja com sinal vermelho (NF)
-        desliga_rele2_exp1() # Garante que o Foto esteja desligado
-        desliga_rele1_exp1() # Garante que o Abre esteja desligado
+        l.desliga_rele4_exp1() # Garante que a sirene esteja desligada
+        l.desliga_rele3_exp1() # Garante que sinaleira esteja com sinal vermelho (NF)
+        l.desliga_rele2_exp1() # Garante que o Foto esteja desligado
+        l.desliga_rele1_exp1() # Garante que o Abre esteja desligado
 
     ##    banco = Banco()
         eventos = banco.consulta("comandos","eventos")
@@ -496,9 +496,9 @@ def gar1():
             
         
             ihm_gar1 = banco.consulta("comandos","abre_garagem1") # Valor inserido pelo botão da interface       
-            tx1 =  leitor1_in3()  # Cantato abre vindo do TX (LINEAR HCS)
+            tx1 =  l.leitor1_in3()  # Cantato abre vindo do TX (LINEAR HCS)
 
-            mud1 = leitor1_in4()  # Chave de mudança
+            mud1 = l.leitor1_in4()  # Chave de mudança
 
             t = open("/home/pi/CMM/status_garagem_1.cmm","r")
             status_tx1 = t.read()
@@ -508,19 +508,19 @@ def gar1():
             if (tx1 == 1 or ihm_gar1 == "1"):   
 
                 time.sleep(0.1)                
-                tx1 =  leitor1_in3()                                
+                tx1 =  l.leitor1_in3()                                
 
                 if (tx1 == 1 or ihm_gar1 == "1"): # O tx da linear está direto no abre do portão
 
                     time.sleep(0.1)
-                    tx1 = leitor1_in3()
+                    tx1 = l.leitor1_in3()
 
                     if tx1 == 1 :
 
                         log("*")
                         log("Reconheceu tx Garagem 1") # Se reconheceu o tx, é porque o portão ja esta abrindo
 
-                        liga_rele3_exp1() # Sinal Verde (Sinaleira)    
+                        l.liga_rele3_exp1() # Sinal Verde (Sinaleira)    
 
                         status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                         status.write("1")
@@ -533,15 +533,15 @@ def gar1():
                         log("*")
                         log("Reconheceu abre Garagem 1 Interface gráfica")
 
-                        liga_rele3_exp1() # Sinal Verde (Sinaleira)
+                        l.liga_rele3_exp1() # Sinal Verde (Sinaleira)
 
                         status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                         status.write("1")
                         status.close()
 
-                        liga_rele1_exp1() # Pulso para abrir a garagem
+                        l.liga_rele1_exp1() # Pulso para abrir a garagem
                         time.sleep(2)
-                        desliga_rele1_exp1()
+                        l.desliga_rele1_exp1()
 
                         time.sleep(1)
 
@@ -549,23 +549,23 @@ def gar1():
 
                     time.sleep(2) # Tempo para começar a abrir o portão
 
-                    pmg1 = leitor1_in1()                              
+                    pmg1 = l.leitor1_in1()                              
                     
                     if pmg1 == 1: # Portão não abriu apos o comando
 
                         time.sleep(0.1)
-                        pmg1 = leitor1_in1()
+                        pmg1 = l.leitor1_in1()
 
                         if pmg1 == 1: # Portão não abriu apos o comando
 
                             time.sleep(0.1)
-                            pmg1 = leitor1_in1()
+                            pmg1 = l.leitor1_in1()
 
                             if pmg1 == 1:
 
                                 log("Portão Garagem 1 não abriu")
 
-                                desliga_rele3_exp1() # Sinal Vermelho                            
+                                l.desliga_rele3_exp1() # Sinal Vermelho                            
 
                                 if eventos == "1":
                                 
@@ -581,12 +581,12 @@ def gar1():
                     if pmg1 == 0: # Portão abriu
 
                         time.sleep(0.1)                    
-                        pmg1 = leitor1_in1()
+                        pmg1 = l.leitor1_in1()
 
                         if pmg1 == 0: # Confirmado que o Portão abriu
 
                             time.sleep(0.1)                    
-                            pmg1 = leitor1_in1()
+                            pmg1 = l.leitor1_in1()
 
                             if pmg1 == 0:                                
 
@@ -602,7 +602,7 @@ def gar1():
 
                                         log("Portão Garagem 1 abriu")
                                         
-                                        liga_rele3_exp1() # Sinal verde
+                                        l.liga_rele3_exp1() # Sinal verde
                                         
                                         status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                                         status.write("1")
@@ -610,23 +610,23 @@ def gar1():
 
                                         time.sleep(2)
                                     
-                                    pmg1 = leitor1_in1()
+                                    pmg1 = l.leitor1_in1()
                                     
                                     if pmg1 == 1: # Se o portão ja fechou
 
                                         time.sleep(0.1)
-                                        pmg1 = leitor1_in1()
+                                        pmg1 = l.leitor1_in1()
 
                                         if pmg1 == 1:
 
                                             time.sleep(0.1)
-                                            pmg1 = leitor1_in1()
+                                            pmg1 = l.leitor1_in1()
 
                                             if pmg1 == 1:
 
                                                 log("Portão Garagem 1 fechou")
 
-                                                desliga_rele3_exp1() # Sinal Vermelho
+                                                l.desliga_rele3_exp1() # Sinal Vermelho
 
                                                 status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                                                 status.write("0")
@@ -642,12 +642,12 @@ def gar1():
                                     if pmg1 == 0: # Se o portão ainda esta aberto
 
                                         time.sleep(0.1)
-                                        pmg1 = leitor1_in1()
+                                        pmg1 = l.leitor1_in1()
 
                                         if pmg1 == 0:
 
                                             time.sleep(0.1)
-                                            pmg1 = leitor1_in1()
+                                            pmg1 = l.leitor1_in1()
 
                                             if pmg1 == 0:
 
@@ -661,18 +661,18 @@ def gar1():
 
                                                     time.sleep(1) # colocar no gar 2 tambem
                                                 
-                                                    bar1 = leitor1_in2() # Faz a leitura da barreira 1
-                                                    pmg1 = leitor1_in1()
+                                                    bar1 = l.leitor1_in2() # Faz a leitura da barreira 1
+                                                    pmg1 = l.leitor1_in1()
 
                                                     if bar1 == 1: # Se acionou a barreira de entrada
 
                                                         time.sleep(0.1)
-                                                        bar1 = leitor1_in2()
+                                                        bar1 = l.leitor1_in2()
 
                                                         if bar1 == 1:
 
                                                             time.sleep(0.1)
-                                                            bar1 = leitor1_in2()
+                                                            bar1 = l.leitor1_in2()
 
                                                             if bar1 == 1: # Se acionou a barreira de entrada                                                            
 
@@ -682,17 +682,17 @@ def gar1():
 
                                                                 while tempo > 0: # Enquanto esta na frente da barreira
 
-                                                                    bar1 = leitor1_in2() # Faz a leitura da barreira 1                                                                
+                                                                    bar1 = l.leitor1_in2() # Faz a leitura da barreira 1                                                                
                                                                     
                                                                     if bar1 == 0:
 
                                                                         time.sleep(0.1)
-                                                                        bar1 = leitor1_in2()
+                                                                        bar1 = l.leitor1_in2()
 
                                                                         if bar1 == 0:
                                                                             
                                                                             log("Saiu da barreira Garagem 1")
-                                                                            desliga_rele3_exp1() # Sinal Vermelho
+                                                                            l.desliga_rele3_exp1() # Sinal Vermelho
                                                                             tempo = 0
                                                                             break
                                                                         
@@ -700,11 +700,11 @@ def gar1():
 
                                                                         log("Portão Garagem 1 aberto por muito tempo")
 
-                                                                        desliga_rele3_exp1() # Sinal Vermelho
+                                                                        l.desliga_rele3_exp1() # Sinal Vermelho
 
-                                                                        liga_rele4_exp1() # Sirene                                            
+                                                                        l.liga_rele4_exp1() # Sirene                                            
                                                                         time.sleep(3)
-                                                                        desliga_rele4_exp1()
+                                                                        l.desliga_rele4_exp1()
 
                                                                         if eventos == "1":
 
@@ -719,12 +719,12 @@ def gar1():
                                                                     tempo = tempo - 1
                                                                     time.sleep(1) 
                                                             
-                                                            pmg1 = leitor1_in1() # Faz a leitura do ponto magnetico                                    
+                                                            pmg1 = l.leitor1_in1() # Faz a leitura do ponto magnetico                                    
                                                             
                                                             if pmg1 == 0: # Portão ainda aberto
 
                                                                 time.sleep(0.1)                                                        
-                                                                pmg1 = leitor1_in1() # Faz a leitura do ponto magnetico                                        
+                                                                pmg1 = l.leitor1_in1() # Faz a leitura do ponto magnetico                                        
 
                                                                 if pmg1 == 0:
 
@@ -737,24 +737,24 @@ def gar1():
 
                                                                     while temp > 0:  # Enquanto o portão ainda está aberto e tempo menor que 30 seg
                                                                         
-                                                                        pmg1 = leitor1_in1() # Faz a leitura do ponto magnetico
-                                                                        bar1 = leitor1_in2() # Faz a leitura da barreira 1
-                                                                        tx1 =  leitor1_in3()  # Cantato abre vindo do TX (LINEAR HCS)
+                                                                        pmg1 = l.leitor1_in1() # Faz a leitura do ponto magnetico
+                                                                        bar1 = l.leitor1_in2() # Faz a leitura da barreira 1
+                                                                        tx1 =  l.leitor1_in3()  # Cantato abre vindo do TX (LINEAR HCS)
 
                                                                         if tx1 == 1: # Alguem acionou o controle enquanto o portão fechava
 
                                                                             time.sleep(0.1)                                                                    
-                                                                            tx1 =  leitor1_in3()
+                                                                            tx1 =  l.leitor1_in3()
 
                                                                             if tx1 == 1:
 
                                                                                 time.sleep(0.1)                                                                    
-                                                                                tx1 =  leitor1_in3()
+                                                                                tx1 =  l.leitor1_in3()
 
                                                                                 if tx1 == 1:
 
                                                                                     log("Reconheceu abre Garagem 1 enquanto o portão estava aberto")                                                    
-                                                                                    liga_rele3_exp1() # Sinal Verde
+                                                                                    l.liga_rele3_exp1() # Sinal Verde
 
                                                                                     entrada_permitida = 1 # Reconhece o segundo acionamento
                                                                                                                                                                                                                                                     
@@ -763,7 +763,7 @@ def gar1():
                                                                         if bar1 == 1 and entrada_permitida == 1:
                                                                             
                                                                             time.sleep(0.1)                                                                    
-                                                                            bar1 = leitor1_in2()
+                                                                            bar1 = l.leitor1_in2()
                                                                             
                                                                             if bar1 == 1:
 
@@ -771,23 +771,23 @@ def gar1():
 
                                                                                 while tempo2 > 0: # Enquanto a barreira esta acionada
 
-                                                                                    bar1 = leitor1_in2()# Faz a leitura da barreira 1
-                                                                                    pmg1 = leitor1_in1()
+                                                                                    bar1 = l.leitor1_in2()# Faz a leitura da barreira 1
+                                                                                    pmg1 = l.leitor1_in1()
                                                                                     
                                                                                     if bar1 == 0:
 
                                                                                         time.sleep(0.1)
-                                                                                        bar1 = leitor1_in2()
+                                                                                        bar1 = l.leitor1_in2()
 
                                                                                         if bar1 == 0:
 
                                                                                             time.sleep(0.1)
-                                                                                            bar1 = leitor1_in2()
+                                                                                            bar1 = l.leitor1_in2()
 
                                                                                             if bar1 == 0:
 
                                                                                                 log("Saiu da barreira")
-                                                                                                desliga_rele3_exp1() # Sinal Vermelho
+                                                                                                l.desliga_rele3_exp1() # Sinal Vermelho
                                                                                                 log("Entrou segundo veiculo autorizado")
 
                                                                                                 entrada_permitida = 0
@@ -797,7 +797,7 @@ def gar1():
 
                                                                                         log("Portão Garagem 1 fechou.")
 
-                                                                                        desliga_rele3_exp1() # Sinal Vermelho
+                                                                                        l.desliga_rele3_exp1() # Sinal Vermelho
 
                                                                                         status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                                                                                         status.write("0")
@@ -814,11 +814,11 @@ def gar1():
 
                                                                                         log("Portão do segundo veiculo aberto por muito tempo")
 
-                                                                                        desliga_rele3_exp1() # Sinal Vermelho
+                                                                                        l.desliga_rele3_exp1() # Sinal Vermelho
 
-                                                                                        liga_rele4_exp1() # Sirene                                            
+                                                                                        l.liga_rele4_exp1() # Sirene                                            
                                                                                         time.sleep(3)
-                                                                                        desliga_rele4_exp1()
+                                                                                        l.desliga_rele4_exp1()
 
                                                                                         if eventos == "1":
 
@@ -837,14 +837,14 @@ def gar1():
                                                                         if bar1 == 1 and entrada_permitida == 0: # Dupla passagem
                                                                             
                                                                             time.sleep(0.1)                                                                    
-                                                                            bar1 = leitor1_in2()
+                                                                            bar1 = l.leitor1_in2()
 
                                                                             if bar1 == 1:
 
                                                                                 if bar1 == 1 and entrada_permitida == 0: # Dupla passagem
                                                                             
                                                                                     time.sleep(0.1)                                                                    
-                                                                                    bar1 = leitor1_in2()
+                                                                                    bar1 = l.leitor1_in2()
 
                                                                                     log("Dupla passagem Garagem 1")
 
@@ -852,9 +852,9 @@ def gar1():
 
                                                                                         evento.enviar("E","132","016")
 
-                                                                                    liga_rele4_exp1() # Sirene                                            
+                                                                                    l.liga_rele4_exp1() # Sirene                                            
                                                                                     time.sleep(10)
-                                                                                    desliga_rele4_exp1()                                            
+                                                                                    l.desliga_rele4_exp1()                                            
 
                                                                                     break
                                                                             
@@ -862,16 +862,16 @@ def gar1():
                                                                         if pmg1 == 1: # portão ja fechou
 
                                                                             time.sleep(0.1)                                                                    
-                                                                            pmg1 = leitor1_in1()
+                                                                            pmg1 = l.leitor1_in1()
 
                                                                             if pmg1 == 1:
 
                                                                                 time.sleep(0.1)                                                                    
-                                                                                pmg1 = leitor1_in1()
+                                                                                pmg1 = l.leitor1_in1()
 
                                                                                 if pmg1 == 1:
                                                                                     
-                                                                                    desliga_rele3_exp1() # Sinal Vermelho
+                                                                                    l.desliga_rele3_exp1() # Sinal Vermelho
 
                                                                                     status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                                                                                     status.write("0")
@@ -888,11 +888,11 @@ def gar1():
 
                                                                             log("Portão aberto por muito tempo")
 
-                                                                            desliga_rele3_exp1() # Sinal Vermelho
+                                                                            l.desliga_rele3_exp1() # Sinal Vermelho
 
-                                                                            liga_rele4_exp1() # Sirene                                            
+                                                                            l.liga_rele4_exp1() # Sirene                                            
                                                                             time.sleep(3)
-                                                                            desliga_rele4_exp1()
+                                                                            l.desliga_rele4_exp1()
 
                                                                             status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                                                                             status.write("0")
@@ -911,18 +911,18 @@ def gar1():
                                                     if pmg1 == 1:
 
                                                         time.sleep(0.1)
-                                                        pmg1 = leitor1_in1()
+                                                        pmg1 = l.leitor1_in1()
                                                         
                                                         if pmg1 == 1:
 
                                                             time.sleep(0.1)
-                                                            pmg1 = leitor1_in1()
+                                                            pmg1 = l.leitor1_in1()
                                                             
                                                             if pmg1 == 1:
 
                                                                 log("Portão Garagem 1 fechou.")
 
-                                                                desliga_rele3_exp1() # Sinal Vermelho
+                                                                l.desliga_rele3_exp1() # Sinal Vermelho
 
                                                                 status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                                                                 status.write("0")
@@ -938,7 +938,7 @@ def gar1():
                                                     if cont2 == 1:
 
                                                         log("Nao detectou nenhuma entrada ou saida Garagem 1")
-                                                        desliga_rele3_exp1() # Sinal Vermelho
+                                                        l.desliga_rele3_exp1() # Sinal Vermelho
                                                         
                                                         break
                                                     
@@ -950,11 +950,11 @@ def gar1():
 
                                         log("Atingiu o tempo máximo e o portão da Garagem não fechou")
 
-                                        desliga_rele3_exp1() # Sinal Vermelho
+                                        l.desliga_rele3_exp1() # Sinal Vermelho
 
-                                        liga_rele4_exp1() # Sirene                                            
+                                        l.liga_rele4_exp1() # Sirene                                            
                                         time.sleep(3)
-                                        desliga_rele4_exp1()
+                                        l.desliga_rele4_exp1()
 
                                         status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                                         status.write("0")
@@ -970,7 +970,7 @@ def gar1():
 
                         log ("Recebeu comando para abrir Garagem 1 mas o portão no abriu")
                         
-                        desliga_rele3_exp1() # Sinal Vermelho
+                        l.desliga_rele3_exp1() # Sinal Vermelho
                         
                         status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
                         status.write("0")
@@ -979,19 +979,19 @@ def gar1():
 ##                if mud1 == 1 and mudanca1 == 0: # Chave de mudança acionada
 ##
 ##                    time.sleep(0.1)     
-##                    mud1 = leitor1_in4()  # Chave de mudança            
+##                    mud1 = l.leitor1_in4()  # Chave de mudança            
 ##
 ##                    if mud1 == 1:
 ##
 ##                        time.sleep(0.1)     
-##                        mud1 = leitor1_in4()  # Chave de mudança            
+##                        mud1 = l.leitor1_in4()  # Chave de mudança            
 ##
 ##                        if mud1 == 1:
 ##
 ##                            log("*")
 ##                            log("Chave de mudança acionada Garagem 1")
 ##
-##                            liga_rele3_exp1() # Sinal Verde
+##                            l.liga_rele3_exp1() # Sinal Verde
 ##
 ##                            if evento == "1":
 ##
@@ -1001,10 +1001,10 @@ def gar1():
 ##                            t.write("1")
 ##                            t.close()
 ##
-##                            liga_rele1_exp1() # Aciona o rele 1 do modulo 1 (Abre)
+##                            l.liga_rele1_exp1() # Aciona o rele 1 do modulo 1 (Abre)
 ##                            time.sleep(2)
-##                            desliga_rele1_exp1()
-##                            liga_rele2_exp1() # Aciona o rele 2 do modulo 1 (Foto)                
+##                            l.desliga_rele1_exp1()
+##                            l.liga_rele2_exp1() # Aciona o rele 2 do modulo 1 (Foto)                
 ##
 ##                            mudanca1 = 1
 ##
@@ -1013,27 +1013,27 @@ def gar1():
 ##            if mud1 == 0 and mudanca1 == 1:
 ##
 ##                time.sleep(0.1)
-##                mud1 = leitor1_in4()
+##                mud1 = l.leitor1_in4()
 ##
 ##                if mud1 == 0:
 ##
 ##                    time.sleep(0.1)
-##                    mud1 = leitor1_in4()
+##                    mud1 = l.leitor1_in4()
 ##
 ##                    if mud1 == 0:
 ##
 ##                        log("Desligada a chave de mudança")
 ##
-##                        desliga_rele3_exp1() # Sinal Vermelho
+##                        l.desliga_rele3_exp1() # Sinal Vermelho
 ##
 ##                        if evento == "1":
 ##
 ##                            evento.enviar("R","132","26")
 ##                                        
-##                        desliga_rele1_exp1() # Desliga o rele 1 do modulo 1 (Abre)
-##                        desliga_rele2_exp1() # Desliga o rele 2 do modulo 1 (Foto) 
+##                        l.desliga_rele1_exp1() # Desliga o rele 1 do modulo 1 (Abre)
+##                        l.desliga_rele2_exp1() # Desliga o rele 2 do modulo 1 (Foto) 
 ##
-##                        pmg1 = leitor1_in1()
+##                        pmg1 = l.leitor1_in1()
 ##
 ##                        cont = 60 # Tempo maximo de espera
 ##
@@ -1043,23 +1043,23 @@ def gar1():
 ##
 ##                        while cont > 0:
 ##                            
-##                            pmg1 = leitor1_in1()                                                              
+##                            pmg1 = l.leitor1_in1()                                                              
 ##                                    
 ##                            if pmg1 == 1: # Portão ja fechou
 ##
 ##                                time.sleep(0.1)
-##                                pmg1 = leitor1_in1()
+##                                pmg1 = l.leitor1_in1()
 ##
 ##                                if pmg1 == 1:
 ##
 ##                                    time.sleep(0.1)
-##                                    pmg1 = leitor1_in1()
+##                                    pmg1 = l.leitor1_in1()
 ##
 ##                                    if pmg1 == 1:
 ##
 ##                                        log("Portão fechou")
 ##
-##                                        desliga_rele3_exp1() # Sinal Vermelho
+##                                        l.desliga_rele3_exp1() # Sinal Vermelho
 ##
 ##                                        t = open("/home/pi/CMM/status_garagem_1.cmm","w")
 ##                                        t.write("0")
@@ -1074,15 +1074,15 @@ def gar1():
 ##
 ##                                log("Chave de mudança desligou mas o portão nao fechou após 1 min")
 ##
-##                                desliga_rele3_exp1() # Sinal Vermelho
+##                                l.desliga_rele3_exp1() # Sinal Vermelho
 ##
 ##                                t = open("/home/pi/CMM/status_garagem_1.cmm","w")
 ##                                t.write("0")
 ##                                t.close()
 ##
-##                                liga_rele4_exp1() # Pulso na Sirene                                            
+##                                l.liga_rele4_exp1() # Pulso na Sirene                                            
 ##                                time.sleep(3)
-##                                desliga_rele4_exp1()                                
+##                                l.desliga_rele4_exp1()                                
 ##                                
 ##                                mudanca1 = 0
 ##                                
@@ -1111,10 +1111,10 @@ def gar2():
         os.system("sudo chmod 777 /dev/ttyS0")
         os.system("sudo chmod 777 -R /var/www/html/log") 
         
-        desliga_rele4_exp2() # Garante que a sirene esteja desligada
-        desliga_rele3_exp2() # Garante que sinaleira esteja com sinal vermelho (NF)
-        desliga_rele2_exp2() # Garante que o Foto esteja desligado
-        desliga_rele1_exp2() # Garante que o Abre esteja desligado
+        l.desliga_rele4_exp2() # Garante que a sirene esteja desligada
+        l.desliga_rele3_exp2() # Garante que sinaleira esteja com sinal vermelho (NF)
+        l.desliga_rele2_exp2() # Garante que o Foto esteja desligado
+        l.desliga_rele1_exp2() # Garante que o Abre esteja desligado
 
         eventos = banco.consulta("comandos","eventos2")
 
@@ -1125,9 +1125,9 @@ def gar2():
             hs = time.strftime("%H:%M:%S")            
         
             ihm_gar2 = banco.consulta("comandos","abre_garagem2") # Valor inserido pelo botão da interface       
-            tx2 =  leitor2_in3()  # Cantato abre vindo do TX (LINEAR HCS)
+            tx2 =  l.leitor2_in3()  # Cantato abre vindo do TX (LINEAR HCS)
 
-            mud2 = leitor2_in4()  # Chave de mudança
+            mud2 = l.leitor2_in4()  # Chave de mudança
 
             t = open("/home/pi/CMM/status_garagem_2.cmm","r")
             status_tx2 = t.read()
@@ -1137,19 +1137,19 @@ def gar2():
             if (tx2 == 1 or ihm_gar2 == "1"):   
 
                 time.sleep(0.1)                
-                tx2 =  leitor2_in3()                               
+                tx2 =  l.leitor2_in3()                               
 
                 if (tx2 == 1 or ihm_gar2 == "1"): # O tx da linear está direto no abre do portão
 
                     time.sleep(0.1)
-                    tx2 = leitor2_in3()
+                    tx2 = l.leitor2_in3()
 
                     if tx2 == 1 :
 
                         log("*")
                         log("Reconheceu tx Garagem 2") # Se reconheceu o tx, é porque o portão ja esta abrindo
 
-                        liga_rele3_exp2() # Sinal Verde (Sinaleira)    
+                        l.liga_rele3_exp2() # Sinal Verde (Sinaleira)    
 
                         status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                         status.write("1")
@@ -1162,15 +1162,15 @@ def gar2():
                         log("*")
                         log("Reconheceu abre Garagem 2 Interface gráfica")
 
-                        liga_rele3_exp2() # Sinal Verde (Sinaleira)
+                        l.liga_rele3_exp2() # Sinal Verde (Sinaleira)
 
                         status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                         status.write("1")
                         status.close()
 
-                        liga_rele1_exp2() # Pulso para abrir a garagem
+                        l.liga_rele1_exp2() # Pulso para abrir a garagem
                         time.sleep(2)
-                        desliga_rele1_exp2()
+                        l.desliga_rele1_exp2()
 
                         time.sleep(1)
 
@@ -1178,23 +1178,23 @@ def gar2():
 
                     time.sleep(3) # Tempo para começar a abrir o portão
 
-                    pmg2 = leitor2_in1()                               
+                    pmg2 = l.leitor2_in1()                               
                     
                     if pmg2 == 1: # Portão não abriu apos o comando
 
                         time.sleep(0.1)
-                        pmg2 = leitor2_in1()
+                        pmg2 = l.leitor2_in1()
 
                         if pmg2 == 1: # Portão não abriu apos o comando
 
                             time.sleep(0.1)
-                            pmg2 = leitor2_in1()
+                            pmg2 = l.leitor2_in1()
 
                             if pmg2 == 1:
 
                                 log("Portão Garagem 2 não abriu")
 
-                                desliga_rele3_exp2() # Sinal Vermelho                            
+                                l.desliga_rele3_exp2() # Sinal Vermelho                            
 
                                 if eventos == "1":
                                 
@@ -1210,12 +1210,12 @@ def gar2():
                     if pmg2 == 0: # Portão abriu
 
                         time.sleep(0.1)                    
-                        pmg2 = leitor2_in1()
+                        pmg2 = l.leitor2_in1()
 
                         if pmg2 == 0: # Confirmado que o Portão abriu
 
                             time.sleep(0.1)                    
-                            pmg2 = leitor2_in1()
+                            pmg2 = l.leitor2_in1()
 
                             if pmg2 == 0:                                
 
@@ -1231,7 +1231,7 @@ def gar2():
 
                                         log("Portão Garagem 2 abriu")
                                         
-                                        liga_rele3_exp2() # Sinal verde
+                                        l.liga_rele3_exp2() # Sinal verde
                                         
                                         status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                                         status.write("1")
@@ -1239,23 +1239,23 @@ def gar2():
 
                                         time.sleep(2)
                                     
-                                    pmg2 = leitor2_in1()
+                                    pmg2 = l.leitor2_in1()
                                     
                                     if pmg2 == 1: # Se o portão ja fechou
 
                                         time.sleep(0.1)
-                                        pmg2 = leitor2_in1()
+                                        pmg2 = l.leitor2_in1()
 
                                         if pmg2 == 1:
 
                                             time.sleep(0.1)
-                                            pmg2 = leitor2_in1()
+                                            pmg2 = l.leitor2_in1()
 
                                             if pmg2 == 1:
 
                                                 log("Portão Garagem 2 fechou")
 
-                                                desliga_rele3_exp2() # Sinal Vermelho
+                                                l.desliga_rele3_exp2() # Sinal Vermelho
 
                                                 status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                                                 status.write("0")
@@ -1271,12 +1271,12 @@ def gar2():
                                     if pmg2 == 0: # Se o portão ainda esta aberto
 
                                         time.sleep(0.1)
-                                        pmg2 = leitor2_in1()
+                                        pmg2 = l.leitor2_in1()
 
                                         if pmg2 == 0:
 
                                             time.sleep(0.1)
-                                            pmg2 = leitor2_in1()
+                                            pmg2 = l.leitor2_in1()
 
                                             if pmg2 == 0:
 
@@ -1288,18 +1288,18 @@ def gar2():
 
                                                         log("Portão Garagem 2 aberto...")
                                                 
-                                                    bar2 = leitor2_in2() # Faz a leitura da barreira 1
-                                                    pmg2 = leitor2_in1()
+                                                    bar2 = l.leitor2_in2() # Faz a leitura da barreira 1
+                                                    pmg2 = l.leitor2_in1()
 
                                                     if bar2 == 1: # Se acionou a barreira de entrada
 
                                                         time.sleep(0.1)
-                                                        bar2 = leitor2_in2()
+                                                        bar2 = l.leitor2_in2()
 
                                                         if bar2 == 1:
 
                                                             time.sleep(0.1)
-                                                            bar2 = leitor2_in2()
+                                                            bar2 = l.leitor2_in2()
 
                                                             if bar2 == 1: # Se acionou a barreira de entrada                                                            
 
@@ -1309,25 +1309,25 @@ def gar2():
 
                                                                 while tempo > 0: # Enquanto esta na frente da barreira
 
-                                                                    bar2 = leitor2_in2() # Faz a leitura da barreira 1
-                                                                    pmg2 = leitor2_in1()
+                                                                    bar2 = l.leitor2_in2() # Faz a leitura da barreira 1
+                                                                    pmg2 = l.leitor2_in1()
                                                                     
                                                                     if bar2 == 0:
 
                                                                         time.sleep(0.1)
-                                                                        bar2 = leitor2_in2()
+                                                                        bar2 = l.leitor2_in2()
 
                                                                         if bar2 == 0:
                                                                             
                                                                             log("Saiu da barreira Garagem 2")
-                                                                            desliga_rele3_exp2() # Sinal Vermelho
+                                                                            l.desliga_rele3_exp2() # Sinal Vermelho
                                                                             tempo = 0
                                                                             break
 
                                                                     if pmg2 == 1:
 
                                                                         time.sleep(0.1)
-                                                                        pmg2 = leitor2_in1()
+                                                                        pmg2 = l.leitor2_in1()
 
                                                                         if pmg2 == 1:
 
@@ -1335,7 +1335,7 @@ def gar2():
 
                                                                             log("Portão Garagem 2 fechou.")
 
-                                                                            desliga_rele3_exp2() # Sinal Vermelho
+                                                                            l.desliga_rele3_exp2() # Sinal Vermelho
 
                                                                             status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                                                                             status.write("0")
@@ -1352,11 +1352,11 @@ def gar2():
 
                                                                         log("Portão Garagem 2 aberto por muito tempo")
 
-                                                                        desliga_rele3_exp2() # Sinal Vermelho
+                                                                        l.desliga_rele3_exp2() # Sinal Vermelho
 
-                                                                        liga_rele4_exp2() # Sirene                                            
+                                                                        l.liga_rele4_exp2() # Sirene                                            
                                                                         time.sleep(3)
-                                                                        desliga_rele4_exp2()
+                                                                        l.desliga_rele4_exp2()
 
                                                                         if eventos == "1":
 
@@ -1371,12 +1371,12 @@ def gar2():
                                                                     tempo = tempo - 1
                                                                     time.sleep(1) 
                                                             
-                                                            pmg2 = leitor2_in1() # Faz a leitura do ponto magnetico                                    
+                                                            pmg2 = l.leitor2_in1() # Faz a leitura do ponto magnetico                                    
                                                             
                                                             if pmg2 == 0: # Portão ainda aberto
 
                                                                 time.sleep(0.1)                                                        
-                                                                pmg2 = leitor2_in1() # Faz a leitura do ponto magnetico                                        
+                                                                pmg2 = l.leitor2_in1() # Faz a leitura do ponto magnetico                                        
 
                                                                 if pmg2 == 0:
 
@@ -1389,24 +1389,24 @@ def gar2():
 
                                                                     while temp > 0:  # Enquanto o portão ainda está aberto e tempo menor que 30 seg
                                                                         
-                                                                        pmg2 = leitor2_in1() # Faz a leitura do ponto magnetico
-                                                                        bar2 = leitor2_in2() # Faz a leitura da barreira 1
-                                                                        tx2 =  leitor2_in3()  # Cantato abre vindo do TX (LINEAR HCS)
+                                                                        pmg2 = l.leitor2_in1() # Faz a leitura do ponto magnetico
+                                                                        bar2 = l.leitor2_in2() # Faz a leitura da barreira 1
+                                                                        tx2 =  l.leitor2_in3()  # Cantato abre vindo do TX (LINEAR HCS)
 
                                                                         if tx2 == 1: # Alguem acionou o controle enquanto o portão fechava
 
                                                                             time.sleep(0.1)                                                                    
-                                                                            tx2 =  leitor2_in3()
+                                                                            tx2 =  l.leitor2_in3()
 
                                                                             if tx2 == 1:
 
                                                                                 time.sleep(0.1)                                                                    
-                                                                                tx2 =  leitor2_in3()
+                                                                                tx2 =  l.leitor2_in3()
 
                                                                                 if tx2 == 1:
 
                                                                                     log("Reconheceu abre Garagem 2 enquanto o portão estava aberto")                                                    
-                                                                                    liga_rele3_exp2() # Sinal Verde
+                                                                                    l.liga_rele3_exp2() # Sinal Verde
 
                                                                                     entrada_permitida = 1 # Reconhece o segundo acionamento
                                                                                                                                                                                                                                                     
@@ -1415,7 +1415,7 @@ def gar2():
                                                                         if bar2 == 1 and entrada_permitida == 1:
                                                                             
                                                                             time.sleep(0.1)                                                                    
-                                                                            bar2 = leitor2_in2()
+                                                                            bar2 = l.leitor2_in2()
                                                                             
                                                                             if bar2 == 1:
 
@@ -1423,22 +1423,22 @@ def gar2():
 
                                                                                 while tempo2 > 0: # Enquanto a barreira esta acionada
 
-                                                                                    bar2 = leitor2_in2() # Faz a leitura da barreira 1                                                                                                                                                                                                                                                       
+                                                                                    bar2 = l.leitor2_in2() # Faz a leitura da barreira 1                                                                                                                                                                                                                                                       
 
                                                                                     if bar2 == 0:
 
                                                                                         time.sleep(0.1)
-                                                                                        bar2 = leitor2_in2()
+                                                                                        bar2 = l.leitor2_in2()
 
                                                                                         if bar2 == 0:
 
                                                                                             time.sleep(0.1)
-                                                                                            bar2 = leitor2_in2()
+                                                                                            bar2 = l.leitor2_in2()
 
                                                                                             if bar2 == 0:
 
                                                                                                 log("Saiu da barreira Garagem 2")
-                                                                                                desliga_rele3_exp2() # Sinal Vermelho
+                                                                                                l.desliga_rele3_exp2() # Sinal Vermelho
                                                                                                 log("Entrou segundo veiculo autorizado Garagem 2")
 
                                                                                                 entrada_permitida = 0
@@ -1449,11 +1449,11 @@ def gar2():
 
                                                                                         log("Portão do segundo veiculo aberto por muito tempo Garagem 2 ")
 
-                                                                                        desliga_rele3_exp2() # Sinal Vermelho
+                                                                                        l.desliga_rele3_exp2() # Sinal Vermelho
 
-                                                                                        liga_rele4_exp2() # Sirene                                            
+                                                                                        l.liga_rele4_exp2() # Sirene                                            
                                                                                         time.sleep(3)
-                                                                                        desliga_rele4_exp2()
+                                                                                        l.desliga_rele4_exp2()
 
                                                                                         if eventos == "1":
 
@@ -1472,14 +1472,14 @@ def gar2():
                                                                         if bar2 == 1 and entrada_permitida == 0: # Dupla passagem
                                                                             
                                                                             time.sleep(0.1)                                                                    
-                                                                            bar2 = leitor2_in2()
+                                                                            bar2 = l.leitor2_in2()
 
                                                                             if bar2 == 1:
 
                                                                                 if bar2 == 1 and entrada_permitida == 0: # Dupla passagem
                                                                             
                                                                                     time.sleep(0.1)                                                                    
-                                                                                    bar2 = leitor2_in2()
+                                                                                    bar2 = l.leitor2_in2()
 
                                                                                     log("Dupla passagem Garagem 2")
 
@@ -1487,9 +1487,9 @@ def gar2():
 
                                                                                         evento.enviar("E","132","020")
 
-                                                                                    liga_rele4_exp2() # Sirene                                            
+                                                                                    l.liga_rele4_exp2() # Sirene                                            
                                                                                     time.sleep(10)
-                                                                                    desliga_rele4_exp2()                                            
+                                                                                    l.desliga_rele4_exp2()                                            
 
                                                                                     break
                                                                             
@@ -1497,16 +1497,16 @@ def gar2():
                                                                         if pmg2 == 1: # portão ja fechou
 
                                                                             time.sleep(0.1)                                                                    
-                                                                            pmg2 = leitor2_in1()
+                                                                            pmg2 = l.leitor2_in1()
 
                                                                             if pmg2 == 1:
 
                                                                                 time.sleep(0.1)                                                                    
-                                                                                pmg2 = leitor2_in1()
+                                                                                pmg2 = l.leitor2_in1()
 
                                                                                 if pmg2 == 1:
                                                                                     
-                                                                                    desliga_rele3_exp2() # Sinal Vermelho
+                                                                                    l.desliga_rele3_exp2() # Sinal Vermelho
 
                                                                                     status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                                                                                     status.write("0")
@@ -1523,11 +1523,11 @@ def gar2():
 
                                                                             log("Portão Garagem 2 aberto por muito tempo")
 
-                                                                            desliga_rele3_exp2() # Sinal Vermelho
+                                                                            l.desliga_rele3_exp2() # Sinal Vermelho
 
-                                                                            liga_rele4_exp2() # Sirene                                            
+                                                                            l.liga_rele4_exp2() # Sirene                                            
                                                                             time.sleep(3)
-                                                                            desliga_rele4_exp2()
+                                                                            l.desliga_rele4_exp2()
 
                                                                             status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                                                                             status.write("0")
@@ -1546,18 +1546,18 @@ def gar2():
                                                     if pmg2 == 1:
 
                                                         time.sleep(0.1)
-                                                        pmg2 = leitor2_in1()
+                                                        pmg2 = l.leitor2_in1()
                                                         
                                                         if pmg2 == 1:
 
                                                             time.sleep(0.1)
-                                                            pmg2 = leitor2_in1()
+                                                            pmg2 = l.leitor2_in1()
                                                             
                                                             if pmg2 == 1:
 
                                                                 log("Portão Garagem 2 fechou.")
 
-                                                                desliga_rele3_exp2() # Sinal Vermelho
+                                                                l.desliga_rele3_exp2() # Sinal Vermelho
 
                                                                 status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                                                                 status.write("0")
@@ -1573,7 +1573,7 @@ def gar2():
                                                     if cont2 == 1:
 
                                                         log("Nao detectou nenhuma entrada ou saida Garagem 2")
-                                                        desliga_rele3_exp2() # Sinal Vermelho
+                                                        l.desliga_rele3_exp2() # Sinal Vermelho
                                                         
                                                         break
                                                     
@@ -1585,11 +1585,11 @@ def gar2():
 
                                         log("Atingiu o tempo máximo e o portão da Garagem 2 não fechou")
 
-                                        desliga_rele3_exp2() # Sinal Vermelho
+                                        l.desliga_rele3_exp2() # Sinal Vermelho
 
-                                        liga_rele4_exp2() # Sirene                                            
+                                        l.liga_rele4_exp2() # Sirene                                            
                                         time.sleep(3)
-                                        desliga_rele4_exp2()
+                                        l.desliga_rele4_exp2()
 
                                         status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                                         status.write("0")
@@ -1605,7 +1605,7 @@ def gar2():
 
                         log ("Recebeu comando para abrir Garagem 2 mas o portão no abriu")
                         
-                        desliga_rele3_exp2() # Sinal Vermelho
+                        l.desliga_rele3_exp2() # Sinal Vermelho
                         
                         status = open("/home/pi/CMM/status_garagem_2.cmm","w") 
                         status.write("0")
@@ -1614,19 +1614,19 @@ def gar2():
             if mud2 == 1 and mudanca2 == 0 : # Chave de mudança acionada
 
                 time.sleep(0.1)     
-                mud2 = leitor2_in4()  # Chave de mudança            
+                mud2 = l.leitor2_in4()  # Chave de mudança            
 
                 if mud2 == 1:
 
                     time.sleep(0.1)     
-                    mud2 = leitor2_in4()  # Chave de mudança            
+                    mud2 = l.leitor2_in4()  # Chave de mudança            
 
                     if mud2 == 1:
 
                         log("*")
                         log("Chave de mudança acionada Garagem 2")
 
-                        liga_rele3_exp2() # Sinal Verde
+                        l.liga_rele3_exp2() # Sinal Verde
 
                         if evento == "1":
 
@@ -1636,10 +1636,10 @@ def gar2():
                         t.write("1")
                         t.close()
 
-                        liga_rele1_exp2() # Aciona o rele 1 do modulo 1 (Abre)
+                        l.liga_rele1_exp2() # Aciona o rele 1 do modulo 1 (Abre)
                         time.sleep(2)
-                        desliga_rele1_exp2()
-                        liga_rele2_exp2() # Aciona o rele 2 do modulo 1 (Foto)                
+                        l.desliga_rele1_exp2()
+                        l.liga_rele2_exp2() # Aciona o rele 2 do modulo 1 (Foto)                
 
                         mudanca2 = 1
 
@@ -1648,27 +1648,27 @@ def gar2():
             if mud2 == 0 and mudanca2 == 1:
 
                 time.sleep(0.1)
-                mud2 = leitor2_in4()
+                mud2 = l.leitor2_in4()
 
                 if mud2 == 0:
 
                     time.sleep(0.1)
-                    mud2 = leitor2_in4()
+                    mud2 = l.leitor2_in4()
 
                     if mud2 == 0:
 
                         log("Desligada a chave de mudança")
 
-                        desliga_rele3_exp2() # Sinal Vermelho
+                        l.desliga_rele3_exp2() # Sinal Vermelho
 
                         if evento == "1":
 
                             evento.enviar("R","132","25")
                                         
-                        desliga_rele1_exp2() # Desliga o rele 1 do modulo 1 (Abre)
-                        desliga_rele2_exp2() # Desliga o rele 2 do modulo 1 (Foto) 
+                        l.desliga_rele1_exp2() # Desliga o rele 1 do modulo 1 (Abre)
+                        l.desliga_rele2_exp2() # Desliga o rele 2 do modulo 1 (Foto) 
 
-                        pmg2 = leitor2_in1()
+                        pmg2 = l.leitor2_in1()
 
                         cont = 60 # Tempo maximo de espera
 
@@ -1678,23 +1678,23 @@ def gar2():
 
                         while cont > 0:
                             
-                            pmg2 = leitor2_in1()                                                              
+                            pmg2 = l.leitor2_in1()                                                              
                                     
                             if pmg2 == 1: # Portão ja fechou
 
                                 time.sleep(0.1)
-                                pmg2 = leitor2_in1()
+                                pmg2 = l.leitor2_in1()
 
                                 if pmg2 == 1:
 
                                     time.sleep(0.1)
-                                    pmg2 = leitor2_in1()
+                                    pmg2 = l.leitor2_in1()
 
                                     if pmg2 == 1:
 
                                         log("Portão Garagem 2 fechou")
 
-                                        desliga_rele3_exp2() # Sinal Vermelho
+                                        l.desliga_rele3_exp2() # Sinal Vermelho
 
                                         t = open("/home/pi/CMM/status_garagem_2.cmm","w")
                                         t.write("0")
@@ -1709,15 +1709,15 @@ def gar2():
 
                                 log("Chave de mudança Garagem 2 desligou mas o portão nao fechou após 1 min")
 
-                                desliga_rele3_exp2() # Sinal Vermelho
+                                l.desliga_rele3_exp2() # Sinal Vermelho
 
                                 t = open("/home/pi/CMM/status_garagem_2.cmm","w")
                                 t.write("0")
                                 t.close()
 
-                                liga_rele4_exp2() # Pulso na Sirene                                            
+                                l.liga_rele4_exp2() # Pulso na Sirene                                            
                                 time.sleep(3)
-                                desliga_rele4_exp2()                                
+                                l.desliga_rele4_exp2()                                
                                 
                                 mudanca2 = 0
                                 
@@ -1778,13 +1778,18 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
         if comando == "abre_social":
             
             pm1 = entradas.pm1()
-                                
+                                            
             if pm1 == "0": # O portão social já esta aberto
 
-                log("O portão Social já esta aberto")
-                            
-                os.system("mpg123 /home/pi/CMM/mp3/social_aberto.mp3")
-                time.sleep(1)
+                time.sleep(0.1)
+                pm1 = entradas.pm1()
+
+                if pm1 == "0":
+                    
+                    log("O portão Social já esta aberto")
+                                
+                    os.system("mpg123 /home/pi/CMM/mp3/social_aberto.mp3")
+                    time.sleep(1)
 
             else: # Se o portão Social esta fechado então pode abrir
                
@@ -1792,65 +1797,79 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                 if pm2 == "0":
 
-                    log("Agurade o fechamento do Social Externo")
-                    os.system("mpg123 /home/pi/CMM/mp3/aguarde_fechamento.mp3") # Necessario manter esse audio sempre ativo
-                    time.sleep(1)
-                                
-                if pm2 == "1": # Se Ponto magnético Eclusa fechado
-                    
-                    s = open("/home/pi/CMM/status_social.cmm","w")
-                    s.write("1")
-                    s.close()
+                    time.sleep(0.1)
+                    pm2 = entradas.pm2()
 
-                    saidas.liga_blq2() # Aqui abrimos o contato da eclusa para impedir que ela seja aberta enquanto o social esta aberto
-                  
-                    social(ihm_soc1)
-                   
-                    time.sleep(1) # Tempo minimo para o portão abrir
-                   
+                    if pm2 == "0":
+
+                        log("Agurade o fechamento do Social Externo")
+                        os.system("mpg123 /home/pi/CMM/mp3/aguarde_fechamento.mp3") # Necessario manter esse audio sempre ativo
+                        time.sleep(1)
+                                    
+                if pm2 == "1": # Se Ponto magnético Eclusa fechado
+
+                    time.sleep(0.1)
+                    pm2 = entradas.pm2()                    
+
+                    if pm2 == "1":
+                    
+                        s = open("/home/pi/CMM/status_social.cmm","w")
+                        s.write("1")
+                        s.close()
+
+                        saidas.liga_blq2() # Aqui abrimos o contato da eclusa para impedir que ela seja aberta enquanto o social esta aberto
+                      
+                        social(ihm_soc1)
+                       
+                        time.sleep(1) # Tempo minimo para o portão abrir
+                       
                     pm1 = entradas.pm1()
                                         
                     if pm1 == "1": # Portão fechado pois não abriu com o comando
+
+                        time.sleep(0.1)
                         
-                        fechadura = banco.consulta("config","fechadura")
+                        if pm1 == "1":                        
+                        
+                            fechadura = banco.consulta("config","fechadura")
 
-                        if fechadura == "magnetica":
+                            if fechadura == "magnetica":
 
-                            os.system("mpg123 /home/pi/CMM/mp3/empurre.mp3")
-                            
-                            log("Abrindo novamente o social...")
-                            
-                            saidas.pulso_abre1() # Pulso para abrir direto o portão sem intertravamento (Social)
+                                os.system("mpg123 /home/pi/CMM/mp3/empurre.mp3")
+                                
+                                log("Abrindo novamente o social...")
+                                
+                                saidas.pulso_abre1() # Pulso para abrir direto o portão sem intertravamento (Social)
 
-                            saidas.desliga_blq2()
+                                saidas.desliga_blq2()
 
-                            status = open("/home/pi/CMM/status_social.cmm","w") 
-                            status.write("0")
-                            status.close()
+                                status = open("/home/pi/CMM/status_social.cmm","w") 
+                                status.write("0")
+                                status.close()
 
-                            time.sleep(2)
-                            return
-                            
+                                time.sleep(2)
+                                return
+                                
 
-                        if fechadura == "motor":
+                            if fechadura == "motor":
 
-                            log("Portão Social emperrado")
+                                log("Portão Social emperrado")
 
-                            os.system("mpg123 /home/pi/CMM/mp3/social_emperrado.mp3")
-                                                    
-                            saidas.desliga_blq2() # Fecha o contato e libera a eclusa para ser acionada
+                                os.system("mpg123 /home/pi/CMM/mp3/social_emperrado.mp3")
+                                                        
+                                saidas.desliga_blq2() # Fecha o contato e libera a eclusa para ser acionada
 
-                            status = open("/home/pi/CMM/status_social.cmm","w") 
-                            status.write("0")
-                            status.close()
+                                status = open("/home/pi/CMM/status_social.cmm","w") 
+                                status.write("0")
+                                status.close()
 
-                            time.sleep(2)
-                            return
+                                time.sleep(2)
+                                return
 
-                                               
-                            if eventos == "1":
+                                                   
+                                if eventos == "1":
 
-                                evento.enviar("E","132","008") # Envia portão emperrado                        
+                                    evento.enviar("E","132","008") # Envia portão emperrado                        
 
                     if pm1 == "0": # Portão abriu
 
@@ -2450,7 +2469,7 @@ def alarmes_garagem1():
                 status_tx1 = t.read()
                 t.close() 
 
-                pmg1 = leitor1_in1()
+                pmg1 = l.leitor1_in1()
 
                 if pmg1 == "0" and status_tx1 == "0":
 
@@ -2472,9 +2491,9 @@ def alarmes_garagem1():
 
                 log("violação do portão garagem 1")
 
-                desliga_rele3_exp1() # Sinal Vermelho
+                l.desliga_rele3_exp1() # Sinal Vermelho
 
-                liga_rele4_exp1() # Sirene
+                l.liga_rele4_exp1() # Sirene
                             
                 #evento.enviar("E","132","014")
 
@@ -2484,7 +2503,7 @@ def alarmes_garagem1():
 
                 while cont > 0:
 
-                    pmg1 = leitor1_in1()
+                    pmg1 = l.leitor1_in1()
 
                     if(pmg1 == "0"): # Portão ainda aberto                                      
 
@@ -2504,11 +2523,11 @@ def alarmes_garagem1():
                         cont = 0
                         time.sleep(1)
                         
-                        desliga_rele4_exp1() # Desliga sirene
+                        l.desliga_rele4_exp1() # Desliga sirene
                         
                         break            
                 
-##                desliga_rele4_exp1() # Desliga sirene
+##                l.desliga_rele4_exp1() # Desliga sirene
 
 ##                violacao = 0
                 
@@ -2736,8 +2755,8 @@ def Servidor(Rele,Abre):
                         s2.liga_rele1_exp1() # Abre Garagem
                         s2.liga_rele1_exp1() 
                         time.sleep(3)
-                        s2.desliga_rele1_exp1() 
-                        s2.desliga_rele1_exp1()
+                        s2.l.desliga_rele1_exp1() 
+                        s2.l.desliga_rele1_exp1()
                         
                         conn.close()
                         
@@ -2750,8 +2769,8 @@ def Servidor(Rele,Abre):
                         s2.liga_rele1_exp7() # Abre Garagem
                         s2.liga_rele1_exp7() 
                         time.sleep(3)
-                        s2.desliga_rele1_exp7() 
-                        s2.desliga_rele1_exp7()
+                        s2.l.desliga_rele1_exp7() 
+                        s2.l.desliga_rele1_exp7()
                         
                         conn.close()
 
