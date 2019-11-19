@@ -526,7 +526,7 @@ def gar1():
                         status.write("1")
                         status.close()
 
-                        time.sleep(1)
+##                        time.sleep(1)
 
                     if ihm_gar1 == "1": # Abre através do expansor (rele 1)
 
@@ -543,7 +543,7 @@ def gar1():
                         time.sleep(2)
                         l.desliga_rele1_exp1()
 
-                        time.sleep(1)
+##                        time.sleep(1)
 
                     banco.atualiza("comandos","abre_garagem1","0")                    
 
@@ -624,7 +624,7 @@ def gar1():
 
                                             if pmg1 == 1:
 
-                                                log("Portão Garagem 1 fechou")
+                                                log("Portão Garagem 1 fechou C")
 
                                                 l.desliga_rele3_exp1() # Sinal Vermelho
 
@@ -795,7 +795,7 @@ def gar1():
                                                                                                 tempo2 = 0
                                                                                     if pmg1 == 1:
 
-                                                                                        log("Portão Garagem 1 fechou.")
+                                                                                        log("Portão Garagem 1 fechou. A")
 
                                                                                         l.desliga_rele3_exp1() # Sinal Vermelho
 
@@ -808,6 +808,7 @@ def gar1():
                                                                                             evento.enviar("R","133","013") # Envia o evento de fechamento para a central
                                                                                         
                                                                                         cont2 = 0
+                                                                                        
                                                                                         break
                                                                                     
                                                                                     if tempo2 == 1:
@@ -920,19 +921,19 @@ def gar1():
                                                             
                                                             if pmg1 == 1:
 
-                                                                log("Portão Garagem 1 fechou.")
-
-                                                                l.desliga_rele3_exp1() # Sinal Vermelho
-
-                                                                status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
-                                                                status.write("0")
-                                                                status.close()
-
-                                                                if eventos == "1":
-                                                                
-                                                                    evento.enviar("R","133","013") # Envia o evento de fechamento para a central
-                                                                
-                                                                cont2 = 0
+##                                                                log("Portão Garagem 1 fechou. B")
+##
+##                                                                l.desliga_rele3_exp1() # Sinal Vermelho
+##
+##                                                                status = open("/home/pi/CMM/status_garagem_1.cmm","w") 
+##                                                                status.write("0")
+##                                                                status.close()
+##
+##                                                                if eventos == "1":
+##                                                                
+##                                                                    evento.enviar("R","133","013") # Envia o evento de fechamento para a central
+##                                                                
+##                                                                cont2 = 0
                                                                 break
                                                                                 
                                                     if cont2 == 1:
@@ -1732,9 +1733,11 @@ g2 = threading.Thread(target=gar2)
 g2.start()
 
 
-def Serv_qr():    
+def Serv_qr():
+
+    log("Servidor QR em execução")
         
-        servidor_qr.Servidor_qr()
+    servidor_qr.Servidor_qr()
 
 sqr = threading.Thread(target=Serv_qr)
 sqr.start()
@@ -1972,9 +1975,9 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                            os.system("mpg123 /home/pi/CMM/mp3/empurre.mp3")
 
-                           log("Abrindo novamente a eclusa")
-                           
-                           saidas.pulso_abre2()
+##                           log("Abrindo novamente a eclusa")
+##                           
+##                           saidas.pulso_abre2()
                            
                            saidas.desliga_blq1()
 
@@ -2074,12 +2077,14 @@ def social(mensagem): # Mensagem informa se o evento veio pelo interface web ou 
     fechadura = banco.consulta("config","fechadura")
     audio = banco.consulta("config","audio")
 
+    saidas.pulso_abre1() # Pulso para abrir direto o portão sem intertravamento (Social)
+
+
     if mensagem == "0": # local
 
         log("Abrindo social...")    
 
-    saidas.pulso_abre1() # Pulso para abrir direto o portão sem intertravamento (Social)
-
+    
     if mensagem == "1": # Via interface web
 
         log("Abrindo Social pela Central de Monitoramento...")
@@ -2097,7 +2102,7 @@ def social(mensagem): # Mensagem informa se o evento veio pelo interface web ou 
     status.write("0")
     status.close()
 
-    time.sleep(1)
+##    time.sleep(1)
     
 def eclusa(mensagem):
 
@@ -2131,7 +2136,7 @@ def eclusa(mensagem):
     status.write("0")
     status.close()
 
-    time.sleep(1)
+##    time.sleep(1)
 
 def Portoes_sociais(Rele): # Programa
     
@@ -2850,7 +2855,7 @@ sociais = threading.Thread(target=Portoes_sociais, args=(cmm.Rele,)) # deixar vi
 ##garagem2 = threading.Thread(target=Garagem2, args=(cmm.Rele,))
 arrombamento = threading.Thread(target=Arrombamento, args=(cmm.Rele,))
 servidor = threading.Thread(target=Servidor, args=(cmm.Rele,))
-##servidor_qr = threading.Thread(target=Servidor_qr)
+#servidor_qr = threading.Thread(target=Servidor_qr)
 
 buffer = threading.Thread(target=Buffer)
 
