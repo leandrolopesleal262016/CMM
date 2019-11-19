@@ -10,6 +10,7 @@ class limpa:
 
             i = str(i.split('\\')) 
             i = i.replace("x","")
+            i = i.replace("y","")
             i = i.replace("'","")
             i = i.replace("`","")
             i = i.replace(" ","")
@@ -18,6 +19,9 @@ class limpa:
             i = i.replace('"',"")
             i = i.replace("[","")
             i = i.replace("]","")
+            i = i.replace(";","")
+            i = i.replace(":","")
+            i = i.replace("-","")
        
             return(i)
 
@@ -45,7 +49,9 @@ class Filtro(limpa):
                 b = (i[-1]) # Obtem do byte a metade que contem os bits que representa as entradas
                                         
                 if i == "05a": # Formatações devido ao retorno do byte com representação em ascii
-                    b = "5"            
+                    b = "5"
+                if i == "04y": # Formatações devido ao retorno do byte com representação em ascii
+                    b = "4"
                 if i == "ta":
                     b = "9"
                 if i == "n":

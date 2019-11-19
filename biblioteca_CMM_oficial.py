@@ -68,28 +68,7 @@ def timeout(signum, frame):
 signal.signal(signal.SIGALRM, timeout) # Inicia o modulo para funcionamento dos time out
 socket.setdefaulttimeout(2) # limite de 2 segundos para enviar o socket
 
-
-# Exemplo de um timeout mais eficiente, usar dentro das funções ###
-
-##def timeout_handler():
-##    raise BaseException('Timeout')
-## 
-##def long_function():
-##    try:
-##        old_handler = signal.signal(signal.SIGALRM,
-##                                    timeout_handler)
-##        signal.alarm(1)
-##        time.sleep(10)   # Placeholder for the real,
-##                         # potentially blocking code
-##    except BaseException:
-##        print('Timed out!')
-##    finally:
-##        signal.signal(signal.SIGALRM, old_handler)
-##        signal.alarm(0)
- 
-##long_function()
-   
-
+  
 ########################################## Envio de Eventos para o MONI ######################################################
 
 class Evento:
@@ -97,8 +76,8 @@ class Evento:
     
     def __init__(self,cliente):        
 
-        self.host = '172.56.50.3'  # Host servidor  Moni
-        self.port = 4011          # Porta máquina receptora
+        self.host = '172.20.1.5'  # Host servidor  Moni
+        self.port = 4010          # Porta máquina receptora
 
         self.protocolo = "7000 18"  # Protocolo
         self.cliente = cliente  # Cliete

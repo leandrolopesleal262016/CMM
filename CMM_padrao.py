@@ -2903,7 +2903,7 @@ while(1):
 
         os.system("mpg123 /home/pi/CMM/mp3/reiniciando_sistema.mp3")
 
-        Os.system("sudo reboot now")
+        os.system("sudo reboot now")
 
     # Colocar aqui o keep alive  
     
