@@ -111,24 +111,33 @@ def escreve_serial(packet):
 
         mutex.acquire() 
 
-        time.sleep(0.05) # 004
+        time.sleep(0.1) # 004
 
-        ser = serial.Serial("/dev/ttyS0", 115200)      
-               
-                
+        ser = serial.Serial("/dev/ttyS0", 115200)
+        
         GPIO.output(17, 1)  
         GPIO.output(18, 1)
         
         time.sleep(0.02) # 004
-        
-        ser.write(packet)
-        
-        time.sleep(0.002) # nao alterar este valor
-        
-        GPIO.output(17, 0)  
-        GPIO.output(18, 0)
 
-        time.sleep(0.02) # 004
+        try:
+        
+            ser.write(packet)
+##            print("aceito",packet)
+
+        except:
+
+            print("Erro na escrita")
+            print("pacote",packet)
+
+        else:
+        
+            time.sleep(0.002) # nao alterar este valor
+            
+            GPIO.output(17, 0)  
+            GPIO.output(18, 0)
+
+            time.sleep(0.02) # 004
 
         try:
         
@@ -137,10 +146,10 @@ def escreve_serial(packet):
 
         except Exception as err:
 
-            print("Aqui o erro...")
+            print("Aqui o erro...",packet)
             in_bin = ("b''")
 
-        else:
+        finally:
 
             mutex.release()
                                 
@@ -154,8 +163,10 @@ def escreve_serial(packet):
 ##        time.sleep(0.005)
 ##        ser = serial.Serial("/dev/ttyS0", 115200)
 
-        in_bin = ("b''")        
-        return in_bin
+    
+
+    in_bin = ("b''")        
+    return in_bin
 
 def ler(modulo): # passar dados como string
 

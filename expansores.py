@@ -57,37 +57,51 @@ def log(texto): # Metodo para registro dos eventos no log.txt (exibido na interf
 
 def escreve_serial(packet):    
 
-    try:
+    try:        
 
         ser = serial.Serial("/dev/ttyS0", 115200)
 
-        time.sleep(0.004) # 005
+        time.sleep(0.05) # 004
                 
         GPIO.output(17, 1)  
         GPIO.output(18, 1)
         
-        time.sleep(0.004) # 01
-        
-        ser.write(packet)
-        
-        time.sleep(0.002) # no alterar este valor
-        
-        GPIO.output(17, 0)  
-        GPIO.output(18, 0)
+        time.sleep(0.005) # 004
 
-        time.sleep(0.004) # 01
+        try:
         
-        bytesToRead = ser.inWaiting()        
-        in_bin = ser.read(bytesToRead)
+            ser.write(packet)
 
-        verifica = str(in_bin)
-                
-        return in_bin
+        except:
 
-    except:
+            print("Erro na escrita",packet)
+            return ("b''")
 
-        os.system("sudo chmod 777 /dev/ttyS0") # Altera a permissão do acesso a serial
-        
+        else:            
+                                
+            time.sleep(0.002) # nao alterar este valor
+            
+            GPIO.output(17, 0)  
+            GPIO.output(18, 0)
+
+            time.sleep(0.005) # 004
+
+            try:
+            
+                bytesToRead = ser.inWaiting()        
+                in_bin = ser.read(bytesToRead)
+                                
+                return in_bin
+
+            except:
+
+                print("Erro na leitura do retorno")
+                return ("b''")
+
+    except Exception as err:
+
+##        os.system("sudo chmod 777 /dev/ttyS0") # Altera a permissão do acesso a serial
+        print("\nErro na leitura da serial",err)
         return ("b''")
 
 class monta_pacote_in():
@@ -139,8 +153,8 @@ class monta_pacote_in():
         b = int(crc[1],16)
             
         packet.append(a) # Controle de redundancia
-        packet.append(b) # Controle de redundancia        
-               
+        packet.append(b) # Controle de redundancia
+                       
         in_bin1 = escreve_serial(packet)        
 
         in_bin1 = str(in_bin1)
@@ -167,7 +181,86 @@ class monta_pacote_in():
 
             return(in_bin1)
         
+class monta_pacote():
 
+    def __init__(self):
+
+        self = self
+        
+    def aciona(self,modulo,rele,funcao): # passar dados como string '0x01','0x01','0xFF'
+
+        modulo = int(modulo,16)
+        rele = int(rele,16)
+        funcao = int(funcao,16)
+
+        def crc16(byte):
+
+            byte = bytes(byte)
+
+            self.crc16 = libscrc.modbus(byte) #b'\x07\x05\x00\x00\xFF\x00')  # Estrutura para calculo do CRC
+
+            bin2str = (hex(self.crc16))
+            bin2str = str(bin2str)
+
+            p = "0x"
+
+            a1 = bin2str[-2]
+            a2 = bin2str[-1]
+            if a1 == "x":
+                a1 = "0"
+            a = p + a1 + a2            
+
+            b1 = bin2str[-4]
+            b2 = bin2str[-3]
+            if b1 == "x":
+                b1 = "0"
+            b = p + b1 + b2 
+            
+            return(a,b) 
+                
+        packet = bytearray()  
+        packet.append(modulo) # endereço do modulo (dip switch) 
+        packet.append(0x05) # modo acionamento de rele 
+        packet.append(0x00) #            
+        packet.append(rele) # endereço do rele (00,01,02,03) 
+        packet.append(funcao) # Liga / Desliga rele
+        packet.append(0x00) #
+       
+        crc = crc16(packet)
+
+        a = int(crc[0],16)
+        b = int(crc[1],16)
+
+        packet.append(a) # Controle de redundancia 
+        packet.append(b) # Controle de redundancia        
+        
+        in_bin = escreve_serial(packet)              
+
+        in_bin = str(in_bin)
+
+        cont = 5
+
+        if in_bin == "b''": # reenviando leitura            
+
+            while cont > 0:  # reenviando leitura
+
+                time.sleep(0.05)
+                
+                in_bin = escreve_serial(packet)
+                in_bin = str(in_bin)
+
+##                print(in_bin)
+                
+                if in_bin != "b''":                    
+                                   
+                    return(in_bin)
+
+                cont = cont - 1
+                
+        else:
+
+            return(in_bin)
+        
 class retorna:
 
     def __init__(self):
@@ -231,6 +324,8 @@ class limpa:
             i = i.replace('"',"")
             i = i.replace("[","")
             i = i.replace("]","")
+            i = i.replace(";","")
+            i = i.replace(":","")
        
             return(i)
 
@@ -816,13 +911,14 @@ class filtro(limpa):
                 pass #log("erro fitro mdl16")
                 
     
-class Leitor(monta_pacote_in,retorna,filtro):
+class Leitor(monta_pacote_in,monta_pacote,retorna,filtro):
 
     def __init__(self):
         
         self.mod = monta_pacote_in()
         self.retorna = retorna()
         self.filtro = filtro()
+        self.mod2 = monta_pacote()
            
 # Leitor mdulo expansor 1
 
@@ -1371,624 +1467,546 @@ class Leitor(monta_pacote_in,retorna,filtro):
 
 #############################################  Acionamento reles Expansores  ##############################
 
-class monta_pacote():
 
-    def __init__(self):
-
-        self = self
-        
-    def aciona(self,modulo,rele,funcao): # passar dados como string '0x01','0x01','0xFF'
-
-        modulo = int(modulo,16)
-        rele = int(rele,16)
-        funcao = int(funcao,16)
-
-        def crc16(byte):
-
-            byte = bytes(byte)
-
-            self.crc16 = libscrc.modbus(byte) #b'\x07\x05\x00\x00\xFF\x00')  # Estrutura para calculo do CRC
-
-            bin2str = (hex(self.crc16))
-            bin2str = str(bin2str)
-
-            p = "0x"
-
-            a1 = bin2str[-2]
-            a2 = bin2str[-1]
-            if a1 == "x":
-                a1 = "0"
-            a = p + a1 + a2            
-
-            b1 = bin2str[-4]
-            b2 = bin2str[-3]
-            if b1 == "x":
-                b1 = "0"
-            b = p + b1 + b2 
-            
-            return(a,b) 
-                
-        packet = bytearray()  
-        packet.append(modulo) # endereço do modulo (dip switch) 
-        packet.append(0x05) # modo acionamento de rele 
-        packet.append(0x00) #            
-        packet.append(rele) # endereço do rele (00,01,02,03) 
-        packet.append(funcao) # Liga / Desliga rele
-        packet.append(0x00) #
-       
-        crc = crc16(packet)
-
-        a = int(crc[0],16)
-        b = int(crc[1],16)
-
-        packet.append(a) # Controle de redundancia 
-        packet.append(b) # Controle de redundancia        
-        
-        in_bin = escreve_serial(packet)              
-
-        in_bin = str(in_bin)
-
-        cont = 5
-
-        if in_bin == "b''": # reenviando leitura            
-
-            while cont > 0:  # reenviando leitura
-
-                time.sleep(0.05)
-                
-                in_bin = escreve_serial(packet)
-                in_bin = str(in_bin)
-
-##                print(in_bin)
-                
-                if in_bin != "b''":                    
-                                   
-                    return(in_bin)
-
-                cont = cont - 1
-                
-        else:
-
-            return(in_bin)
         
 
-class Expansor(monta_pacote):
-
-    def __init__(self):
-
-        self.mod = monta_pacote()        
+##class Expansor(monta_pacote):
+##
+##    def __init__(self):
+##
+##        self.mod = monta_pacote()        
     
 # Acionamentos modulo expansor 1
 
     def liga_rele1_exp1(self):
 
-        self.mod.aciona('0x01','0x00','0xFF') # Modulo, rele , funcao
+        self.mod2.aciona('0x01','0x00','0xFF') # Modulo, rele , funcao
 
     def desliga_rele1_exp1(self):
 
-        self.mod.aciona('0x01','0x00','0x00') 
+        self.mod2.aciona('0x01','0x00','0x00') 
 
     def liga_rele2_exp1(self):
 
-        self.mod.aciona('0x01','0x01','0xFF') 
+        self.mod2.aciona('0x01','0x01','0xFF') 
 
     def desliga_rele2_exp1(self):
 
-        self.mod.aciona('0x01','0x01','0x00') 
+        self.mod2.aciona('0x01','0x01','0x00') 
 
     def liga_rele3_exp1(self):
 
-        self.mod.aciona('0x01','0x02','0xFF') 
+        self.mod2.aciona('0x01','0x02','0xFF') 
 
     def desliga_rele3_exp1(self):
         
-        self.mod.aciona('0x01','0x02','0x00')
+        self.mod2.aciona('0x01','0x02','0x00')
         
     def liga_rele4_exp1(self):
 
-        self.mod.aciona('0x01','0x03','0xFF')
+        self.mod2.aciona('0x01','0x03','0xFF')
 
     def desliga_rele4_exp1(self):
 
-        self.mod.aciona('0x01','0x03','0x00')        
+        self.mod2.aciona('0x01','0x03','0x00')        
 
 
 # Acionamentos modulo expansor 2
     
     def liga_rele1_exp2(self):
 
-        self.mod.aciona('0x02','0x00','0xFF') # Modulo, rele , funcao
+        self.mod2.aciona('0x02','0x00','0xFF') # Modulo, rele , funcao
 
     def desliga_rele1_exp2(self):
 
-        self.mod.aciona('0x02','0x00','0x00')        
+        self.mod2.aciona('0x02','0x00','0x00')        
 
     def liga_rele2_exp2(self):
 
-        self.mod.aciona('0x02','0x01','0xFF') 
+        self.mod2.aciona('0x02','0x01','0xFF') 
 
     def desliga_rele2_exp2(self):
 
-        self.mod.aciona('0x02','0x01','0x00')        
+        self.mod2.aciona('0x02','0x01','0x00')        
 
     def liga_rele3_exp2(self):
 
-        self.mod.aciona('0x02','0x02','0xFF') 
+        self.mod2.aciona('0x02','0x02','0xFF') 
 
     def desliga_rele3_exp2(self):
 
-        self.mod.aciona('0x02','0x02','0x00')        
+        self.mod2.aciona('0x02','0x02','0x00')        
 
     def liga_rele4_exp2(self):
 
-        self.mod.aciona('0x02','0x03','0xFF') 
+        self.mod2.aciona('0x02','0x03','0xFF') 
 
     def desliga_rele4_exp2(self):
 
-        self.mod.aciona('0x02','0x03','0x00')        
+        self.mod2.aciona('0x02','0x03','0x00')        
 
 # Acionamentos modulo expansor 3
     
     def liga_rele1_exp3(self):
 
-        self.mod.aciona('0x03','0x00','0xFF') # Modulo, rele , funcao
+        self.mod2.aciona('0x03','0x00','0xFF') # Modulo, rele , funcao
 
     def desliga_rele1_exp3(self):
 
-        self.mod.aciona('0x03','0x00','0x00')        
+        self.mod2.aciona('0x03','0x00','0x00')        
 
     def liga_rele2_exp3(self):
 
-        self.mod.aciona('0x03','0x01','0xFF') 
+        self.mod2.aciona('0x03','0x01','0xFF') 
 
     def desliga_rele2_exp3(self):
 
-        self.mod.aciona('0x03','0x01','0x00')        
+        self.mod2.aciona('0x03','0x01','0x00')        
 
     def liga_rele3_exp3(self):
 
-        self.mod.aciona('0x03','0x02','0xFF') 
+        self.mod2.aciona('0x03','0x02','0xFF') 
 
     def desliga_rele3_exp3(self):
 
-        self.mod.aciona('0x03','0x02','0x00')        
+        self.mod2.aciona('0x03','0x02','0x00')        
 
     def liga_rele4_exp3(self):
 
-        self.mod.aciona('0x03','0x03','0xFF') 
+        self.mod2.aciona('0x03','0x03','0xFF') 
 
     def desliga_rele4_exp3(self):
 
-        self.mod.aciona('0x03','0x03','0x00') 
+        self.mod2.aciona('0x03','0x03','0x00') 
 
 # Acionamentos modulo expansor 4
     
     def liga_rele1_exp4(self):
 
-        self.mod.aciona('0x04','0x00','0xFF') # Modulo, rele , funcao
+        self.mod2.aciona('0x04','0x00','0xFF') # Modulo, rele , funcao
 
     def desliga_rele1_exp4(self):
 
-        self.mod.aciona('0x04','0x00','0x00')        
+        self.mod2.aciona('0x04','0x00','0x00')        
 
     def liga_rele2_exp4(self):
 
-        self.mod.aciona('0x04','0x01','0xFF') 
+        self.mod2.aciona('0x04','0x01','0xFF') 
 
     def desliga_rele2_exp4(self):
 
-        self.mod.aciona('0x04','0x01','0x00')        
+        self.mod2.aciona('0x04','0x01','0x00')        
 
     def liga_rele3_exp4(self):
 
-        self.mod.aciona('0x04','0x02','0xFF') 
+        self.mod2.aciona('0x04','0x02','0xFF') 
 
     def desliga_rele3_exp4(self):
 
-        self.mod.aciona('0x04','0x02','0x00')        
+        self.mod2.aciona('0x04','0x02','0x00')        
 
     def liga_rele4_exp4(self):
 
-        self.mod.aciona('0x04','0x03','0xFF') 
+        self.mod2.aciona('0x04','0x03','0xFF') 
 
     def desliga_rele4_exp4(self):
 
-        self.mod.aciona('0x04','0x03','0x00')
+        self.mod2.aciona('0x04','0x03','0x00')
         
 # Acionamentos modulo expansor 5
     
     def liga_rele1_exp5(self):
 
-        self.mod.aciona('0x05','0x00','0xFF') # Modulo, rele , funcao
+        self.mod2.aciona('0x05','0x00','0xFF') # Modulo, rele , funcao
 
     def desliga_rele1_exp5(self):
 
-        self.mod.aciona('0x05','0x00','0x00')        
+        self.mod2.aciona('0x05','0x00','0x00')        
 
     def liga_rele2_exp5(self):
 
-        self.mod.aciona('0x05','0x01','0xFF') 
+        self.mod2.aciona('0x05','0x01','0xFF') 
 
     def desliga_rele2_exp5(self):
 
-        self.mod.aciona('0x05','0x01','0x00')        
+        self.mod2.aciona('0x05','0x01','0x00')        
 
     def liga_rele3_exp5(self):
 
-        self.mod.aciona('0x05','0x02','0xFF') 
+        self.mod2.aciona('0x05','0x02','0xFF') 
 
     def desliga_rele3_exp5(self):
 
-        self.mod.aciona('0x05','0x02','0x00')        
+        self.mod2.aciona('0x05','0x02','0x00')        
 
     def liga_rele4_exp5(self):
 
-        self.mod.aciona('0x05','0x03','0xFF') 
+        self.mod2.aciona('0x05','0x03','0xFF') 
 
     def desliga_rele4_exp5(self):
 
-        self.mod.aciona('0x05','0x03','0x00')
+        self.mod2.aciona('0x05','0x03','0x00')
 
 # Acionamentos modulo expansor 6
     
     def liga_rele1_exp6(self):
 
-        self.mod.aciona('0x06','0x00','0xFF') # Modulo, rele , funcao
+        self.mod2.aciona('0x06','0x00','0xFF') # Modulo, rele , funcao
 
     def desliga_rele1_exp6(self):
 
-        self.mod.aciona('0x06','0x00','0x00')        
+        self.mod2.aciona('0x06','0x00','0x00')        
 
     def liga_rele2_exp6(self):
 
-        self.mod.aciona('0x06','0x01','0xFF') 
+        self.mod2.aciona('0x06','0x01','0xFF') 
 
     def desliga_rele2_exp6(self):
 
-        self.mod.aciona('0x06','0x01','0x00')        
+        self.mod2.aciona('0x06','0x01','0x00')        
 
     def liga_rele3_exp6(self):
 
-        self.mod.aciona('0x06','0x02','0xFF') 
+        self.mod2.aciona('0x06','0x02','0xFF') 
 
     def desliga_rele3_exp6(self):
 
-        self.mod.aciona('0x06','0x02','0x00')        
+        self.mod2.aciona('0x06','0x02','0x00')        
 
     def liga_rele4_exp6(self):
 
-        self.mod.aciona('0x06','0x03','0xFF') 
+        self.mod2.aciona('0x06','0x03','0xFF') 
 
     def desliga_rele4_exp6(self):
 
-        self.mod.aciona('0x06','0x03','0x00') 
+        self.mod2.aciona('0x06','0x03','0x00') 
 
 # Acionamentos modulo expansor 7    
     
     def liga_rele1_exp7(self):
 
-        self.mod.aciona('0x07','0x00','0xFF') 
+        self.mod2.aciona('0x07','0x00','0xFF') 
 
     def desliga_rele1_exp7(self):
 
-        self.mod.aciona('0x07','0x00','0x00') 
+        self.mod2.aciona('0x07','0x00','0x00') 
 
     def liga_rele2_exp7(self):
 
-        self.mod.aciona('0x07','0x01','0xFF') 
+        self.mod2.aciona('0x07','0x01','0xFF') 
 
     def desliga_rele2_exp7(self):
 
-        self.mod.aciona('0x07','0x01','0x00') 
+        self.mod2.aciona('0x07','0x01','0x00') 
 
     def liga_rele3_exp7(self):
 
-        self.mod.aciona('0x07','0x02','0xFF') 
+        self.mod2.aciona('0x07','0x02','0xFF') 
 
     def desliga_rele3_exp7(self):
 
-        self.mod.aciona('0x07','0x02','0x00') 
+        self.mod2.aciona('0x07','0x02','0x00') 
   
     def liga_rele4_exp7(self):
 
-        self.mod.aciona('0x07','0x03','0xFF')        
+        self.mod2.aciona('0x07','0x03','0xFF')        
     def desliga_rele4_exp7(self):
 
-        self.mod.aciona('0x07','0x03','0x00')
+        self.mod2.aciona('0x07','0x03','0x00')
 
 # Acionamentos modulo expansor 8   
     
     def liga_rele1_exp8(self):
 
-        self.mod.aciona('0x08','0x00','0xFF') 
+        self.mod2.aciona('0x08','0x00','0xFF') 
 
     def desliga_rele1_exp8(self):
 
-        self.mod.aciona('0x08','0x00','0x00') 
+        self.mod2.aciona('0x08','0x00','0x00') 
 
     def liga_rele2_exp8(self):
 
-        self.mod.aciona('0x08','0x01','0xFF') 
+        self.mod2.aciona('0x08','0x01','0xFF') 
 
     def desliga_rele2_exp8(self):
 
-        self.mod.aciona('0x08','0x01','0x00') 
+        self.mod2.aciona('0x08','0x01','0x00') 
 
     def liga_rele3_exp8(self):
 
-        self.mod.aciona('0x08','0x02','0xFF') 
+        self.mod2.aciona('0x08','0x02','0xFF') 
 
     def desliga_rele3_exp8(self):
 
-        self.mod.aciona('0x08','0x02','0x00') 
+        self.mod2.aciona('0x08','0x02','0x00') 
   
     def liga_rele4_exp8(self):
 
-        self.mod.aciona('0x08','0x03','0xFF')        
+        self.mod2.aciona('0x08','0x03','0xFF')        
     def desliga_rele4_exp8(self):
 
-        self.mod.aciona('0x08','0x03','0x00')
+        self.mod2.aciona('0x08','0x03','0x00')
 
 # Acionamentos modulo expansor 9    
     
     def liga_rele1_exp9(self):
 
-        self.mod.aciona('0x09','0x00','0xFF') 
+        self.mod2.aciona('0x09','0x00','0xFF') 
 
     def desliga_rele1_exp9(self):
 
-        self.mod.aciona('0x09','0x00','0x00') 
+        self.mod2.aciona('0x09','0x00','0x00') 
 
     def liga_rele2_exp9(self):
 
-        self.mod.aciona('0x09','0x01','0xFF') 
+        self.mod2.aciona('0x09','0x01','0xFF') 
 
     def desliga_rele2_exp9(self):
 
-        self.mod.aciona('0x09','0x01','0x00') 
+        self.mod2.aciona('0x09','0x01','0x00') 
 
     def liga_rele3_exp9(self):
 
-        self.mod.aciona('0x09','0x02','0xFF') 
+        self.mod2.aciona('0x09','0x02','0xFF') 
 
     def desliga_rele3_exp9(self):
 
-        self.mod.aciona('0x09','0x02','0x00') 
+        self.mod2.aciona('0x09','0x02','0x00') 
   
     def liga_rele4_exp9(self):
 
-        self.mod.aciona('0x09','0x03','0xFF')        
+        self.mod2.aciona('0x09','0x03','0xFF')        
     def desliga_rele4_exp9(self):
 
-        self.mod.aciona('0x09','0x03','0x00')
+        self.mod2.aciona('0x09','0x03','0x00')
 
 # Acionamentos modulo expansor 10    
     
     def liga_rele1_exp10(self):
 
-        self.mod.aciona('0xa','0x00','0xFF') 
+        self.mod2.aciona('0xa','0x00','0xFF') 
 
     def desliga_rele1_exp10(self):
 
-        self.mod.aciona('0xa','0x00','0x00') 
+        self.mod2.aciona('0xa','0x00','0x00') 
 
     def liga_rele2_exp10(self):
 
-        self.mod.aciona('0xa','0x01','0xFF') 
+        self.mod2.aciona('0xa','0x01','0xFF') 
 
     def desliga_rele2_exp10(self):
 
-        self.mod.aciona('0xa','0x01','0x00') 
+        self.mod2.aciona('0xa','0x01','0x00') 
 
     def liga_rele3_exp10(self):
 
-        self.mod.aciona('0xa','0x02','0xFF') 
+        self.mod2.aciona('0xa','0x02','0xFF') 
 
     def desliga_rele3_exp10(self):
 
-        self.mod.aciona('0xa','0x02','0x00') 
+        self.mod2.aciona('0xa','0x02','0x00') 
   
     def liga_rele4_exp10(self):
 
-        self.mod.aciona('0xa','0x03','0xFF')        
+        self.mod2.aciona('0xa','0x03','0xFF')        
     def desliga_rele4_exp10(self):
 
-        self.mod.aciona('0xa','0x03','0x00')
+        self.mod2.aciona('0xa','0x03','0x00')
 
 # Acionamentos modulo expansor 11    
     
     def liga_rele1_exp11(self):
 
-        self.mod.aciona('0xb','0x00','0xFF') 
+        self.mod2.aciona('0xb','0x00','0xFF') 
 
     def desliga_rele1_exp11(self):
 
-        self.mod.aciona('0xb','0x00','0x00') 
+        self.mod2.aciona('0xb','0x00','0x00') 
 
     def liga_rele2_exp11(self):
 
-        self.mod.aciona('0xb','0x01','0xFF') 
+        self.mod2.aciona('0xb','0x01','0xFF') 
 
     def desliga_rele2_exp11(self):
 
-        self.mod.aciona('0xb','0x01','0x00') 
+        self.mod2.aciona('0xb','0x01','0x00') 
 
     def liga_rele3_exp11(self):
 
-        self.mod.aciona('0xb','0x02','0xFF') 
+        self.mod2.aciona('0xb','0x02','0xFF') 
 
     def desliga_rele3_exp11(self):
 
-        self.mod.aciona('0xb','0x02','0x00') 
+        self.mod2.aciona('0xb','0x02','0x00') 
   
     def liga_rele4_exp11(self):
 
-        self.mod.aciona('0xb','0x03','0xFF')        
+        self.mod2.aciona('0xb','0x03','0xFF')        
     def desliga_rele4_exp11(self):
 
-        self.mod.aciona('0xb','0x03','0x00')
+        self.mod2.aciona('0xb','0x03','0x00')
 
 # Acionamentos modulo expansor 12    
     
     def liga_rele1_exp12(self):
 
-        self.mod.aciona('0xc','0x00','0xFF') 
+        self.mod2.aciona('0xc','0x00','0xFF') 
 
     def desliga_rele1_exp12(self):
 
-        self.mod.aciona('0xc','0x00','0x00') 
+        self.mod2.aciona('0xc','0x00','0x00') 
 
     def liga_rele2_exp12(self):
 
-        self.mod.aciona('0xc','0x01','0xFF') 
+        self.mod2.aciona('0xc','0x01','0xFF') 
 
     def desliga_rele2_exp12(self):
 
-        self.mod.aciona('0xc','0x01','0x00') 
+        self.mod2.aciona('0xc','0x01','0x00') 
 
     def liga_rele3_exp12(self):
 
-        self.mod.aciona('0xc','0x02','0xFF') 
+        self.mod2.aciona('0xc','0x02','0xFF') 
 
     def desliga_rele3_exp12(self):
 
-        self.mod.aciona('0xc','0x02','0x00') 
+        self.mod2.aciona('0xc','0x02','0x00') 
   
     def liga_rele4_exp12(self):
 
-        self.mod.aciona('0xc','0x03','0xFF')        
+        self.mod2.aciona('0xc','0x03','0xFF')        
     def desliga_rele4_exp12(self):
 
-        self.mod.aciona('0xc','0x03','0x00')
+        self.mod2.aciona('0xc','0x03','0x00')
 
 # Acionamentos modulo expansor 13    
     
     def liga_rele1_exp13(self):
 
-        self.mod.aciona('0xd','0x00','0xFF') 
+        self.mod2.aciona('0xd','0x00','0xFF') 
 
     def desliga_rele1_exp13(self):
 
-        self.mod.aciona('0xd','0x00','0x00') 
+        self.mod2.aciona('0xd','0x00','0x00') 
 
     def liga_rele2_exp13(self):
 
-        self.mod.aciona('0xd','0x01','0xFF') 
+        self.mod2.aciona('0xd','0x01','0xFF') 
 
     def desliga_rele2_exp13(self):
 
-        self.mod.aciona('0xd','0x01','0x00') 
+        self.mod2.aciona('0xd','0x01','0x00') 
 
     def liga_rele3_exp13(self):
 
-        self.mod.aciona('0xd','0x02','0xFF') 
+        self.mod2.aciona('0xd','0x02','0xFF') 
 
     def desliga_rele3_exp13(self):
 
-        self.mod.aciona('0xd','0x02','0x00') 
+        self.mod2.aciona('0xd','0x02','0x00') 
   
     def liga_rele4_exp13(self):
 
-        self.mod.aciona('0xd','0x03','0xFF')        
+        self.mod2.aciona('0xd','0x03','0xFF')        
     def desliga_rele4_exp13(self):
 
-        self.mod.aciona('0xd','0x03','0x00')
+        self.mod2.aciona('0xd','0x03','0x00')
 
 # Acionamentos modulo expansor 14    
     
     def liga_rele1_exp14(self):
 
-        self.mod.aciona('0xe','0x00','0xFF') 
+        self.mod2.aciona('0xe','0x00','0xFF') 
 
     def desliga_rele1_exp14(self):
 
-        self.mod.aciona('0xe','0x00','0x00') 
+        self.mod2.aciona('0xe','0x00','0x00') 
 
     def liga_rele2_exp14(self):
 
-        self.mod.aciona('0xe','0x01','0xFF') 
+        self.mod2.aciona('0xe','0x01','0xFF') 
 
     def desliga_rele2_exp14(self):
 
-        self.mod.aciona('0xe','0x01','0x00') 
+        self.mod2.aciona('0xe','0x01','0x00') 
 
     def liga_rele3_exp14(self):
 
-        self.mod.aciona('0xe','0x02','0xFF') 
+        self.mod2.aciona('0xe','0x02','0xFF') 
 
     def desliga_rele3_exp14(self):
 
-        self.mod.aciona('0xe','0x02','0x00') 
+        self.mod2.aciona('0xe','0x02','0x00') 
   
     def liga_rele4_exp14(self):
 
-        self.mod.aciona('0xe','0x03','0xFF')        
+        self.mod2.aciona('0xe','0x03','0xFF')        
     def desliga_rele4_exp14(self):
 
-        self.mod.aciona('0xe','0x03','0x00')
+        self.mod2.aciona('0xe','0x03','0x00')
 
 # Acionamentos modulo expansor 15    
     
     def liga_rele1_exp15(self):
 
-        self.mod.aciona('0xf','0x00','0xFF') 
+        self.mod2.aciona('0xf','0x00','0xFF') 
 
     def desliga_rele1_exp15(self):
 
-        self.mod.aciona('0xf','0x00','0x00') 
+        self.mod2.aciona('0xf','0x00','0x00') 
 
     def liga_rele2_exp15(self):
 
-        self.mod.aciona('0xf','0x01','0xFF') 
+        self.mod2.aciona('0xf','0x01','0xFF') 
 
     def desliga_rele2_exp15(self):
 
-        self.mod.aciona('0xf','0x01','0x00') 
+        self.mod2.aciona('0xf','0x01','0x00') 
 
     def liga_rele3_exp15(self):
 
-        self.mod.aciona('0xf','0x02','0xFF') 
+        self.mod2.aciona('0xf','0x02','0xFF') 
 
     def desliga_rele3_exp15(self):
 
-        self.mod.aciona('0xf','0x02','0x00') 
+        self.mod2.aciona('0xf','0x02','0x00') 
   
     def liga_rele4_exp15(self):
 
-        self.mod.aciona('0xf','0x03','0xFF')        
+        self.mod2.aciona('0xf','0x03','0xFF')        
     def desliga_rele4_exp15(self):
 
-        self.mod.aciona('0xf','0x03','0x00')
+        self.mod2.aciona('0xf','0x03','0x00')
 
 # Acionamentos modulo expansor 16    
     
     def liga_rele1_exp16(self):
 
-        self.mod.aciona('0x10','0x00','0xFF') 
+        self.mod2.aciona('0x10','0x00','0xFF') 
 
     def desliga_rele1_exp16(self):
 
-        self.mod.aciona('0x10','0x00','0x00') 
+        self.mod2.aciona('0x10','0x00','0x00') 
 
     def liga_rele2_exp16(self):
 
-        self.mod.aciona('0x10','0x01','0xFF') 
+        self.mod2.aciona('0x10','0x01','0xFF') 
 
     def desliga_rele2_exp16(self):
 
-        self.mod.aciona('0x10','0x01','0x00') 
+        self.mod2.aciona('0x10','0x01','0x00') 
 
     def liga_rele3_exp16(self):
 
-        self.mod.aciona('0x10','0x02','0xFF') 
+        self.mod2.aciona('0x10','0x02','0xFF') 
 
     def desliga_rele3_exp16(self):
 
-        self.mod.aciona('0x10','0x02','0x00') 
+        self.mod2.aciona('0x10','0x02','0x00') 
   
     def liga_rele4_exp16(self):
 
-        self.mod.aciona('0x10','0x03','0xFF')        
+        self.mod2.aciona('0x10','0x03','0xFF')        
     def desliga_rele4_exp16(self):
 
-        self.mod.aciona('0x10','0x03','0x00')
+        self.mod2.aciona('0x10','0x03','0x00')
