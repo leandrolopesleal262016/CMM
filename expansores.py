@@ -101,7 +101,7 @@ def escreve_serial(packet):
     except Exception as err:
 
 ##        os.system("sudo chmod 777 /dev/ttyS0") # Altera a permissão do acesso a serial
-        print("\nErro na leitura da serial",err)
+##        print("\nErro na leitura da serial",err)
         return ("b''")
 
 class monta_pacote_in():
@@ -159,7 +159,7 @@ class monta_pacote_in():
 
         in_bin1 = str(in_bin1)
 
-        cont = 5
+        cont = 3
 
         if in_bin1 == "b''": # reenviando leitura            
 

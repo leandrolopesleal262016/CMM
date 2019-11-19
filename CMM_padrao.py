@@ -1837,9 +1837,9 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                                 os.system("mpg123 /home/pi/CMM/mp3/empurre.mp3")
                                 
-                                log("Abrindo novamente o social...")
+##                                log("Abrindo novamente o social...")
                                 
-                                saidas.pulso_abre1() # Pulso para abrir direto o portão sem intertravamento (Social)
+##                                saidas.pulso_abre1() # Pulso para abrir direto o portão sem intertravamento (Social)
 
                                 saidas.desliga_blq2()
 
@@ -2096,6 +2096,8 @@ def social(mensagem): # Mensagem informa se o evento veio pelo interface web ou 
     status = open("/home/pi/CMM/status_social.cmm","w") 
     status.write("0")
     status.close()
+
+    time.sleep(1)
     
 def eclusa(mensagem):
 
@@ -2128,6 +2130,8 @@ def eclusa(mensagem):
     status = open("/home/pi/CMM/status_eclusa.cmm","w") 
     status.write("0")
     status.close()
+
+    time.sleep(1)
 
 def Portoes_sociais(Rele): # Programa
     
