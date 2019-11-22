@@ -16,6 +16,7 @@ class Banco:
         except Exception as err:
                 
             print(err)
+            return None
 
         else:    
             
@@ -38,6 +39,7 @@ class Banco:
         except:
             
             print("Erro ao fechar a conexão, ela não estava aberta")
+            return None
 
     def encontra(self,tabela,coluna,valor):
     
@@ -49,6 +51,7 @@ class Banco:
         except Exception as err:
 
             print(err)
+            return None
 
         else:    
             
@@ -80,6 +83,7 @@ class Banco:
             cnx.close()
         except:
             print("Não conseguiu fechar a conexão pois não estava aberta")
+            return None
 
     def deleta(self,tabela,coluna,valor):
 
@@ -92,6 +96,7 @@ class Banco:
         except Exception as err:
             
             print(err)
+            return None
 
             
         try:
@@ -115,6 +120,7 @@ class Banco:
                 cnx.close()
             except:
                 print("Não conseguiu fechar a conexão pois não estava aberta")
+                return None
                 
             print ("Deletado valor",valor,"na coluna",coluna,"da tabela",tabela)
             return("deletado")
@@ -131,6 +137,7 @@ class Banco:
         except Exception as err:
             
             print(err)
+            return None
             
         try:
             
@@ -153,6 +160,7 @@ class Banco:
                 cnx.close()
             except:
                 print("Não conseguiu fechar a conexão pois não estava aberta")
+                return None
                 
             return ("Atualizado valor",valor,"na coluna",coluna,"da tabela",tabela)
             
@@ -168,6 +176,7 @@ class Banco:
         except Exception as err:
             
            print(err)
+           return None
 
            
         try:
@@ -191,6 +200,7 @@ class Banco:
                 cnx.close()
             except:
                 print("Não conseguiu fechar a conexão pois não estava aberta")
+                return None
                 
             print ("Inserido valor",valor,"na coluna",coluna,"da tabela",tabela)
             return("inserido")

@@ -24,6 +24,11 @@ def log(texto): # Metodo para registro dos eventos no log.txt (exibido na interf
 
 banco = cmm.Banco() # Oprerações CRUD no banco CMM
 
+cliente = banco.consulta("config","cliente")
+nome_cliente = banco.consulta("config","nome_cliente")
+ip_cliente = banco.consulta("config","ip_cliente")
+notifica = banco.consulta("comandos","notifica") # Se vai notificar ou não o condfy
+
 portao1 = banco.consulta("leitores_qrcode","portao_1")
 portao2 = banco.consulta("leitores_qrcode","portao_2")
 portao3 = banco.consulta("leitores_qrcode","portao_3")
@@ -80,22 +85,23 @@ mensagem_16 = banco.consulta("leitores_qrcode","mensagem_16")
 def thread_qr1(): # Programa do QR Code 1
 
     rele = 1
-    notifica = "1" 
-
+##    notifica = "1"
+    
     while(1):
 
         try:
+            
             qr1 = cmm.Qrcode(ip_qr1,cliente,rele,portao1,notifica,"Leitor 1",mensagem_1) # instancia a classe leitor (a thread quem da o start)   
             qr1.start() # Inicia o programa qrcode correspondente
 
-        except:
+        except Exception as err:
             
             time.sleep(3)
 
 def thread_qr2(): # Programa do QR Code 2
 
     rele = 1
-    notifica = "1" 
+##    notifica = "1" 
 
     while(1):
 
@@ -111,7 +117,7 @@ def thread_qr2(): # Programa do QR Code 2
 def thread_qr3(): # Programa do QR Code 3
 
     rele = 3
-    notifica = "0"
+##    notifica = "0"
 
     while(1):
 
@@ -127,7 +133,7 @@ def thread_qr3(): # Programa do QR Code 3
 def thread_qr4(): # Programa do QR Code 4
 
     rele = 3
-    notifica = "0"
+##    notifica = "0"
 
     while(1):
 
@@ -143,7 +149,7 @@ def thread_qr4(): # Programa do QR Code 4
 def thread_qr5(): # Programa do QR Code 5
 
     rele = 3
-    notifica = "0"
+##    notifica = "0"
 
     while(1):
 
@@ -159,7 +165,7 @@ def thread_qr5(): # Programa do QR Code 5
 def thread_qr6(): # Programa do QR Code 6
 
     rele = 3
-    notifica = "0"
+##    notifica = "0"
 
     while(1):
 
@@ -175,7 +181,7 @@ def thread_qr6(): # Programa do QR Code 6
 def thread_qr7(): # Programa do QR Code 7
 
     rele = 3
-    notifica = "0"
+##    notifica = "0"
 
     while(1):
 
@@ -191,7 +197,7 @@ def thread_qr7(): # Programa do QR Code 7
 def thread_qr8(): # Programa do QR Code 8
 
     rele = 3
-    notifica = "0"
+##    notifica = "0"
 
     while(1):
 
@@ -207,7 +213,7 @@ def thread_qr8(): # Programa do QR Code 8
 def thread_qr9(): # Programa do QR Code 9
 
     rele = 3
-    notifica = "0"
+##    notifica = "0"
 
     while(1):
 
@@ -223,7 +229,7 @@ def thread_qr9(): # Programa do QR Code 9
 def thread_qr10(): # Programa do QR Code 10
 
     rele = 3
-    notifica = "0"
+##    notifica = "0"
 
     while(1):
 
@@ -239,7 +245,7 @@ def thread_qr10(): # Programa do QR Code 10
 def thread_qr11(): # Programa do QR Code 11
 
     rele = 3
-    notifica = "0"
+##    notifica = "0"
 
     while(1):
 
@@ -255,7 +261,7 @@ def thread_qr11(): # Programa do QR Code 11
 def thread_qr12(): # Programa do QR Code 12
 
     rele = 3
-    notifica = "0"
+##    notifica = "0"
 
     while(1):
 
@@ -271,7 +277,7 @@ def thread_qr12(): # Programa do QR Code 12
 def thread_qr13(): # Programa do QR Code 13
 
     rele = 3
-    notifica = "0"
+##    notifica = "0"
 
     while(1):
 
@@ -287,7 +293,7 @@ def thread_qr13(): # Programa do QR Code 13
 def thread_qr14(): # Programa do QR Code 14
 
     rele = 3
-    notifica = "0"
+##    notifica = "0"
 
     while(1):
 
@@ -303,7 +309,7 @@ def thread_qr14(): # Programa do QR Code 14
 def thread_qr15(): # Programa do QR Code 15
 
     rele = 3
-    notifica = "0"
+##    notifica = "0"
 
     while(1):
 
@@ -319,7 +325,7 @@ def thread_qr15(): # Programa do QR Code 15
 def thread_qr16(): # Programa do QR Code 16
 
     rele = 3
-    notifica = "0"
+##    notifica = "0"
 
     while(1):
 
@@ -334,7 +340,7 @@ def thread_qr16(): # Programa do QR Code 16
     
 
 if ip_qr1 != "":
-        
+            
     qrcode1 = threading.Thread(target=thread_qr1) # Cria e da start ma thread
     qrcode1.start()
 

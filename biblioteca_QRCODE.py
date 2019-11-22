@@ -15,6 +15,7 @@ import socket
 import mysql.connector
 import signal
 from condfy import Notifica
+import cmm_io_saidas as saidas
 
 ######################################  Leitor QR Code  #############################################
 
@@ -75,17 +76,19 @@ class Qrcode(Rele,Evento,Notifica,Banco):
             status.write("1")
             status.close()
 
-            log("Abrindo portão social")            
+##            log("Abrindo portão social")
+
+            saidas.pulso_abre1()
            
-            self.rele.pulso(self.out,2) # Pulso para abrir direto o portão sem intertravamento 
+##            self.rele.pulso(self.out,2) # Pulso para abrir direto o portão sem intertravamento 
 
 ##            self.evento.enviar("E","133","015") # Envia abertura
 
-            os.system("mpg123 /home/pi/CMM/mp3/abrindo_social.mp3")
+            os.system("mpg123 /home/pi/CMM/mp3/acesso_qr.mp3")
             
             time.sleep(2)
             
-            log("Fechando portão social")
+##            log("Fechando portão social")
             
 ##            self.evento.enviar("R","133","015") # Envia fechamento
 
@@ -97,19 +100,21 @@ class Qrcode(Rele,Evento,Notifica,Banco):
 
             status = open("status_eclusa.cmm","w") # Para não disparar o arrombamento
             status.write("1")
-            status.close()        
-        
-            self.rele.pulso(self.out,2) # Pulso para abrir direto o portão sem intertravamento (Eclusa)
+            status.close()
 
-            log("Abrindo portão eclusa")
+            saidas.pulso_abre2()            
+        
+##            self.rele.pulso(self.out,2) # Pulso para abrir direto o portão sem intertravamento (Eclusa)
+
+##            log("Abrindo portão eclusa")
             
 ##            self.evento.enviar("E","133","015") # Envia abertura
 
-            os.system("mpg123 /home/pi/CMM/mp3/abrindo_eclusa.mp3")
+            os.system("mpg123 /home/pi/CMM/mp3/bem_vindo.mp3")
 
             time.sleep(2)
             
-            log("Fechando portão eclusa")
+##            log("Fechando portão eclusa")
             
 ##            self.evento.enviar("R","133","015") # Envia fechamento
 
@@ -265,7 +270,8 @@ class Qrcode(Rele,Evento,Notifica,Banco):
             time.sleep(0.1)
             sock.connect(server_address)
 
-            txt = ('Conectado com',self.leitor,' - {}   porta {}'.format(*server_address))
+            txt = ('Conectado com',self.leitor)
+            print('Conectou com Leitor QR {}   porta {}'.format(*server_address))
             log(txt)
             
             consulta = 0
@@ -629,7 +635,7 @@ class Qrcode(Rele,Evento,Notifica,Banco):
 
                                     if (self.portao == "social"):
 
-                                        log ("Acesso por qr code Portão 1")
+                                        log ("Acesso por qr code Portão Social")
                                                                                 
                                         qr = self.banco.encontra("qr_utilizado","id",self.id_raiz)                                       
                                         
@@ -642,8 +648,13 @@ class Qrcode(Rele,Evento,Notifica,Banco):
                                         else: # QR Code valido
                                             
 ##                                            os.system("mpg123 /home/pi/CMM/mp3/bemvindo_LagoSul.mp3")                                        
-                                            social()                                           
-                                            self.banco.insere("qr_utilizado","id",self.id_raiz) # tabela,coluna,valor
+                                            social()
+
+                                            periodo = self.banco.consulta("config","periodo")
+
+                                            if periodo != "1":
+                                            
+                                                self.banco.insere("qr_utilizado","id",self.id_raiz) # tabela,coluna,valor
                                             
                                             if self.notifica == "1":
                                                 
@@ -659,7 +670,7 @@ class Qrcode(Rele,Evento,Notifica,Banco):
                                         
                                     if (self.portao == "eclusa"):                                        
 
-                                        log ("Acesso por qr code Portão 2")
+                                        log ("Acesso por qr code Portão Eclusa")
                                         eclusa()
                                         
                                                                             
@@ -970,531 +981,531 @@ class Qrcode(Rele,Evento,Notifica,Banco):
             status.write("0")
             status.close()            
 
-        hs = time.strftime("%H:%M:%S") # Hora completa para registro de Log
-        h = int(time.strftime("%H"))
-        data = time.strftime('%d/%m/%y') 
-        
-        try:
-
-            socket.setdefaulttimeout(99999999)
-
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_address = (self.ip_qrcode, 5001) # PORTA PADRAO DO LEITOR DE QR CODE
-            time.sleep(0.1)
-            sock.connect(server_address)
-
-            txt = ('Conectado com',self.leitor, ' - {}   porta {}'.format(*server_address))
-            log(txt)
-            
-            consulta = 0
-            id_valido = 0
-            acesso = 0
-            fora_do_horario = 0
-            consta_no_banco = 0
-            item = 0
-            ja_encontrou = 0
-
-            while(1):
-
-                consulta = 0
-                id_valido = 0
-                acesso = 0
-                fora_do_horario = 0
-                consta_no_banco = 0
-                item = 0
-                ja_encontrou = 0
-
-
-                hs = time.strftime("%H:%M:%S") # MANTEM ATUALIZADO O HORARIO DO REGISTRO DE LOG
-                horario_atual = time.strftime("%H:%M")
-                
-                try: 
-
-                    tamanho = 0
-
-                    dados = sock.recv(128)
-                    tamanho += len(dados)
-                    
-                    #log ("Dados recebidos",dados,"tamanho",tamanho) # Dados lidos no cartão de QR Code
-
-                    if (tamanho >= 16 or tamanho <8): # Se o QR Code lido não tiver exatamente o mesmo tamanho não consulta o banco de dados
-
-                        consulta = 0
-                        dados = 0
-
-                    if (tamanho >= 8 and tamanho < 16): # Se tiver o tamanho exato, prossegue
-                                        
-                        dados = int(dados) # Elimina as '' e o \r
-                        dados = str(dados)
-
-                        txt = ("Dados lidos pelo",self.leitor,dados)
-                        log(txt)
-
-                        dados = dados[3:] # elimina os 3 primeiros digitos da string dados
-                        
-##                        txt = ("Dados editados",dados)
+##        hs = time.strftime("%H:%M:%S") # Hora completa para registro de Log
+##        h = int(time.strftime("%H"))
+##        data = time.strftime('%d/%m/%y') 
+##        
+##        try:
+##
+##            socket.setdefaulttimeout(99999999)
+##
+##            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+##            server_address = (self.ip_qrcode, 5001) # PORTA PADRAO DO LEITOR DE QR CODE
+##            time.sleep(0.1)
+##            sock.connect(server_address)
+##
+##            txt = ('Conectado com',self.leitor, ' - {}   porta {}'.format(*server_address))
+##            log(txt)
+##            
+##            consulta = 0
+##            id_valido = 0
+##            acesso = 0
+##            fora_do_horario = 0
+##            consta_no_banco = 0
+##            item = 0
+##            ja_encontrou = 0
+##
+##            while(1):
+##
+##                consulta = 0
+##                id_valido = 0
+##                acesso = 0
+##                fora_do_horario = 0
+##                consta_no_banco = 0
+##                item = 0
+##                ja_encontrou = 0
+##
+##
+##                hs = time.strftime("%H:%M:%S") # MANTEM ATUALIZADO O HORARIO DO REGISTRO DE LOG
+##                horario_atual = time.strftime("%H:%M")
+##                
+##                try: 
+##
+##                    tamanho = 0
+##
+##                    dados = sock.recv(128)
+##                    tamanho += len(dados)
+##                    
+##                    #log ("Dados recebidos",dados,"tamanho",tamanho) # Dados lidos no cartão de QR Code
+##
+##                    if (tamanho >= 16 or tamanho <8): # Se o QR Code lido não tiver exatamente o mesmo tamanho não consulta o banco de dados
+##
+##                        consulta = 0
+##                        dados = 0
+##
+##                    if (tamanho >= 8 and tamanho < 16): # Se tiver o tamanho exato, prossegue
+##                                        
+##                        dados = int(dados) # Elimina as '' e o \r
+##                        dados = str(dados)
+##
+##                        txt = ("Dados lidos pelo",self.leitor,dados)
 ##                        log(txt)
-
-                        dados = int(dados)
-
-                        consulta = 1
-                            
-                        tabela = [601, 403, 820, 417, 217, 162, 684, 895, 797, 413, 577, 527, 921, 203, 565, 620, 369, 471, 316, 988, 387, 418, 643, 987, 297, 108, 396, 880, 436, 465, 899, 671, 422, 253, 765, 992, 259, 286, 932, 627, 474, 378, 894, 216, 594, 289, 258, 490, 647, 487, 409, 888, 221, 805, 535, 713, 363, 925, 964, 327, 618, 379, 739, 132, 205, 902, 335, 396, 407, 871, 867, 213, 982, 980, 252, 228, 881, 137, 138, 216, 825, 536, 681, 895, 921, 711, 375, 908, 429, 656, 304, 560, 988, 642, 965, 183, 629, 432, 360, 728, 801, 796, 716, 631, 495, 587, 917, 732, 275, 119, 558, 675, 672, 729, 612, 517, 962, 995, 668, 144, 513, 987, 109, 563, 177, 257, 975, 626, 575, 813, 377, 363, 484, 170, 284, 869, 726, 502, 841, 808, 219, 286, 670, 614]                         
-                        tempo_validade = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360, 370, 380, 390, 400, 410, 420, 430, 440, 450, 460, 470, 480, 490, 500, 510, 520, 530, 540, 550, 560, 570, 580, 590, 600, 610, 620, 630, 640, 650, 660, 670, 680, 690, 700, 710, 720, 730, 740, 750, 760, 770, 780, 790, 800, 810, 820, 830, 840, 850, 860, 870, 880, 890, 900, 910, 920, 930, 940, 950, 960, 970, 980, 990, 1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1100, 1110, 1120, 1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200, 1210, 1220, 1230, 1240, 1250, 1260, 1270, 1280, 1290, 1300, 1310, 1320, 1330, 1340, 1350, 1360, 1370, 1380, 1390, 1400, 1410, 1420, 1430, 1440]
-         
-                        if (1):
-                            
-                            for item in tabela:
-                                     
-                                id_raiz = int(dados / item)  # divide o valor lido no QR por cada numero da tabela e consulta no banco
-
-                                self.id_raiz = id_raiz
-                               
-                                try:  # Tenta conectar com o banco de dados
-                                    
-                                    cnx = mysql.connector.connect(user='leandro',database='CMM', password='5510',host='localhost')
-                                    cursor = cnx.cursor()
-                                                                          
-                                except mysql.connector.Error as err:
-
-                                    log("Opa, problema com o banco de dados")                                                                              
-                                    log(err)
-                                                                                    
-                                    time.sleep(0.1)                                       
-                                
-                                try:                    
-
-                                    query = ("SELECT ID FROM qrcode WHERE ID = %s")%id_raiz # procura na coluna ID um código = ao id_raiz
-                                    cursor.execute(query)
-
-                                    for i in cursor: # Se o cursor encontrar o item especificado, prossegue...
-                                                                                                        
-                                        id_valido = 1 # Encontrou o ID raiz
-                                        consulta = 1 # Habilita a consulta de data e horario
-                                        ja_encontrou = 1 # Depois de encontrar encerra a consulta do ID raiz
-                                                       
-                                except Exception as e:
-                                
-                                    txt = ("Tipo de erro: " + str(e))
-                                    log(txt)
-                                    
-                                    break
-                                    
-                                if ja_encontrou == 1:
-                                    
-                                    ja_encontrou = 0
-
-                                    break
-                        item = item
-                                
-                except Exception as e:
-
-                    log("Não foi possivel ler os dados recebidos")
-                    txt = ("Tipo de erro: " + str(e))
-                    log(txt)
-                    
-                if consulta == 0:
-
-                    log("QR Code em formato invalido")
-                    txt = ("Texto",dados)
-                    log(txt)
-                     
-                    os.system("mpg123 /home/pi/mp3/206.mp3")#  Formato de QR Code inválido                    
-                        
-                    texto_recebido = ("")
-
-                    time.sleep(3)
-
-                if consulta == 1 :
-
-                    item = item                                                               
-
-                    if id_valido == 1: # Se o cursor encontrou o ID correspondente prossegue...
-
-                        hs = time.strftime("%H:%M:%S") # MANTEM ATUALIZADO O HORARIO DO REGISTRO DE LOG
-                        horario_atual = time.strftime("%H:%M")                        
-
-                        consta_no_banco = 1
-
-                        try:                    
-
-                            # Primeiro ve se a data ainda não expirou e se o ID ja está liberado o horario
-         
-                            query = ("SELECT * FROM qrcode WHERE data_final >= CURDATE() AND ID = %s")%id_raiz # Verifica só id e data
-                            cursor.execute(query)
-                                  
-                            for i in cursor: # Se encontrar o item especificado, divide as informações e salva nas variaveis
-                                                                                     
-                                ID = i[0]
-                                nome = i[1]
-                                ap = i[2]
-                                bloco = i[3]
-                                cond = i[4]
-                                hora_inicio = i[5]
-                                hora_final = i[6]
-                                data_inicio = i[7]
-                                data_final = i[8]
-                                dias_semana = i[9]
-
-                                try: # Tranforma a hora do formato datetime.timedelta para um horario legivel
-
-                                    a = hora_inicio
-##                                    print("a",a,type(a))
-                                    a = str(a)
-##                                    a = a.replace("datetime.timedelta","")
-##                                    a = a.split(":")
-##                                    
-##                                    val1 = a[0]
-##                                    val2 = a[1]
-##                                    val1 = int(val1)
-##                                    val2 = int(val2)
 ##
-##                                    value = datetime.timedelta(val1,val2)
-                                    hora_inicio_editada = a
-
-                                except Exception as err:
-
-                                    print("Não conseguiu editar hora inico",err)
-                                    hora_inicio_editada = hora_inicio
-
-                                try:
-
-                                    b = hora_final
-##                                    print("b",b,type(b))
-                                    b = str(b)                                    
-##                                    a = a.replace("datetime.timedelta","")
-##                                    a = a.split(":")
-##                                    
-##                                    val1 = a[0]
-##                                    val2 = a[1]
-##                                    val1 = int(val1)
-##                                    val2 = int(val2)
+##                        dados = dados[3:] # elimina os 3 primeiros digitos da string dados
+##                        
+####                        txt = ("Dados editados",dados)
+####                        log(txt)
 ##
-##                                    value = datetime.timedelta(val1,val2)
-                                    hora_final_editada = b
-
-                                except Exception as err:
-
-                                    print("Não conseguiu editar hora final",err)
-                                    hora_final_editada = hora_final                                    
-
-
-                                txt = ("ID",ID,"Nome",nome,"valido de",data_inicio.strftime('%d/%m/%Y'),"até",data_final.strftime('%d/%m/%Y'),"das",hora_inicio_editada,"as",hora_final_editada ,"hs")
-                                txt = str(txt)
-                                txt = txt.replace("'","")
-                                txt = txt.replace(",","")
-                                txt = txt.replace("(","")
-                                txt = txt.replace(")","")                                
-                                log(txt)
-
-                                hora_i = str(hora_inicio)
-                                hora_f = str(hora_final)
-                                hs = str(hs)
-
-                                h_i = (hora_i.split(":")[0])
-                                m_i = (hora_i.split(":")[1])
-                                h_f = (hora_f.split(":")[0])
-                                m_f = (hora_f.split(":")[1])
-
-                                hi = int(h_i )  # Hora inicial como um inteiro para comparar com a hora atual
-                                mi = int(m_i)  # Minuto inicial como um inteiro para comparar com o minuto atual
-
-                                hf = int(h_f )  # Hora final como um inteiro para comparar com a hora atual
-                                mf = int(m_f)  # Minuto final como um inteiro para comparar com o minuto atual
-
-                                h = hs.split(":")[0] # Hora e minutos atuais do sistema
-                                m = hs.split(":")[1]
-                                h = int(h)
-                                m = int(m)
-
-                                consta_no_banco = 1
-
-                            # Calculos para verificar a compatibilidade do código dinamico com o horario
-
-                                tabela = [601, 403, 820, 417, 217, 162, 684, 895, 797, 413, 577, 527, 921, 203, 565, 620, 369, 471, 316, 988, 387, 418, 643, 987, 297, 108, 396, 880, 436, 465, 899, 671, 422, 253, 765, 992, 259, 286, 932, 627, 474, 378, 894, 216, 594, 289, 258, 490, 647, 487, 409, 888, 221, 805, 535, 713, 363, 925, 964, 327, 618, 379, 739, 132, 205, 902, 335, 396, 407, 871, 867, 213, 982, 980, 252, 228, 881, 137, 138, 216, 825, 536, 681, 895, 921, 711, 375, 908, 429, 656, 304, 560, 988, 642, 965, 183, 629, 432, 360, 728, 801, 796, 716, 631, 495, 587, 917, 732, 275, 119, 558, 675, 672, 729, 612, 517, 962, 995, 668, 144, 513, 987, 109, 563, 177, 257, 975, 626, 575, 813, 377, 363, 484, 170, 284, 869, 726, 502, 841, 808, 219, 286, 670, 614]
-                                tempo_validade = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360, 370, 380, 390, 400, 410, 420, 430, 440, 450, 460, 470, 480, 490, 500, 510, 520, 530, 540, 550, 560, 570, 580, 590, 600, 610, 620, 630, 640, 650, 660, 670, 680, 690, 700, 710, 720, 730, 740, 750, 760, 770, 780, 790, 800, 810, 820, 830, 840, 850, 860, 870, 880, 890, 900, 910, 920, 930, 940, 950, 960, 970, 980, 990, 1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1100, 1110, 1120, 1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200, 1210, 1220, 1230, 1240, 1250, 1260, 1270, 1280, 1290, 1300, 1310, 1320, 1330, 1340, 1350, 1360, 1370, 1380, 1390, 1400, 1410, 1420, 1430, 1440]
-                             
-                                minutos_equivalentes = (tempo_validade[tabela.index(item)])-10 # minutos equivalentes a mesma posição em que foi encointrado o multiplicador valido
-                                posicao_multiplicador = tabela.index(item)
-
-                                #print("Posição do multiplicador valido",tabela.index(item))
-                                #print("Minutos equivalente",minutos_equivalentes)
-
-                                
-                                confere_tabela = hora_inicio + timedelta(minutes = minutos_equivalentes) # Horario correspondente ao qr code usado 
-
-                                try:
-
-                                    confere_tabela_editado = str(confere_tabela)
-                                    confere_tabela_editado = confere_tabela_editado.replace("1 day","")
-
-                                except:
-
-                                    confere_tabela_editado = confere_tabela
-
-                                txt = ("Qr correspondente as {}").format(confere_tabela_editado)
-                                txt = str(txt)
-                                txt = txt.replace("'","")
-                                txt = txt.replace(",","")
-                                txt = txt.replace("(","")
-                                txt = txt.replace(")","")
-                                log(txt)
-                           
-                                confere_tabela = str(confere_tabela)
-
-                                confere_tabela_hora = (confere_tabela.split(":")[-3])
-                                confere_tabela_hora = int(confere_tabela_hora.split(" ")[-1]) # Caso apareça 1 day na diferença de qr code
-                                confere_tabela_minuto = int(confere_tabela.split(":")[-2])
-                                confere_tabela_segundos = 00
-                                
-##                                confere_tabela_hora = int(confere_tabela.split(":")[0])
-##                                confere_tabela_minuto = int(confere_tabela.split(":")[1])
-##                                confere_tabela_segundos = 00
-
-                                
-                                confere_tabela_hora = str(confere_tabela_hora)
-                                confere_tabela_minuto = str(confere_tabela_minuto)
-                                confere_tabela = (confere_tabela_hora,confere_tabela_minuto)
-                                                                    
-                                now = datetime.now()
-                                
-                                horario_atual_hora = now.hour  # Estes valores são do tipo inteiro
-                                horario_atual_minuto = now.minute
-                                horario_atual_segundo = now.second
-                                horario_atual = (horario_atual_hora,horario_atual_minuto)
-                                
-                                txt = ("Horario atual no CMM ",hs)
-                                txt = str(txt)
-                                txt = txt.replace("'","")
-                                txt = txt.replace(",","")
-                                txt = txt.replace("(","")
-                                txt = txt.replace(")","")
-                                log(txt)
-
+##                        dados = int(dados)
+##
+##                        consulta = 1
+##                            
+##                        tabela = [601, 403, 820, 417, 217, 162, 684, 895, 797, 413, 577, 527, 921, 203, 565, 620, 369, 471, 316, 988, 387, 418, 643, 987, 297, 108, 396, 880, 436, 465, 899, 671, 422, 253, 765, 992, 259, 286, 932, 627, 474, 378, 894, 216, 594, 289, 258, 490, 647, 487, 409, 888, 221, 805, 535, 713, 363, 925, 964, 327, 618, 379, 739, 132, 205, 902, 335, 396, 407, 871, 867, 213, 982, 980, 252, 228, 881, 137, 138, 216, 825, 536, 681, 895, 921, 711, 375, 908, 429, 656, 304, 560, 988, 642, 965, 183, 629, 432, 360, 728, 801, 796, 716, 631, 495, 587, 917, 732, 275, 119, 558, 675, 672, 729, 612, 517, 962, 995, 668, 144, 513, 987, 109, 563, 177, 257, 975, 626, 575, 813, 377, 363, 484, 170, 284, 869, 726, 502, 841, 808, 219, 286, 670, 614]                         
+##                        tempo_validade = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360, 370, 380, 390, 400, 410, 420, 430, 440, 450, 460, 470, 480, 490, 500, 510, 520, 530, 540, 550, 560, 570, 580, 590, 600, 610, 620, 630, 640, 650, 660, 670, 680, 690, 700, 710, 720, 730, 740, 750, 760, 770, 780, 790, 800, 810, 820, 830, 840, 850, 860, 870, 880, 890, 900, 910, 920, 930, 940, 950, 960, 970, 980, 990, 1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1100, 1110, 1120, 1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200, 1210, 1220, 1230, 1240, 1250, 1260, 1270, 1280, 1290, 1300, 1310, 1320, 1330, 1340, 1350, 1360, 1370, 1380, 1390, 1400, 1410, 1420, 1430, 1440]
+##         
+##                        if (1):
+##                            
+##                            for item in tabela:
+##                                     
+##                                id_raiz = int(dados / item)  # divide o valor lido no QR por cada numero da tabela e consulta no banco
+##
+##                                self.id_raiz = id_raiz
+##                               
+##                                try:  # Tenta conectar com o banco de dados
+##                                    
+##                                    cnx = mysql.connector.connect(user='leandro',database='CMM', password='5510',host='localhost')
+##                                    cursor = cnx.cursor()
+##                                                                          
+##                                except mysql.connector.Error as err:
+##
+##                                    log("Opa, problema com o banco de dados")                                                                              
+##                                    log(err)
+##                                                                                    
+##                                    time.sleep(0.1)                                       
+##                                
+##                                try:                    
+##
+##                                    query = ("SELECT ID FROM qrcode WHERE ID = %s")%id_raiz # procura na coluna ID um código = ao id_raiz
+##                                    cursor.execute(query)
+##
+##                                    for i in cursor: # Se o cursor encontrar o item especificado, prossegue...
+##                                                                                                        
+##                                        id_valido = 1 # Encontrou o ID raiz
+##                                        consulta = 1 # Habilita a consulta de data e horario
+##                                        ja_encontrou = 1 # Depois de encontrar encerra a consulta do ID raiz
+##                                                       
+##                                except Exception as e:
+##                                
+##                                    txt = ("Tipo de erro: " + str(e))
+##                                    log(txt)
+##                                    
+##                                    break
+##                                    
+##                                if ja_encontrou == 1:
+##                                    
+##                                    ja_encontrou = 0
+##
+##                                    break
+##                        item = item
+##                                
+##                except Exception as e:
+##
+##                    log("Não foi possivel ler os dados recebidos")
+##                    txt = ("Tipo de erro: " + str(e))
+##                    log(txt)
+##                    
+##                if consulta == 0:
+##
+##                    log("QR Code em formato invalido")
+##                    txt = ("Texto",dados)
+##                    log(txt)
+##                     
+##                    os.system("mpg123 /home/pi/mp3/206.mp3")#  Formato de QR Code inválido                    
+##                        
+##                    texto_recebido = ("")
+##
+##                    time.sleep(3)
+##
+##                if consulta == 1 :
+##
+##                    item = item                                                               
+##
+##                    if id_valido == 1: # Se o cursor encontrou o ID correspondente prossegue...
+##
+##                        hs = time.strftime("%H:%M:%S") # MANTEM ATUALIZADO O HORARIO DO REGISTRO DE LOG
+##                        horario_atual = time.strftime("%H:%M")                        
+##
+##                        consta_no_banco = 1
+##
+##                        try:                    
+##
+##                            # Primeiro ve se a data ainda não expirou e se o ID ja está liberado o horario
+##         
+##                            query = ("SELECT * FROM qrcode WHERE data_final >= CURDATE() AND ID = %s")%id_raiz # Verifica só id e data
+##                            cursor.execute(query)
+##                                  
+##                            for i in cursor: # Se encontrar o item especificado, divide as informações e salva nas variaveis
+##                                                                                     
+##                                ID = i[0]
+##                                nome = i[1]
+##                                ap = i[2]
+##                                bloco = i[3]
+##                                cond = i[4]
+##                                hora_inicio = i[5]
+##                                hora_final = i[6]
+##                                data_inicio = i[7]
+##                                data_final = i[8]
+##                                dias_semana = i[9]
+##
+##                                try: # Tranforma a hora do formato datetime.timedelta para um horario legivel
+##
+##                                    a = hora_inicio
+####                                    print("a",a,type(a))
+##                                    a = str(a)
+####                                    a = a.replace("datetime.timedelta","")
+####                                    a = a.split(":")
+####                                    
+####                                    val1 = a[0]
+####                                    val2 = a[1]
+####                                    val1 = int(val1)
+####                                    val2 = int(val2)
+####
+####                                    value = datetime.timedelta(val1,val2)
+##                                    hora_inicio_editada = a
+##
+##                                except Exception as err:
+##
+##                                    print("Não conseguiu editar hora inico",err)
+##                                    hora_inicio_editada = hora_inicio
+##
 ##                                try:
 ##
-##                                    txt = ("confere_tabela",confere_tabela,type(confere_tabela))
-##                                    log(txt)
-##                                    txt = ("hs",hs,type(hs))
-##                                    log(txt)
+##                                    b = hora_final
+####                                    print("b",b,type(b))
+##                                    b = str(b)                                    
+####                                    a = a.replace("datetime.timedelta","")
+####                                    a = a.split(":")
+####                                    
+####                                    val1 = a[0]
+####                                    val2 = a[1]
+####                                    val1 = int(val1)
+####                                    val2 = int(val2)
+####
+####                                    value = datetime.timedelta(val1,val2)
+##                                    hora_final_editada = b
+##
+##                                except Exception as err:
+##
+##                                    print("Não conseguiu editar hora final",err)
+##                                    hora_final_editada = hora_final                                    
+##
+##
+##                                txt = ("ID",ID,"Nome",nome,"valido de",data_inicio.strftime('%d/%m/%Y'),"até",data_final.strftime('%d/%m/%Y'),"das",hora_inicio_editada,"as",hora_final_editada ,"hs")
+##                                txt = str(txt)
+##                                txt = txt.replace("'","")
+##                                txt = txt.replace(",","")
+##                                txt = txt.replace("(","")
+##                                txt = txt.replace(")","")                                
+##                                log(txt)
+##
+##                                hora_i = str(hora_inicio)
+##                                hora_f = str(hora_final)
+##                                hs = str(hs)
+##
+##                                h_i = (hora_i.split(":")[0])
+##                                m_i = (hora_i.split(":")[1])
+##                                h_f = (hora_f.split(":")[0])
+##                                m_f = (hora_f.split(":")[1])
+##
+##                                hi = int(h_i )  # Hora inicial como um inteiro para comparar com a hora atual
+##                                mi = int(m_i)  # Minuto inicial como um inteiro para comparar com o minuto atual
+##
+##                                hf = int(h_f )  # Hora final como um inteiro para comparar com a hora atual
+##                                mf = int(m_f)  # Minuto final como um inteiro para comparar com o minuto atual
+##
+##                                h = hs.split(":")[0] # Hora e minutos atuais do sistema
+##                                m = hs.split(":")[1]
+##                                h = int(h)
+##                                m = int(m)
+##
+##                                consta_no_banco = 1
+##
+##                            # Calculos para verificar a compatibilidade do código dinamico com o horario
+##
+##                                tabela = [601, 403, 820, 417, 217, 162, 684, 895, 797, 413, 577, 527, 921, 203, 565, 620, 369, 471, 316, 988, 387, 418, 643, 987, 297, 108, 396, 880, 436, 465, 899, 671, 422, 253, 765, 992, 259, 286, 932, 627, 474, 378, 894, 216, 594, 289, 258, 490, 647, 487, 409, 888, 221, 805, 535, 713, 363, 925, 964, 327, 618, 379, 739, 132, 205, 902, 335, 396, 407, 871, 867, 213, 982, 980, 252, 228, 881, 137, 138, 216, 825, 536, 681, 895, 921, 711, 375, 908, 429, 656, 304, 560, 988, 642, 965, 183, 629, 432, 360, 728, 801, 796, 716, 631, 495, 587, 917, 732, 275, 119, 558, 675, 672, 729, 612, 517, 962, 995, 668, 144, 513, 987, 109, 563, 177, 257, 975, 626, 575, 813, 377, 363, 484, 170, 284, 869, 726, 502, 841, 808, 219, 286, 670, 614]
+##                                tempo_validade = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360, 370, 380, 390, 400, 410, 420, 430, 440, 450, 460, 470, 480, 490, 500, 510, 520, 530, 540, 550, 560, 570, 580, 590, 600, 610, 620, 630, 640, 650, 660, 670, 680, 690, 700, 710, 720, 730, 740, 750, 760, 770, 780, 790, 800, 810, 820, 830, 840, 850, 860, 870, 880, 890, 900, 910, 920, 930, 940, 950, 960, 970, 980, 990, 1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1100, 1110, 1120, 1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200, 1210, 1220, 1230, 1240, 1250, 1260, 1270, 1280, 1290, 1300, 1310, 1320, 1330, 1340, 1350, 1360, 1370, 1380, 1390, 1400, 1410, 1420, 1430, 1440]
+##                             
+##                                minutos_equivalentes = (tempo_validade[tabela.index(item)])-10 # minutos equivalentes a mesma posição em que foi encointrado o multiplicador valido
+##                                posicao_multiplicador = tabela.index(item)
+##
+##                                #print("Posição do multiplicador valido",tabela.index(item))
+##                                #print("Minutos equivalente",minutos_equivalentes)
+##
+##                                
+##                                confere_tabela = hora_inicio + timedelta(minutes = minutos_equivalentes) # Horario correspondente ao qr code usado 
+##
+##                                try:
+##
+##                                    confere_tabela_editado = str(confere_tabela)
+##                                    confere_tabela_editado = confere_tabela_editado.replace("1 day","")
 ##
 ##                                except:
 ##
-##                                    log("Não deu pra fazer a subtração do valor da tabela com horario atual.")
-
-                                atrasado = 1
-                                liberado = 0
-
-                                #print("confere_tabela",confere_tabela,type(confere_tabela), "\nhorario_atual",horario_atual,type(horario_atual))
-                                
-                                # limpando as strings
-
-                                hora_confere_tabela = (confere_tabela[0])
-                                minuto_confere_tabela = (confere_tabela[1])
-
-                                minuto_confere_tabela = int(minuto_confere_tabela)
-
-                                if minuto_confere_tabela > 10: # para colocar um 0 antes do numero                                    
-
-                                    if minuto_confere_tabela == 0:
-                                        minuto_confere_tabela = "00"
-
-                                    if minuto_confere_tabela == 1:
-                                        minuto_confere_tabela = "01"
-
-                                    if minuto_confere_tabela == 2:
-                                        minuto_confere_tabela = "02"
-
-                                    if minuto_confere_tabela == 3:
-                                        minuto_confere_tabela = "03"
-
-                                    if minuto_confere_tabela == 4:
-                                        minuto_confere_tabela = "04"
-
-                                    if minuto_confere_tabela == 5:
-                                        minuto_confere_tabela = "05"
-
-                                    if minuto_confere_tabela == 6:
-                                        minuto_confere_tabela = "06"
-
-                                    if minuto_confere_tabela == 7:
-                                        minuto_confere_tabela = "07"
-
-                                    if minuto_confere_tabela == 8:
-                                        minuto_confere_tabela = "08"
-
-                                    if minuto_confere_tabela == 9:
-                                        minuto_confere_tabela = "09"                                        
-                               
-                                confere_tabela = str(confere_tabela)
-                                
-                                horario_qr = (hora_confere_tabela,":",minuto_confere_tabela)
-                                horario_qr = str(horario_qr)
-                                horario_qr = horario_qr.replace("'","")
-                                horario_qr = horario_qr.replace(",","")
-                                horario_qr = horario_qr.replace("(","")
-                                horario_qr = horario_qr.replace(")","")
-                                horario_qr = horario_qr.replace(" ","")
-                                horario_qr = datetime.strptime(horario_qr,'%H:%M')
-                                
-                                now = datetime.now()
-                                
-                                horario_atual_hora = str(now.hour)  
-                                horario_atual_minuto = str(now.minute)
-
-                                horario_atual = (horario_atual_hora,":",horario_atual_minuto)
-                                horario_atual = str(horario_atual)
-                                horario_atual = horario_atual.replace("'","")
-                                horario_atual = horario_atual.replace(",","")
-                                horario_atual = horario_atual.replace("(","")
-                                horario_atual = horario_atual.replace(")","")
-                                horario_atual = horario_atual.replace(" ","")
-                                horario_atual = datetime.strptime(horario_atual, '%H:%M')
-
-                                diferenca = horario_atual - horario_qr # Confere a diferença entre horario atual e horario do qrcode lido
-
-##                                txt = ("Diferença direto da subtração",diferenca,type(diferenca))
+##                                    confere_tabela_editado = confere_tabela
+##
+##                                txt = ("Qr correspondente as {}").format(confere_tabela_editado)
+##                                txt = str(txt)
+##                                txt = txt.replace("'","")
+##                                txt = txt.replace(",","")
+##                                txt = txt.replace("(","")
+##                                txt = txt.replace(")","")
 ##                                log(txt)
-                                
-                                diferenca = str(diferenca)                                
-                                limite = (diferenca.split(":")[1])
-                                
-                                
-                                txt = ("diferenca de",limite,"min")
-                                txt = str(txt)
-                                txt = txt.replace("'","")
-                                txt = txt.replace(",","")
-                                txt = txt.replace("(","")
-                                txt = txt.replace(")","")
-                                log(txt)
-                                
-                                limite = int(limite)
-
-                                if limite <=  20: 
-
-##                                    log("Esta com menos de 20 min de diferenca")
-                                    liberado = '1' 
-                                    consta_no_banco = 0  # zera a variavel para não narrar a mensagem no final
-                                    mudou = 0
-
-                                if limite >  20: 
-
-                                    log("Este qr code já mudou")
-                                    os.system("mpg123 /home/pi/CMM/mp3/qr_mudou.mp3")
-                                    liberado = '0' 
-                                    consta_no_banco = 0  # zera a variavel para não narrar a mensagem no final
-                                    mudou = 0
-
-                                    time.sleep(3)
-
-                                if liberado == "1":
-                                    
-                                    if (self.portao == "garagem_entrada"):
-
-                                        log ("Acesso por qr code Entrada Garagem")                                        
-                                        qr = self.banco.encontra("qr_utilizado","id",self.id_raiz)                                       
-                                        
-                                        if qr == "1":
-
-                                            log("Este QR Code já foi utilizado")
-                                            os.system("mpg123 /home/pi/CMM/mp3/qr_utilizado.mp3")
-                                            time.sleep(2)
-
-                                        else: # QR Code com data e horario valido
-
-                                            os.system("mpg123 /home/pi/CMM/mp3/bemvindo_LagoSul.mp3")                                        
-                                            garagem_entrada()                                           
-                                            self.banco.insere("qr_utilizado","id",self.id_raiz) # tabela,coluna,valor
-
-                                            if self.notifica == "1":
-
-                                                try:
-
-                                                    log("Notificando Condfy...")                                                
-                                                    self.avisa_condfy.qr_utilizado(self.cliente,self.id_raiz)
-                                                    
-                                                except Exception as err:
-                                                    
-                                                    txt = ("Erro ao notificar o Condfy",err)
-                                                    log(txt)
-
-                                            cont = 150 # 30 segundos
-                                            espera = 0
-
-                                            while cont > 0:
-
-                                                entradas = Entradas()
-                                                laco = entradas.pm1
-
-                                                if laco == 0 and espera == 0:
-                                                
-                                                    log("Laço indutivo ainda não foi acionado...")
-                                                    espera = 1
-                                                    
-                                                if laco == 1:
-
-##                                                    log("Acionou o laço dentro dos 30 segundos apos a lioberação do qr")
-                                                    cont = 0
-
-                                                    cont = cont - 1
-                                                time.sleep(0.2)
-                                                
-                                    if (self.portao == "garagem_saida"):
-
-                                        log("Saída por qr code Garagem 1")
-                                        garagem_saida()
-                                        
-##                                        log("Deletando da tabela qr utilizado...")
-##                                        self.banco.deleta("qr_utilizado", "id", self.id_raiz)
+##                           
+##                                confere_tabela = str(confere_tabela)
+##
+##                                confere_tabela_hora = (confere_tabela.split(":")[-3])
+##                                confere_tabela_hora = int(confere_tabela_hora.split(" ")[-1]) # Caso apareça 1 day na diferença de qr code
+##                                confere_tabela_minuto = int(confere_tabela.split(":")[-2])
+##                                confere_tabela_segundos = 00
+##                                
+####                                confere_tabela_hora = int(confere_tabela.split(":")[0])
+####                                confere_tabela_minuto = int(confere_tabela.split(":")[1])
+####                                confere_tabela_segundos = 00
+##
+##                                
+##                                confere_tabela_hora = str(confere_tabela_hora)
+##                                confere_tabela_minuto = str(confere_tabela_minuto)
+##                                confere_tabela = (confere_tabela_hora,confere_tabela_minuto)
+##                                                                    
+##                                now = datetime.now()
+##                                
+##                                horario_atual_hora = now.hour  # Estes valores são do tipo inteiro
+##                                horario_atual_minuto = now.minute
+##                                horario_atual_segundo = now.second
+##                                horario_atual = (horario_atual_hora,horario_atual_minuto)
+##                                
+##                                txt = ("Horario atual no CMM ",hs)
+##                                txt = str(txt)
+##                                txt = txt.replace("'","")
+##                                txt = txt.replace(",","")
+##                                txt = txt.replace("(","")
+##                                txt = txt.replace(")","")
+##                                log(txt)
+##
+####                                try:
+####
+####                                    txt = ("confere_tabela",confere_tabela,type(confere_tabela))
+####                                    log(txt)
+####                                    txt = ("hs",hs,type(hs))
+####                                    log(txt)
+####
+####                                except:
+####
+####                                    log("Não deu pra fazer a subtração do valor da tabela com horario atual.")
+##
+##                                atrasado = 1
+##                                liberado = 0
+##
+##                                #print("confere_tabela",confere_tabela,type(confere_tabela), "\nhorario_atual",horario_atual,type(horario_atual))
+##                                
+##                                # limpando as strings
+##
+##                                hora_confere_tabela = (confere_tabela[0])
+##                                minuto_confere_tabela = (confere_tabela[1])
+##
+##                                minuto_confere_tabela = int(minuto_confere_tabela)
+##
+##                                if minuto_confere_tabela > 10: # para colocar um 0 antes do numero                                    
+##
+##                                    if minuto_confere_tabela == 0:
+##                                        minuto_confere_tabela = "00"
+##
+##                                    if minuto_confere_tabela == 1:
+##                                        minuto_confere_tabela = "01"
+##
+##                                    if minuto_confere_tabela == 2:
+##                                        minuto_confere_tabela = "02"
+##
+##                                    if minuto_confere_tabela == 3:
+##                                        minuto_confere_tabela = "03"
+##
+##                                    if minuto_confere_tabela == 4:
+##                                        minuto_confere_tabela = "04"
+##
+##                                    if minuto_confere_tabela == 5:
+##                                        minuto_confere_tabela = "05"
+##
+##                                    if minuto_confere_tabela == 6:
+##                                        minuto_confere_tabela = "06"
+##
+##                                    if minuto_confere_tabela == 7:
+##                                        minuto_confere_tabela = "07"
+##
+##                                    if minuto_confere_tabela == 8:
+##                                        minuto_confere_tabela = "08"
+##
+##                                    if minuto_confere_tabela == 9:
+##                                        minuto_confere_tabela = "09"                                        
+##                               
+##                                confere_tabela = str(confere_tabela)
+##                                
+##                                horario_qr = (hora_confere_tabela,":",minuto_confere_tabela)
+##                                horario_qr = str(horario_qr)
+##                                horario_qr = horario_qr.replace("'","")
+##                                horario_qr = horario_qr.replace(",","")
+##                                horario_qr = horario_qr.replace("(","")
+##                                horario_qr = horario_qr.replace(")","")
+##                                horario_qr = horario_qr.replace(" ","")
+##                                horario_qr = datetime.strptime(horario_qr,'%H:%M')
+##                                
+##                                now = datetime.now()
+##                                
+##                                horario_atual_hora = str(now.hour)  
+##                                horario_atual_minuto = str(now.minute)
+##
+##                                horario_atual = (horario_atual_hora,":",horario_atual_minuto)
+##                                horario_atual = str(horario_atual)
+##                                horario_atual = horario_atual.replace("'","")
+##                                horario_atual = horario_atual.replace(",","")
+##                                horario_atual = horario_atual.replace("(","")
+##                                horario_atual = horario_atual.replace(")","")
+##                                horario_atual = horario_atual.replace(" ","")
+##                                horario_atual = datetime.strptime(horario_atual, '%H:%M')
+##
+##                                diferenca = horario_atual - horario_qr # Confere a diferença entre horario atual e horario do qrcode lido
+##
+####                                txt = ("Diferença direto da subtração",diferenca,type(diferenca))
+####                                log(txt)
+##                                
+##                                diferenca = str(diferenca)                                
+##                                limite = (diferenca.split(":")[1])
+##                                
+##                                
+##                                txt = ("diferenca de",limite,"min")
+##                                txt = str(txt)
+##                                txt = txt.replace("'","")
+##                                txt = txt.replace(",","")
+##                                txt = txt.replace("(","")
+##                                txt = txt.replace(")","")
+##                                log(txt)
+##                                
+##                                limite = int(limite)
+##
+##                                if limite <=  20: 
+##
+####                                    log("Esta com menos de 20 min de diferenca")
+##                                    liberado = '1' 
+##                                    consta_no_banco = 0  # zera a variavel para não narrar a mensagem no final
+##                                    mudou = 0
+##
+##                                if limite >  20: 
+##
+##                                    log("Este qr code já mudou")
+##                                    os.system("mpg123 /home/pi/CMM/mp3/qr_mudou.mp3")
+##                                    liberado = '0' 
+##                                    consta_no_banco = 0  # zera a variavel para não narrar a mensagem no final
+##                                    mudou = 0
+##
+##                                    time.sleep(3)
+##
+##                                if liberado == "1":
+##                                    
+##                                    if (self.portao == "garagem_entrada"):
+##
+##                                        log ("Acesso por qr code Entrada Garagem")                                        
+##                                        qr = self.banco.encontra("qr_utilizado","id",self.id_raiz)                                       
 ##                                        
-##                                        log("Deletando da tabela qrcode...")
-##                                        self.banco.deleta("qrcode", "id", self.id_raiz)
-
-                                        if self.notifica == "1":
-
-                                            try:
-
-                                                log("Tenando notificar o Condfy da saida...")                                                
-                                                self.avisa_condfy.qr_utilizado_saida(self.cliente,self.id_raiz)
-                                                
-                                            except Exception as err:
-                                                
-                                                txt = ("Erro ao notificar o Condfy da saida",err)
-                                                txt = str(txt)
-                                                txt = txt.replace("'","")
-                                                txt = txt.replace(",","")
-                                                txt = txt.replace("(","")
-                                                txt = txt.replace(")","")
-                                                log(txt)
-
-                                        
-                            if acesso == 0 and consta_no_banco == 1 and fora_do_horario == 0:
-
-                                log("QR Code com data expirada")
-                                os.system("mpg123 /home/pi/mp3/210.mp3")# Data Expirada                                
-                                consulta = 1
-                                                    
-                        except Exception as e:
-                            
-                            txt = ("Tipo de erro: " + str(e))
-                            log(txt)
-                            
-                        
-                    if id_valido == 0:
-
-                        log("QR Code não cadastrado")
-
-                        try:
-
-                            os.system("mpg123 /home/pi/CMM/mp3/qr_nao_cadastrado.mp3") # QR Code não cadastrado
-
-                        except Exception as err:
-
-                            print(err)
-
-                    fora_do_horario = 0
-
-        except Exception as err:
-
-            txt = ("opa",err)
-            log(txt)
+##                                        if qr == "1":
+##
+##                                            log("Este QR Code já foi utilizado")
+##                                            os.system("mpg123 /home/pi/CMM/mp3/qr_utilizado.mp3")
+##                                            time.sleep(2)
+##
+##                                        else: # QR Code com data e horario valido
+##
+##                                            os.system("mpg123 /home/pi/CMM/mp3/bemvindo_LagoSul.mp3")                                        
+##                                            garagem_entrada()                                           
+##                                            self.banco.insere("qr_utilizado","id",self.id_raiz) # tabela,coluna,valor
+##
+##                                            if self.notifica == "1":
+##
+##                                                try:
+##
+##                                                    log("Notificando Condfy...")                                                
+##                                                    self.avisa_condfy.qr_utilizado(self.cliente,self.id_raiz)
+##                                                    
+##                                                except Exception as err:
+##                                                    
+##                                                    txt = ("Erro ao notificar o Condfy",err)
+##                                                    log(txt)
+##
+##                                            cont = 150 # 30 segundos
+##                                            espera = 0
+##
+##                                            while cont > 0:
+##
+##                                                entradas = Entradas()
+##                                                laco = entradas.pm1
+##
+##                                                if laco == 0 and espera == 0:
+##                                                
+##                                                    log("Laço indutivo ainda não foi acionado...")
+##                                                    espera = 1
+##                                                    
+##                                                if laco == 1:
+##
+####                                                    log("Acionou o laço dentro dos 30 segundos apos a lioberação do qr")
+##                                                    cont = 0
+##
+##                                                    cont = cont - 1
+##                                                time.sleep(0.2)
+##                                                
+##                                    if (self.portao == "garagem_saida"):
+##
+##                                        log("Saída por qr code Garagem 1")
+##                                        garagem_saida()
+##                                        
+####                                        log("Deletando da tabela qr utilizado...")
+####                                        self.banco.deleta("qr_utilizado", "id", self.id_raiz)
+####                                        
+####                                        log("Deletando da tabela qrcode...")
+####                                        self.banco.deleta("qrcode", "id", self.id_raiz)
+##
+##                                        if self.notifica == "1":
+##
+##                                            try:
+##
+##                                                log("Tenando notificar o Condfy da saida...")                                                
+##                                                self.avisa_condfy.qr_utilizado_saida(self.cliente,self.id_raiz)
+##                                                
+##                                            except Exception as err:
+##                                                
+##                                                txt = ("Erro ao notificar o Condfy da saida",err)
+##                                                txt = str(txt)
+##                                                txt = txt.replace("'","")
+##                                                txt = txt.replace(",","")
+##                                                txt = txt.replace("(","")
+##                                                txt = txt.replace(")","")
+##                                                log(txt)
+##
+##                                        
+##                            if acesso == 0 and consta_no_banco == 1 and fora_do_horario == 0:
+##
+##                                log("QR Code com data expirada")
+##                                os.system("mpg123 /home/pi/mp3/210.mp3")# Data Expirada                                
+##                                consulta = 1
+##                                                    
+##                        except Exception as e:
+##                            
+##                            txt = ("Tipo de erro: " + str(e))
+##                            log(txt)
+##                            
+##                        
+##                    if id_valido == 0:
+##
+##                        log("QR Code não cadastrado")
+##
+##                        try:
+##
+##                            os.system("mpg123 /home/pi/CMM/mp3/qr_nao_cadastrado.mp3") # QR Code não cadastrado
+##
+##                        except Exception as err:
+##
+##                            print(err)
+##
+##                    fora_do_horario = 0
+##
+##        except Exception as err:
+##
+##            txt = ("opa",err)
+##            log(txt)
