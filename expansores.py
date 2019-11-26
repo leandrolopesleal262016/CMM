@@ -30,38 +30,44 @@ os.system("sudo chmod 777 /dev/ttyS0") # Altera a permissão do acesso a serial
 
 def log(texto): # Metodo para registro dos eventos no log.txt (exibido na interface grafica)
 
-    hs = time.strftime("%H:%M:%S") 
-    data = time.strftime('%d/%m/%y')
+    try:
 
-    texto = str(texto)
+        hs = time.strftime("%H:%M:%S") 
+        data = time.strftime('%d/%m/%y')
 
-    if texto == "*":
+        texto = str(texto)
 
-        l = open("/var/www/html/log/log.txt","a")
-        l.write("\n")
-        l.close()
+        if texto == "*":
 
-    else:        
+            l = open("/var/www/html/log/log.txt","a")
+            l.write("\n")
+            l.close()
 
-        texto = texto.replace("'","")
-        texto = texto.replace(",","")
-        texto = texto.replace("(","")
-        texto = texto.replace(")","")
+        else:        
 
-        escrita = ("{} - {}  Evento:  {}\n").format(data, hs, texto)
-        escrita = str(escrita)
+            texto = texto.replace("'","")
+            texto = texto.replace(",","")
+            texto = texto.replace("(","")
+            texto = texto.replace(")","")
 
-        l = open("/var/www/html/log/log.txt","a")
-        l.write(escrita)
-        l.close()
+            escrita = ("{} - {}  Evento:  {}\n").format(data, hs, texto)
+            escrita = str(escrita)
+
+            l = open("/var/www/html/log/log.txt","a")
+            l.write(escrita)
+            l.close()
+
+    except Exception as err:
+
+        print("Erro na rotina log de expansores.py")
 
 def escreve_serial(packet):    
 
-    try:        
-
-        ser = serial.Serial("/dev/ttyS0", 115200)
+    try:
 
         time.sleep(0.05) # 004
+        
+        ser = serial.Serial("/dev/ttyS0", 115200)
                 
         GPIO.output(17, 1)  
         GPIO.output(18, 1)
@@ -101,7 +107,7 @@ def escreve_serial(packet):
     except Exception as err:
 
 ##        os.system("sudo chmod 777 /dev/ttyS0") # Altera a permissão do acesso a serial
-##        print("\nErro na leitura da serial",err)
+        print("\nErro na rotina escreve na serial",err)
         return ("b''")
 
 class monta_pacote_in():
@@ -112,75 +118,82 @@ class monta_pacote_in():
         
     def ler(self,modulo): # passar dados como string
 
-        modulo = int(modulo,16) # Converte para um inteiro de base 16
+        try:
 
-        def crc16(byte):
+            modulo = int(modulo,16) # Converte para um inteiro de base 16
 
-            byte = bytes(byte)
+            def crc16(byte):
 
-            self.crc16 = libscrc.modbus(byte) #b'\x07\x05\x00\x00\xFF\x00')  # Estrutura para calculo do CRC
+                byte = bytes(byte)
 
-            bin2str = (hex(self.crc16))
-            bin2str = str(bin2str)
+                self.crc16 = libscrc.modbus(byte) #b'\x07\x05\x00\x00\xFF\x00')  # Estrutura para calculo do CRC
 
-            p = "0x"
+                bin2str = (hex(self.crc16))
+                bin2str = str(bin2str)
 
-            a1 = bin2str[-2]
-            a2 = bin2str[-1]
-            if a1 == "x":
-                a1 = "0"
-            a = p + a1 + a2            
+                p = "0x"
 
-            b1 = bin2str[-4]
-            b2 = bin2str[-3]
-            if b1 == "x":
-                b1 = "0"
-            b = p + b1 + b2
-            
-            return(a,b) 
-               
-        packet = bytearray()  
-        packet.append(modulo) # Endreço do modulo 
-        packet.append(0x02) # Modo leitura
-        packet.append(0x00) # 
-        packet.append(0x04) # Endereço registrador inicial
-        packet.append(0x00) # 
-        packet.append(0x04) # Registradores a serem lidos
+                a1 = bin2str[-2]
+                a2 = bin2str[-1]
+                if a1 == "x":
+                    a1 = "0"
+                a = p + a1 + a2            
 
-        crc = crc16(packet)
-
-        a = int(crc[0],16)
-        b = int(crc[1],16)
-            
-        packet.append(a) # Controle de redundancia
-        packet.append(b) # Controle de redundancia
-                       
-        in_bin1 = escreve_serial(packet)        
-
-        in_bin1 = str(in_bin1)
-
-        cont = 3
-
-        if in_bin1 == "b''": # reenviando leitura            
-
-            while cont > 0:  # reenviando leitura
-
-                time.sleep(0.05)
+                b1 = bin2str[-4]
+                b2 = bin2str[-3]
+                if b1 == "x":
+                    b1 = "0"
+                b = p + b1 + b2
                 
-                in_bin1 = escreve_serial(packet)
-                in_bin1 = str(in_bin1)                
+                return(a,b) 
+                   
+            packet = bytearray()  
+            packet.append(modulo) # Endreço do modulo 
+            packet.append(0x02) # Modo leitura
+            packet.append(0x00) # 
+            packet.append(0x04) # Endereço registrador inicial
+            packet.append(0x00) # 
+            packet.append(0x04) # Registradores a serem lidos
+
+            crc = crc16(packet)
+
+            a = int(crc[0],16)
+            b = int(crc[1],16)
                 
-                if in_bin1 != "b''":
+            packet.append(a) # Controle de redundancia
+            packet.append(b) # Controle de redundancia
+                           
+            in_bin1 = escreve_serial(packet)        
+
+            in_bin1 = str(in_bin1)
+
+            cont = 3
+
+            if in_bin1 == "b''": # reenviando leitura            
+
+                while cont > 0:  # reenviando leitura
+
+                    time.sleep(0.05)
                     
-                    in_bin1 = in_bin1                
-                    return(in_bin1)
+                    in_bin1 = escreve_serial(packet)
+                    in_bin1 = str(in_bin1)                
+                    
+                    if in_bin1 != "b''":
+                        
+                        in_bin1 = in_bin1                
+                        return(in_bin1)
 
-                cont = cont - 1
-                
-        else:
+                    cont = cont - 1
+                    
+            else:
 
-            return(in_bin1)
-        
+                return(in_bin1)
+            
+        except Excepion as err:
+
+            print("Erro na rotina ler de monta pacote")
+            return None
+            
 class monta_pacote():
 
     def __init__(self):
@@ -189,78 +202,85 @@ class monta_pacote():
         
     def aciona(self,modulo,rele,funcao): # passar dados como string '0x01','0x01','0xFF'
 
-        modulo = int(modulo,16)
-        rele = int(rele,16)
-        funcao = int(funcao,16)
+        try:
 
-        def crc16(byte):
+            modulo = int(modulo,16)
+            rele = int(rele,16)
+            funcao = int(funcao,16)
 
-            byte = bytes(byte)
+            def crc16(byte):
 
-            self.crc16 = libscrc.modbus(byte) #b'\x07\x05\x00\x00\xFF\x00')  # Estrutura para calculo do CRC
+                byte = bytes(byte)
 
-            bin2str = (hex(self.crc16))
-            bin2str = str(bin2str)
+                self.crc16 = libscrc.modbus(byte) #b'\x07\x05\x00\x00\xFF\x00')  # Estrutura para calculo do CRC
 
-            p = "0x"
+                bin2str = (hex(self.crc16))
+                bin2str = str(bin2str)
 
-            a1 = bin2str[-2]
-            a2 = bin2str[-1]
-            if a1 == "x":
-                a1 = "0"
-            a = p + a1 + a2            
+                p = "0x"
 
-            b1 = bin2str[-4]
-            b2 = bin2str[-3]
-            if b1 == "x":
-                b1 = "0"
-            b = p + b1 + b2 
+                a1 = bin2str[-2]
+                a2 = bin2str[-1]
+                if a1 == "x":
+                    a1 = "0"
+                a = p + a1 + a2            
+
+                b1 = bin2str[-4]
+                b2 = bin2str[-3]
+                if b1 == "x":
+                    b1 = "0"
+                b = p + b1 + b2 
+                
+                return(a,b) 
+                    
+            packet = bytearray()  
+            packet.append(modulo) # endereço do modulo (dip switch) 
+            packet.append(0x05) # modo acionamento de rele 
+            packet.append(0x00) #            
+            packet.append(rele) # endereço do rele (00,01,02,03) 
+            packet.append(funcao) # Liga / Desliga rele
+            packet.append(0x00) #
+           
+            crc = crc16(packet)
+
+            a = int(crc[0],16)
+            b = int(crc[1],16)
+
+            packet.append(a) # Controle de redundancia 
+            packet.append(b) # Controle de redundancia        
             
-            return(a,b) 
-                
-        packet = bytearray()  
-        packet.append(modulo) # endereço do modulo (dip switch) 
-        packet.append(0x05) # modo acionamento de rele 
-        packet.append(0x00) #            
-        packet.append(rele) # endereço do rele (00,01,02,03) 
-        packet.append(funcao) # Liga / Desliga rele
-        packet.append(0x00) #
-       
-        crc = crc16(packet)
+            in_bin = escreve_serial(packet)              
 
-        a = int(crc[0],16)
-        b = int(crc[1],16)
+            in_bin = str(in_bin)
 
-        packet.append(a) # Controle de redundancia 
-        packet.append(b) # Controle de redundancia        
-        
-        in_bin = escreve_serial(packet)              
+            cont = 5
 
-        in_bin = str(in_bin)
+            if in_bin == "b''": # reenviando leitura            
 
-        cont = 5
+                while cont > 0:  # reenviando leitura
 
-        if in_bin == "b''": # reenviando leitura            
+                    time.sleep(0.05)
+                    
+                    in_bin = escreve_serial(packet)
+                    in_bin = str(in_bin)
 
-            while cont > 0:  # reenviando leitura
+    ##                print(in_bin)
+                    
+                    if in_bin != "b''":                    
+                                       
+                        return(in_bin)
 
-                time.sleep(0.05)
-                
-                in_bin = escreve_serial(packet)
-                in_bin = str(in_bin)
+                    cont = cont - 1
+                    
+            else:
 
-##                print(in_bin)
-                
-                if in_bin != "b''":                    
-                                   
-                    return(in_bin)
+                return(in_bin)
+            
+        except Excepion as err:
 
-                cont = cont - 1
-                
-        else:
-
-            return(in_bin)
-        
+            print("Erro na rotina aciona de monta pacote")
+            return ("b''")
+            
 class retorna:
 
     def __init__(self):
@@ -268,42 +288,52 @@ class retorna:
         self = self
 
     def entrada(self,b,entrada_requisitada):
+
+        if b != None:
+
+            try:
+                
+                in1 = 0
+                in2 = 0
+                in3 = 0
+                in4 = 0
+
+                if (b == "1" or b =="3" or b =="5" or b =="7" or b =="9" or b =="b" or b =="d" or b =="f"):
+                    in1 = 1
+                
+                if (b == "2" or b =="3" or b =="6" or b =="7" or b =="a" or b =="b" or b =="e" or b =="f"):
+                    in2 = 1
+                
+                if (b == "4" or b =="5" or b =="6" or b =="7" or b =="c" or b =="d" or b =="e" or b =="f"):
+                    in3 = 1
+                
+                if (b == "8" or b =="9" or b =="a" or b =="b" or b =="c" or b =="d" or b =="e" or b =="f"):
+                    in4 = 1
+
+                if entrada_requisitada == 'in1':
+
+                    entrada_requisitada = in1
+                    
+                if entrada_requisitada == 'in2':
+
+                    entrada_requisitada = in2
+
+                if entrada_requisitada == 'in3':
+
+                    entrada_requisitada = in3
+
+                if entrada_requisitada == 'in4':
+
+                    entrada_requisitada = in4
+               
+                return(entrada_requisitada)
             
-        in1 = 0
-        in2 = 0
-        in3 = 0
-        in4 = 0
+            except Exception as err:
 
-        if (b == "1" or b =="3" or b =="5" or b =="7" or b =="9" or b =="b" or b =="d" or b =="f"):
-            in1 = 1
-        
-        if (b == "2" or b =="3" or b =="6" or b =="7" or b =="a" or b =="b" or b =="e" or b =="f"):
-            in2 = 1
-        
-        if (b == "4" or b =="5" or b =="6" or b =="7" or b =="c" or b =="d" or b =="e" or b =="f"):
-            in3 = 1
-        
-        if (b == "8" or b =="9" or b =="a" or b =="b" or b =="c" or b =="d" or b =="e" or b =="f"):
-            in4 = 1
+                print("Erro na classe retorna")
+        else:
 
-        if entrada_requisitada == 'in1':
-
-            entrada_requisitada = in1
-            
-        if entrada_requisitada == 'in2':
-
-            entrada_requisitada = in2
-
-        if entrada_requisitada == 'in3':
-
-            entrada_requisitada = in3
-
-        if entrada_requisitada == 'in4':
-
-            entrada_requisitada = in4
-       
-        return(entrada_requisitada)
-
+            return None
 class limpa:
 
     def _init__(self):
@@ -312,27 +342,32 @@ class limpa:
 
     def string(self,i):
 
-        try:
+        if i != None:
 
-            i = str(i.split('\\')) 
-            i = i.replace("x","")
-            i = i.replace("'","")
-            i = i.replace("`","")
-            i = i.replace(" ","")
-            i = i.replace("!","")
-            i = i.replace("I","")
-            i = i.replace('"',"")
-            i = i.replace("[","")
-            i = i.replace("]","")
-            i = i.replace(";","")
-            i = i.replace(":","")
-       
-            return(i)
+            try:
 
-        except:
-            
-            pass # Erro na classe limpa string
+                i = str(i.split('\\')) 
+                i = i.replace("x","")
+                i = i.replace("'","")
+                i = i.replace("`","")
+                i = i.replace(" ","")
+                i = i.replace("!","")
+                i = i.replace("I","")
+                i = i.replace('"',"")
+                i = i.replace("[","")
+                i = i.replace("]","")
+                i = i.replace(";","")
+                i = i.replace(":","")
+           
+                return(i)
 
+            except Exception as err:
+                
+                print("Erro na classe limpa",err,"valor de i",i) # Erro na classe limpa string
+        else:
+
+            return None
+        
 class filtro(limpa):
 
     def __init__(self):
@@ -341,75 +376,88 @@ class filtro(limpa):
 
     def mdl1(self,i):
         
-        if i != b'':
+        if i != None:
 
-            i = self.limpa.string(i) 
+            i = self.limpa.string(i)
+
+            if i != None:
             
-            try:
+                try:
+                    
+                    i= i.split(",")
+                                    
+                    i = (i[4])  # Obtem da lista o byte referente ao estado das entradas                    
+                    b = (i[-1]) # Obtem do byte a metade que contem os bits que representa as entradas
+                                            
+                    if i == "05a": # Formatações devido ao retorno do byte com representação em ascii
+                        b = "5"            
+                    if i == "ta":
+                        b = "9"
+                    if i == "n":
+                        b = "a"
+                    if i == "r":
+                        b = "d"
+                    if i == "":
+                        b = "d"
+                    if i == "0eL":
+                        b = "e"
+                    if i == "rM":
+                        b = "d"
+                    if i == "01H":                    
+                        b = "1"
+                                                 
+                    return(b)
                 
-                i= i.split(",")
-                                
-                i = (i[4])  # Obtem da lista o byte referente ao estado das entradas                    
-                b = (i[-1]) # Obtem do byte a metade que contem os bits que representa as entradas
-                                        
-                if i == "05a": # Formatações devido ao retorno do byte com representação em ascii
-                    b = "5"            
-                if i == "ta":
-                    b = "9"
-                if i == "n":
-                    b = "a"
-                if i == "r":
-                    b = "d"
-                if i == "":
-                    b = "d"
-                if i == "0eL":
-                    b = "e"
-                if i == "rM":
-                    b = "d"
-                if i == "01H":                    
-                    b = "1"
-                                             
-                return(b)
+                except Exception as err:
+
+##                   print("erro fitro mdl1")
+                   return None
+                
+            else:
+
+                return None
             
-            except:
-
-                pass #log("erro fitro mdl1")
-                
-
     def mdl2(self,i):
 
         if i != b'':                
             
-            i = self.limpa.string(i) 
-            
-            try:
-                
-                i= i.split(",")
-                                
-                i = (i[4])  # Obtem da lista o byte referente ao estado das entradas  
-                  
-                b = (i[-1]) # Obtem do byte a metade que contem os bits que representa as entradas
-                        
-                if i == "05a": # Formatações devido ao retorno do byte com representação em ascii
-                    b = "5"            
-                if i == "ta":
-                    b = "9"
-                if i == "n":
-                    b = "a"
-                if i == "r":
-                    b = "d"
-                if i == "":
-                    b = "d"
-                if i == "0eL":
-                    b = "e"
-                if i == "rM":
-                    b = "d"                            
-                
-                return(b)
-            
-            except:
+            i = self.limpa.string(i)
 
-                pass #log("erro fitro mdl2")                
+            if i != None:
+            
+                try:
+                    
+                    i= i.split(",")
+                                    
+                    i = (i[4])  # Obtem da lista o byte referente ao estado das entradas  
+                      
+                    b = (i[-1]) # Obtem do byte a metade que contem os bits que representa as entradas
+                            
+                    if i == "05a": # Formatações devido ao retorno do byte com representação em ascii
+                        b = "5"            
+                    if i == "ta":
+                        b = "9"
+                    if i == "n":
+                        b = "a"
+                    if i == "r":
+                        b = "d"
+                    if i == "":
+                        b = "d"
+                    if i == "0eL":
+                        b = "e"
+                    if i == "rM":
+                        b = "d"                            
+                    
+                    return(b)
+                
+                except Exception as err:
+
+##                   print("erro fitro mdl2")
+                   return None
+
+            else:
+
+                return None
 
     def mdl3(self,i):
 
@@ -453,9 +501,9 @@ class filtro(limpa):
                                     
             return(b)
         
-        except:
-            
-            pass #log("erro fitro mdl3")            
+        except Exception as err:
+
+               print("erro fitro mdl3")            
 
     def mdl4(self,i):       
 
@@ -484,9 +532,9 @@ class filtro(limpa):
                                     
             return(b)
         
-        except:            
-            
-            pass #log("erro fitro mdl4")
+        except Exception as err:
+
+               print("erro fitro mdl4")
             
 
     def mdl5(self,i):       
@@ -517,9 +565,9 @@ class filtro(limpa):
                                     
             return(b)
         
-        except:            
-            
-            pass #log("erro fitro mdl5")
+        except Exception as err:
+
+               print("erro fitro mdl5")
 
     def mdl6(self,i):       
 
@@ -549,9 +597,9 @@ class filtro(limpa):
                                     
             return(b)
         
-        except:
+        except Exception as err:
 
-            pass #log("erro fitro mdl6")
+               print("erro fitro mdl6")
 
     def mdl7(self,i):
 
@@ -578,9 +626,9 @@ class filtro(limpa):
                
                 return (b)                            
 
-            except:
+            except Exception as err:
 
-                pass #log("erro fitro mdl7")
+               print("erro fitro mdl7")
 
                 
     def mdl8(self,i):
@@ -613,9 +661,9 @@ class filtro(limpa):
                
                 return (b)                            
 
-            except:
+            except Exception as err:
 
-                pass #log("erro fitro mdl9")
+               print("erro fitro mdl9")
                 
 
     def mdl9(self,i):
@@ -648,9 +696,9 @@ class filtro(limpa):
                               
                 return (b)                            
 
-            except:
+            except Exception as err:
 
-                pass #log("erro fitro mdl9")
+               print("erro fitro mdl9")
                 
 
     def mdl10(self,i):
@@ -683,9 +731,9 @@ class filtro(limpa):
                               
                 return (b)                            
 
-            except:
+            except Exception as err:
 
-                pass #log("erro fitro mdl10")
+               print("erro fitro mdl10")
                 
 
     def mdl11(self,i):
@@ -720,9 +768,9 @@ class filtro(limpa):
                               
                 return (b)                            
 
-            except:
+            except Exception as err:
 
-                pass #log("erro fitro mdl11")
+               print("erro fitro mdl11")
                 
 
     def mdl12(self,i):
@@ -755,9 +803,9 @@ class filtro(limpa):
                                               
                 return (b)                            
 
-            except:
+            except Exception as err:
 
-                pass #log("erro fitro mdl12")
+               print("erro fitro mdl12")
                 
 
     def mdl13(self,i):
@@ -790,9 +838,9 @@ class filtro(limpa):
                                               
                 return (b)                            
 
-            except:
-                
-                pass #log("erro fitro mdl13")
+            except Exception as err:
+
+               print("erro fitro mdl13")
 
     def mdl14(self,i):
 
@@ -836,9 +884,9 @@ class filtro(limpa):
                                               
                 return (b)                            
 
-            except:
+            except Exception as err:
 
-                pass #log("erro fitro mdl14")
+               print("erro fitro mdl14")
                 
 
     def mdl15(self,i):
@@ -869,9 +917,9 @@ class filtro(limpa):
                                               
                 return (b)                            
 
-            except:
+            except Exception as err:
 
-                pass #log("erro fitro mdl15")
+               print("erro fitro mdl15")
                 
 
     def mdl16(self,i):
@@ -906,9 +954,9 @@ class filtro(limpa):
                                               
                 return (b)                            
 
-            except:
+            except Exception as err:
 
-                pass #log("erro fitro mdl16")
+               print("erro fitro mdl16")
                 
     
 class Leitor(monta_pacote_in,monta_pacote,retorna,filtro):
