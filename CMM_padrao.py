@@ -295,6 +295,7 @@ def gar1():
                                                             evento.enviar("R","133","013") # Envia o evento de fechamento para a central
                                                         
                                                         cont1 = 0
+                                                        tentando1 = 0
                                                         
                                                         ja_fechou1 = 1
                                                         banco.atualiza("comandos","abre_garagem1","0")  
@@ -337,6 +338,7 @@ def gar1():
                                                                     if bar1 == 1: # Se acionou a barreira de entrada                                                            
 
                                                                         log("Acionou a barreira Garagem 1")
+                                                                        l.desliga_rele3_exp1() # Sinal Vermelho
 
                                                                         tempo = 60
 
@@ -353,7 +355,7 @@ def gar1():
                                                                                 if bar1 == 0:
                                                                                     
                                                                                     log("Saiu da barreira Garagem 1")
-                                                                                    l.desliga_rele3_exp1() # Sinal Vermelho
+                                                                                    
                                                                                     tempo = 0
                                                                                     time.sleep(1)
                                                                                     break
@@ -500,6 +502,7 @@ def gar1():
                                                                                                     evento.enviar("R","133","013") # Envia o evento de fechamento para a central
                                                                                                 
                                                                                                 cont2 = 0
+                                                                                                temp2 = 0
 
                                                                                                 ja_fechou1 = 1
                                                                                                 banco.atualiza("comandos","abre_garagem1","0")  
@@ -578,6 +581,7 @@ def gar1():
                                                                                                 evento.enviar("R","133","013") # Envia o evento de fechamento para a central
                                                                                             
                                                                                             temp = 0
+                                                                                            cont2 = 0
 
                                                                                             ja_fechou1 = 1
                                                                                             banco.atualiza("comandos","abre_garagem1","0")
@@ -944,6 +948,7 @@ def gar2():
                                                                     if bar2 == 1: # Se acionou a barreira de entrada                                                            
 
                                                                         log("Acionou a barreira Garagem 2")
+                                                                        l.desliga_rele3_exp2() # Sinal Vermelho
 
                                                                         tempo = 60
 
@@ -960,7 +965,7 @@ def gar2():
                                                                                 if bar2 == 0:
                                                                                     
                                                                                     log("Saiu da barreira Garagem 2")
-                                                                                    l.desliga_rele3_exp2() # Sinal Vermelho
+                                                                                    
                                                                                     tempo = 0
                                                                                     time.sleep(1)
                                                                                     break
@@ -1107,6 +1112,7 @@ def gar2():
                                                                                                     evento.enviar("R","133","017") # Envia o evento de fechamento para a central
                                                                                                 
                                                                                                 cont2 = 0
+                                                                                                temp = 0
 
                                                                                                 ja_fechou2 = 1
                                                                                                 banco.atualiza("comandos","abre_garagem2","0")  
@@ -1603,7 +1609,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                                 evento.enviar("R","133","001") # Envia fechamento
                             
-                            contador = 1
+                            contador = 0
                                                         
                             s = open("/home/pi/CMM/status_social.cmm","w")
                             s.write("0")
@@ -1737,7 +1743,7 @@ def Intertravamento(comando): # Inicia a thread dos portoes sociais importando a
 
                                 evento.enviar("R","133","003") # Envia fechamento
                             
-                            contador = 1
+                            contador = 0
                             
                             s = open("/home/pi/CMM/status_eclusa.cmm","w")
                             s.write("0")
@@ -1788,7 +1794,7 @@ def social(mensagem): # Mensagem informa se o evento veio pelo interface web ou 
     saidas.pulso_abre1() # Pulso para abrir direto o portão sem intertravamento (Social)
 
 
-    if mensagem == "0": # local
+    if mensagem == "0": # Fala no local "Abrindo portão social"
 
         log("Abrindo social...")    
 
@@ -1853,9 +1859,8 @@ def Portoes_sociais(Rele): # Programa
     saida = 0
     qbv_acionado = 0
     banco = cmm.Banco()
-    qbv2 = entradas.qbv2()
-    print("qbv2",qbv2,type(qbv2))
-           
+    qbv2 = entradas.qbv2() # Este quebra de vidro abre os dois portões
+               
     while(1):
 
         habilita_intertravamento = banco.consulta("intertravamento","habilitado")
