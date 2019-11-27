@@ -320,8 +320,8 @@ pip3 install RPi.GPIO
 pip3 install smbus
 pip3 install spidev
 pip3 install serial
-pip3 install libscrc
-pip3 install wiringpi
+sudo pip3 install libscrc
+sudo pip3 install wiringpi
 sudo chmod 666 /dev/ttyS0
 
 echo '''
