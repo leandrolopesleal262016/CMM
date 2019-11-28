@@ -88,8 +88,9 @@ def Servidor_qr(): ######### Thread servidor Cadastro QR Code ##################
                     data = conn.recv(1024)  # Recebe o dado
                     data = data.decode('utf-8')
 
-##                    log("dados recebidos")
-##                    log(data)
+                    log("dados recebidos")
+                    log(data)
+                    print("Dados recebidos:",data)
                     
 
                     comando = (data.split("&")[0])
@@ -179,13 +180,14 @@ def Servidor_qr(): ######### Thread servidor Cadastro QR Code ##################
 
                     try:
                        
-                        dados = data.replace("cadastrar_qr&","")
+                        dados = data.replace("cadastrar_qr&","")                        
                         dados = dados.replace("'",'"')
 
                     except Exception as err:
 
-                        txt =("Erro ao formatar os dados para converter em json", err)
+                        txt = ("Erro ao formatar os dados para converter em json", err)
                         log(txt)
+                        print(txt)
                 
                   #  Faz o cadastro dos dados recebidos no banco do CMM #
 
@@ -198,6 +200,7 @@ def Servidor_qr(): ######### Thread servidor Cadastro QR Code ##################
                         except Exception as err:
 
                             print("Nao conseguiu converter dados json",err)
+                            print (dados)
 
 ##                            dados.update({'nome':'Nome com emoticons'})                            
 ##                            print(dados)
