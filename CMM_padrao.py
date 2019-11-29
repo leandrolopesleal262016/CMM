@@ -547,6 +547,8 @@ def gar1():
 
                                                                                             log("Dupla passagem Garagem 1")
 
+                                                                                            l.desliga_rele3_exp1() # Sinal Vermelho
+
                                                                                             if eventos == "1":
 
                                                                                                 evento.enviar("E","132","016")
@@ -1156,6 +1158,8 @@ def gar2():
                                                                                             bar2 = l.leitor2_in2()
 
                                                                                             log("Dupla passagem Garagem 2")
+                                                                                            
+                                                                                            l.desliga_rele3_exp2() # Sinal Vermelho
 
                                                                                             if eventos == "1":
 

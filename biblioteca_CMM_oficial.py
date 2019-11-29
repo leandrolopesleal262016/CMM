@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import RPi.GPIO as GPIO
 import smbus  # para funcionamento dos módulos com interface I2C 
 import os     # Executa comandos do sistema operacional Ex.: os.system('sudo reboot now'))
-import serial # Para comunicação serial com arduino
+##import serial # Para comunicação serial com arduino
 import mysql.connector # faz a comunicação com o mysql no python 3.6
 import socket
 import signal # Bibloteca para uso do time out
