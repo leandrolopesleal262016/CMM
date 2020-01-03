@@ -42,63 +42,64 @@ def log(texto): # Metodo para registro dos eventos no log.txt (exibido na interf
     
 
 ##print(data)
+mes = int(mes)
 
-if mes == "1":
+if mes == 1:
     mes = "Janeiro"
     
     fazer_backup = 31
 
-if mes == "2":
+if mes == 2:
     mes = "Fevereiro"
 
     fazer_backup = 28
 
-if mes == "3":
+if mes == 3:
     mes = "Marco"
 
     fazer_backup = 31
 
-if mes == "4":
+if mes == 4:
     mes = "Abril"
 
     fazer_backup = 30
 
-if mes == "5":
+if mes == 5:
     mes = "Maio"
 
     fazer_backup = 31
 
-if mes == "6":
+if mes == 6:
     mes = "Junho"
 
     fazer_backup = 30
 
-if mes == "7":
+if mes == 7:
     mes = "Julho"
 
     fazer_backup = 31
 
-if mes == "8":
+if mes == 8:
     mes = "Agosto"
 
     fazer_backup = 31
 
-if mes == "9":
+if mes == 9:
     mes = "Setembro"
 
     fazer_backup = 30
 
-if mes == "10":
+if mes == 10:
     mes = "Outubro"
 
     fazer_backup = 31
 
-if mes == "11":
+if mes == 11:
     mes = "Novembro"
 
     fazer_backup = 30
 
-if mes == "12":
+if mes == 12:
     mes = "Dezembro"
 
     fazer_backup = 31
