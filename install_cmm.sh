@@ -44,7 +44,7 @@ Instalando instalador de pacotes pip...
  
   ''';
 
-sudo apt install python3-pip -y
+sudo apt-get install python3-pip -y
 clear
 
 echo '''
